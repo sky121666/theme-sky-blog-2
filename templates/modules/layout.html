@@ -6,11 +6,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title th:text="${site.title}"></title>
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
-    <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}"></script>
+    <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
   </head>
-  <body>
-    <div id="main">
-      <th:block th:replace="${content}" />
+  <body class="p-4 md:p-8">
+    <div class="max-w-4xl mx-auto min-h-screen flex flex-col">
+      <!-- Terminal Header -->
+      <header class="mb-6 select-none">
+        <div class="text-terminal-dim text-xs mb-2">Last login: <span x-text="new Date().toDateString()"></span> on ttys001</div>
+        <pre class="font-bold text-xs md:text-sm leading-none text-terminal-green opacity-80 hidden md:block">
+   _____ __          __     ____  __
+  / ___// /____  __ / /_   / __ )/ /___  ____ _
+  \__ \/ //_/ / / // __ \ / __  / // __ \/ __ `/
+ ___/ / ,< / /_/ // /_/ // /_/ / // /_/ / /_/ /
+/____/_/|_|\__, /_.___(_)_____/_/ \____/\__, /
+          /____/                       /____/
+        </pre>
+        <div class="mt-4 flex items-center gap-2 text-terminal-green">
+          <span>guest@sky-blog:~$</span>
+          <span class="animate-cursor">█</span>
+        </div>
+      </header>
+
+      <!-- Main Content Area -->
+      <main id="main" class="flex-1 relative">
+        <th:block th:replace="${content}" />
+      </main>
+
+      <!-- Terminal Footer -->
+      <footer class="mt-12 py-4 border-t border-dashed border-terminal-dim text-xs text-terminal-dim flex justify-between">
+        <div>
+          <span>[MODE: NORMAL]</span>
+          <span class="ml-4">[ENCODING: UTF-8]</span>
+        </div>
+        <div>
+          &copy; <span th:text="${#dates.year(#dates.createNow())}"></span> <span th:text="${site.title}"></span>
+        </div>
+      </footer>
     </div>
   </body>
 </html>

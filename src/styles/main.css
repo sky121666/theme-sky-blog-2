@@ -1,23 +1,99 @@
 @import "nprogress/nprogress.css";
 
+/* Google Fonts - Fira Code */
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --terminal-bg: #0d0d0d;
+  --terminal-text: #00ff00;
+  --terminal-dim: rgba(0, 255, 0, 0.2);
+  --terminal-glow: rgba(0, 255, 0, 0.6);
+  --scanline-color: rgba(0, 0, 0, 0.5);
+}
+
 body {
-  background: #f2f2f2;
+  background-color: var(--terminal-bg);
+  color: var(--terminal-text);
+  font-family: "Fira Code", "Courier New", monospace;
+  overflow-x: hidden;
+  min-height: 100vh;
+  /* CRT Flicker Animation */
+  animation: flicker 0.15s infinite;
 }
 
-ul {
-  list-style: decimal;
+/* CRT Overlay Effect */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.25) 50%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 0, 0, 0.06),
+      rgba(0, 255, 0, 0.02),
+      rgba(0, 0, 255, 0.06)
+    );
+  z-index: 999;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
 }
 
-/* NProgress Customization */
+/* Vignette Effect */
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.4) 100%);
+  z-index: 999;
+  pointer-events: none;
+}
+
+/* Text Glow Effect */
+h1, h2, h3, h4, h5, h6, a, strong, .glow-text {
+  text-shadow: 0 0 4px var(--terminal-glow);
+}
+
+/* Selection Style */
+::selection {
+  background: var(--terminal-text);
+  color: var(--terminal-bg);
+}
+
+/* NProgress Customization for Terminal Theme */
 #nprogress .bar {
-  background: #3b82f6 !important; /* Tailwind blue-500 */
-  height: 3px !important;
+  background: var(--terminal-text) !important;
+  height: 2px !important;
+  box-shadow: 0 0 10px var(--terminal-text) !important;
 }
 
 #nprogress .peg {
-  box-shadow:
-    0 0 10px #3b82f6,
-    0 0 5px #3b82f6 !important;
+  box-shadow: 0 0 10px var(--terminal-text), 0 0 5px var(--terminal-text) !important;
+}
+
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 10px;
+  background: var(--terminal-bg);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--terminal-dim);
+  border: 1px solid var(--terminal-text);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--terminal-text);
 }
 
 /* Page Transition Animations */
@@ -33,10 +109,39 @@ ul {
 
 /* Main Content Transition Wrapper */
 #main {
-  transition: opacity 0.3s ease-in-out;
+  transition: opacity 0.2s ease-in-out;
   opacity: 1;
 }
 
 #main.loading {
-  opacity: 0;
+  opacity: 0.5;
+  filter: blur(2px);
+}
+
+/* Terminal Cursor */
+.cursor {
+  display: inline-block;
+  width: 10px;
+  height: 1.2em;
+  background-color: var(--terminal-text);
+  vertical-align: middle;
+  animation: cursor 1s infinite step-end;
+}
+
+/* CRT Flicker Keyframes (referenced in Tailwind config, but also here for raw CSS usage) */
+@keyframes flicker {
+  0% { opacity: 0.97; }
+  5% { opacity: 0.95; }
+  10% { opacity: 0.9; }
+  15% { opacity: 0.95; }
+  20% { opacity: 0.99; }
+  50% { opacity: 0.95; }
+  55% { opacity: 0.9; }
+  60% { opacity: 0.95; }
+  100% { opacity: 0.99; }
+}
+
+@keyframes cursor {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }

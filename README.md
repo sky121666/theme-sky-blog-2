@@ -1,56 +1,60 @@
-# Sky Blog 2 Theme
+# Sky Blog 2 - Geek Terminal Theme
 
-Sky Blog 2 是一个基于 Halo 2.0 的现代博客主题，集成了 Vite、Tailwind CSS 和 Alpine.js 等现代前端技术栈。
+Sky Blog 2 是一个基于 Halo 2.0 的极客风格博客主题。它模拟了复古的 CRT 显示器和命令行终端界面，为读者提供沉浸式的黑客体验。
 
-## 特性
+## 🖥 视觉与交互特性
 
-- ⚡️ **Vite** v7.3+: 极速的开发服务器和构建工具。
-- 🎨 **Tailwind CSS** v4.1+: 实用优先的 CSS 框架，快速构建自定义设计。
-- 📝 **Typography**: 使用 `@tailwindcss/typography` 优化文章阅读体验。
-- 🧩 **Alpine.js** v3.15+: 轻量级 JavaScript 框架，提供交互功能。
-- 🔍 **Iconify**: 丰富的图标库支持。
-- 🛠 **Linting**: 集成 ESLint 和 Prettier，保持代码整洁。
-- 📘 **TypeScript** v5.9+: 提供类型安全的开发体验。
+- **极客终端风格**: 经典的黑底绿字 (`#00FF00`) 配色，搭配半透明背景和 Vignette 暗角。
+- **CRT 仿真效果**:
+  - 📺 **动态扫描线**: 逼真的屏幕扫描线纹理动画。
+  - ✨ **文字发光 (Glow)**: 模拟老式显示器的荧光余辉。
+  - ⚡️ **屏幕闪烁**: 极其细微的 60Hz 信号闪烁感。
+- **命令行交互体验**:
+  - ⌨️ **打字机动画**: 页面加载时模拟命令输入 (`ls -la`, `cat filename.md`)。
+  - █ **光标闪烁**: 随处可见的终端光标动画。
+  - 📂 **模拟文件系统**: 首页文章列表呈现为 `ls -l` 的文件列表格式。
+- **丝滑浏览体验**:
+  - 🚀 **Pjax 无刷新跳转**: 页面切换流畅无白屏。
+  - ⏳ **NProgress**: 顶部精美的加载进度条。
+  - 🖼 **Lozad 懒加载**: 图片按需加载，提升性能。
 
-## 环境要求
+## 🛠 技术栈
 
-- Halo 2.0.0 或更高版本
-- Node.js 18+ (用于开发)
-- pnpm (用于开发)
+- **构建工具**: Vite v7.3+
+- **样式框架**: Tailwind CSS v4.1+ (扩展了 Terminal 主题配置)
+- **交互逻辑**:
+  - **Alpine.js** v3.15+: 处理打字机效果、状态管理。
+  - **Pjax**: 处理单页应用般的路由跳转。
+- **类型安全**: TypeScript v5.9+
 
-## 开发指南
+## 🚀 快速开始
 
-### 1. 安装依赖
+### 环境要求
+- Halo 2.0.0+
+- Node.js 18+ (开发环境)
+- pnpm (包管理)
 
-```bash
-pnpm install
-```
+### 安装与运行
 
-### 2. 开发模式
+1. **安装依赖**
+   ```bash
+   pnpm install
+   ```
 
-启动 Vite 开发服务器，实时监听文件变化：
+2. **启动开发服务器**
+   ```bash
+   pnpm dev
+   ```
 
-```bash
-pnpm dev
-```
+3. **构建生产版本**
+   ```bash
+   pnpm build
+   ```
 
-### 3. 构建
+## 📝 配置说明
 
-构建生产环境代码：
+主题配置位于 `settings.yaml`，支持基础的欢迎语设置。大部分视觉效果通过 CSS 变量在 `src/styles/main.css` 中定义，方便进行二次定制（如修改为琥珀色终端）。
 
-```bash
-pnpm build
-```
-
-该命令会执行 TypeScript 检查、Vite 构建以及打包主题文件。
-
-## 配置说明
-
-主题配置位于 `settings.yaml` 文件中，目前支持以下设置：
-
-- **基础设置**
-  - `welcome_message`: 欢迎语
-
-## 许可证
+## 📄 许可证
 
 [GPL-3.0](LICENSE)

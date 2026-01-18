@@ -5,6 +5,24 @@ import Pjax from "pjax";
 import NProgress from "nprogress";
 import lozad from "lozad";
 
+// Typewriter Effect Component
+Alpine.data("typewriter", (text = "", speed = 50) => ({
+  text: text,
+  display: "",
+  init() {
+    let i = 0;
+    this.display = "";
+    const timer = setInterval(() => {
+      if (i < this.text.length) {
+        this.display += this.text.charAt(i);
+        i++;
+      } else {
+        clearInterval(timer);
+      }
+    }, speed);
+  },
+}));
+
 // Initialize Alpine
 window.Alpine = Alpine;
 Alpine.start();
@@ -26,10 +44,22 @@ const pjax = new Pjax({
   selectors: ["title", "#main"],
   cacheBust: false,
   analytics: false,
-  scrollRestoration: false, // We'll handle scroll manually for smoother experience if needed
+  scrollRestoration: false,
 });
 
-// Pjax events for NProgress and Transitions
+// Sound Effects (Simulated)
+const playKeystroke = () => {
+  // Ideally, use Web Audio API here.
+  // For now, we keep it silent as requested resources are limited.
+};
+
+document.addEventListener("click", (e) => {
+  if ((e.target as HTMLElement).tagName === "A" || (e.target as HTMLElement).tagName === "BUTTON") {
+    playKeystroke();
+  }
+});
+
+// Pjax events
 document.addEventListener("pjax:send", () => {
   NProgress.start();
   const main = document.getElementById("main");
@@ -44,12 +74,15 @@ document.addEventListener("pjax:complete", () => {
   if (main) {
     main.classList.remove("loading");
     
-    // Re-initialize Alpine.js for new content
+    // Re-initialize Alpine.js
     // @ts-ignore
     Alpine.initTree(main);
 
-    // Re-initialize Lozad for new content
+    // Re-initialize Lozad
     observer.observe();
+
+    // Scroll to top with "smooth" behavior (Terminal style jump)
+    window.scrollTo(0, 0);
   }
 });
 
