@@ -1,4 +1,6 @@
 {
+  "name": "theme-sky-blog-2",
+  "version": "1.0.0",
   "license": "GPL-3.0",
   "scripts": {
     "build": "tsc && vite build && theme-package",

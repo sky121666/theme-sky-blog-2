@@ -5,13 +5,13 @@ metadata:
 spec:
   displayName: Sky Blog 2
   author:
-    name: Halo
-    website: https://github.com/halo-dev
-  description: A development starter theme with Vite Ecosystem for Halo
-  logo: https://www.halo.run/logo
-  homepage: https://github.com/halo-dev/theme-modern-starter#readme
-  repo: https://github.com/halo-dev/theme-modern-starter
-  issues: https://github.com/halo-dev/theme-modern-starter/issues
+    name: Sky
+    website: ""
+  description: A modern blog theme for Halo 2.0
+  logo: ""
+  homepage: ""
+  repo: ""
+  issues: ""
   settingName: "theme-sky-blog-2-setting"
   configMapName: "theme-sky-blog-2-configMap"
   version: "1.0.0"
