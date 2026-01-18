@@ -1,30 +1,59 @@
 import "./styles/tailwind.css";
 import "./styles/main.css";
 import Alpine from "alpinejs";
+import Pjax from "pjax";
+import NProgress from "nprogress";
+import lozad from "lozad";
 
 // Initialize Alpine
 window.Alpine = Alpine;
-
-// Add a simple store for demo purposes
-// Define interface for the store to satisfy TypeScript
-interface DemoStore {
-    darkMode: boolean;
-    toggle: () => void;
-}
-
-Alpine.store('demo', {
-    darkMode: false,
-    toggle() {
-        this.darkMode = !this.darkMode;
-        console.log('Dark mode toggled:', this.darkMode);
-    }
-} as DemoStore);
-
 Alpine.start();
 
-// Export a test function to verify TypeScript compilation
-export function greet(name: string): string {
-  return `Hello, ${name}! Welcome to the upgraded theme.`;
-}
+// Initialize NProgress
+NProgress.configure({ showSpinner: false, minimum: 0.1 });
 
-console.log(greet('Developer'));
+// Initialize Lozad (Lazy Loading)
+const observer = lozad(".lozad", {
+  loaded: (el) => {
+    el.classList.add("loaded");
+  },
+});
+observer.observe();
+
+// Initialize Pjax
+const pjax = new Pjax({
+  elements: 'a[href]:not([target="_blank"])',
+  selectors: ["title", "#main"],
+  cacheBust: false,
+  analytics: false,
+  scrollRestoration: false, // We'll handle scroll manually for smoother experience if needed
+});
+
+// Pjax events for NProgress and Transitions
+document.addEventListener("pjax:send", () => {
+  NProgress.start();
+  const main = document.getElementById("main");
+  if (main) {
+    main.classList.add("loading");
+  }
+});
+
+document.addEventListener("pjax:complete", () => {
+  NProgress.done();
+  const main = document.getElementById("main");
+  if (main) {
+    main.classList.remove("loading");
+    
+    // Re-initialize Alpine.js for new content
+    // @ts-ignore
+    Alpine.initTree(main);
+
+    // Re-initialize Lozad for new content
+    observer.observe();
+  }
+});
+
+document.addEventListener("pjax:error", () => {
+  NProgress.done();
+  console.error("Pjax error");
+});

@@ -1,7 +1,42 @@
+@import "nprogress/nprogress.css";
+
 body {
   background: #f2f2f2;
 }
 
 ul {
   list-style: decimal;
+}
+
+/* NProgress Customization */
+#nprogress .bar {
+  background: #3b82f6 !important; /* Tailwind blue-500 */
+  height: 3px !important;
+}
+
+#nprogress .peg {
+  box-shadow:
+    0 0 10px #3b82f6,
+    0 0 5px #3b82f6 !important;
+}
+
+/* Page Transition Animations */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Main Content Transition Wrapper */
+#main {
+  transition: opacity 0.3s ease-in-out;
+  opacity: 1;
+}
+
+#main.loading {
+  opacity: 0;
 }

@@ -9,6 +9,8 @@
     <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}"></script>
   </head>
   <body>
-    <th:block th:replace="${content}" />
+    <div id="main">
+      <th:block th:replace="${content}" />
+    </div>
   </body>
 </html>
