@@ -1,0 +1,14 @@
+apiVersion: v1alpha1
+kind: Setting
+metadata:
+  name: theme-modern-starter1-setting
+spec:
+  forms:
+    - group: basic
+      label: 基础设置
+      formSchema:
+        - $formkit: text
+          name: welcome_message
+          label: 欢迎语
+          value: Hello Halo
+          validation: required
