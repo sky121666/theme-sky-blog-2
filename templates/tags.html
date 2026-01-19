@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
+<th:block th:fragment="content">
+    <div class="px-2 md:px-0" x-data="fileListNav">
+
+        <!-- Command Input Simulation -->
+        <div class="mb-6 flex items-center gap-2 text-terminal-green">
+            <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}">guest@<span
+                    th:text="${site.title}"></span>:~/blog$</span>
+            <span class="text-terminal-dim" th:if="${#authentication.name != 'anonymousUser'}"
+                th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}">
+                <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:~/blog$
+            </span>
+            <span class="typing-effect" x-data="typewriter('ls -la ./tags', 50)" x-text="display"></span>
+        </div>
+
+        <!-- File List Header -->
+        <div
+            class="mb-2 grid grid-cols-12 gap-2 text-xs md:text-sm font-bold border-b border-terminal-dim pb-1 text-terminal-green opacity-80">
+            <div class="col-span-3 md:col-span-2">PERMISSIONS</div>
+            <div class="col-span-3 md:col-span-2">POSTS</div>
+            <div class="col-span-6 md:col-span-8">NAME</div>
+        </div>
+
+        <!-- File List -->
+        <ul class="space-y-1 font-mono text-xs md:text-sm">
+            <!-- Parent Directory Link -->
+            <li data-nav-item :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 0 }"
+                class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
+                <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
+                <div class="col-span-3 md:col-span-2 text-terminal-dim"
+                    :class="{ '!text-terminal-black': selectedIndex === 0 }">...</div>
+                <div class="col-span-6 md:col-span-8">
+                    <a href="/" class="block w-full text-inherit">../</a>
+                </div>
+            </li>
+
+            <!-- Tags Loop -->
+            <li th:each="tag,iterStat : ${tags}" data-nav-item th:data-index="${iterStat.count}"
+                :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }"
+                class="group grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
+                <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100 font-mono">drwxr-xr-x</div>
+                <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100" th:text="${tag.postCount}">0
+                </div>
+                <div class="col-span-6 md:col-span-8 truncate">
+                    <a th:href="${tag.status.permalink}" class="block w-full text-inherit">
+                        #<span th:text="${tag.spec.displayName}"></span>/
+                    </a>
+                </div>
+            </li>
+        </ul>
+
+        <!-- Total Files Footer -->
+        <div class="mt-4 text-xs text-terminal-dim">
+            <span th:text="${#lists.size(tags)}">0</span> tags found.
+        </div>
+
+    </div>
+</th:block>
+
+</html>

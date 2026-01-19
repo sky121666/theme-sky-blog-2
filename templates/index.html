@@ -1,60 +1,83 @@
 <!DOCTYPE html>
 <html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
-  <th:block th:fragment="content">
-    <div class="px-2 md:px-0">
-      
-      <!-- Command Input Simulation -->
-      <div class="mb-6 flex items-center gap-2 text-terminal-green">
-        <span class="text-terminal-dim">user@host:~/blog$</span>
-        <span class="typing-effect" x-data="typewriter('ls -la ./posts', 50)" x-text="display"></span>
-      </div>
+<th:block th:fragment="content">
+  <div class="px-2 md:px-0" x-data="fileListNav">
 
-      <!-- File List Header -->
-      <div class="mb-2 grid grid-cols-12 gap-2 text-xs md:text-sm font-bold border-b border-terminal-dim pb-1 text-terminal-green opacity-80">
-        <div class="col-span-3 md:col-span-2">PERMISSIONS</div>
-        <div class="col-span-2 hidden md:block">USER</div>
-        <div class="col-span-3 md:col-span-2">DATE</div>
-        <div class="col-span-6">NAME</div>
-      </div>
-
-      <!-- File List -->
-      <ul class="space-y-1 font-mono text-xs md:text-sm" x-data="fileListNav">
-        <!-- Parent Directory Link -->
-        <li data-nav-item :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 0 }" class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
-          <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
-          <div class="col-span-2 hidden md:block">root</div>
-          <div class="col-span-3 md:col-span-2 text-terminal-dim" :class="{ '!text-terminal-black': selectedIndex === 0 }">...</div>
-          <div class="col-span-6">
-            <a href="/" class="block w-full text-inherit">../</a>
-          </div>
-        </li>
-
-        <!-- Posts Loop -->
-        <li th:each="post,iterStat : ${posts.items}" data-nav-item th:data-index="${iterStat.count}" :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }" class="group grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
-          <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100">-rw-r--r--</div>
-          <div class="col-span-2 hidden md:block opacity-70 group-hover:opacity-100" th:text="${post.spec.owner}">user</div>
-          <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100" th:text="${#dates.format(post.spec.publishTime, 'MMM dd HH:mm')}">Jan 01 00:00</div>
-          <div class="col-span-6 truncate">
-            <a th:href="${post.status.permalink}" th:text="${post.spec.title}" class="block w-full text-inherit">Post Title</a>
-          </div>
-        </li>
-      </ul>
-
-      <!-- Pagination (Simple) -->
-      <div class="mt-8 flex gap-4 text-sm" th:if="${posts.hasPrevious() || posts.hasNext()}">
-        <a th:if="${posts.hasPrevious()}" th:href="${posts.prevUrl}" class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black px-2 border border-terminal-green">
-          &lt; PREV
-        </a>
-        <a th:if="${posts.hasNext()}" th:href="${posts.nextUrl}" class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black px-2 border border-terminal-green">
-          NEXT &gt;
-        </a>
-      </div>
-
-      <!-- Total Files Footer -->
-      <div class="mt-4 text-xs text-terminal-dim">
-        <span th:text="${posts.total}">0</span> files found.
-      </div>
-
+    <!-- Command Input Simulation -->
+    <div class="mb-6 flex items-center gap-2 text-terminal-green">
+      <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}">guest@<span
+          th:text="${site.title}"></span>:~/blog$</span>
+      <span class="text-terminal-dim" th:if="${#authentication.name != 'anonymousUser'}"
+        th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}">
+        <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:~/blog$
+      </span>
+      <span class="typing-effect" x-data="typewriter('ls -la ./posts', 50)" x-text="display"></span>
     </div>
-  </th:block>
+
+    <!-- File List Header -->
+    <div
+      class="mb-2 grid grid-cols-12 gap-2 text-xs md:text-sm font-bold border-b border-terminal-dim pb-1 text-terminal-green opacity-80">
+      <div class="col-span-3 md:col-span-2">PERMISSIONS</div>
+      <div class="col-span-2 hidden md:block">USER</div>
+      <div class="col-span-3 md:col-span-2">DATE</div>
+      <div class="col-span-6">NAME</div>
+    </div>
+
+    <!-- File List -->
+    <ul class="space-y-1 font-mono text-xs md:text-sm">
+      <!-- Parent Directory Link -->
+      <li data-nav-item :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 0 }"
+        class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
+        <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
+        <div class="col-span-2 hidden md:block">root</div>
+        <div class="col-span-3 md:col-span-2 text-terminal-dim"
+          :class="{ '!text-terminal-black': selectedIndex === 0 }">...</div>
+        <div class="col-span-6">
+          <a href="/" class="block w-full text-inherit">../</a>
+        </div>
+      </li>
+
+      <!-- Posts Loop -->
+      <li th:each="post,iterStat : ${posts.items}" data-nav-item th:data-index="${iterStat.count}"
+        :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }"
+        class="group grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
+        <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100 font-mono"
+          th:with="canEdit=${#authentication.name == post.spec.owner}">
+          <span th:text="${canEdit ? '-rwxr-xr-x' : '-rw-r--r--'}"></span>
+        </div>
+        <div class="col-span-2 hidden md:block opacity-70 group-hover:opacity-100" th:text="${post.spec.owner}">user
+        </div>
+        <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100"
+          th:text="${#dates.format(post.spec.publishTime, 'MMM dd HH:mm')}">Jan 01 00:00</div>
+        <div class="col-span-6 truncate">
+          <a th:href="${post.status.permalink}" th:text="${post.spec.title}" class="block w-full text-inherit">Post
+            Title</a>
+        </div>
+      </li>
+    </ul>
+
+    <!-- Pagination (Simple) -->
+    <div class="mt-8 flex gap-4 text-sm" th:if="${posts.hasPrevious() || posts.hasNext()}">
+      <a th:if="${posts.hasPrevious()}" th:href="${posts.prevUrl}"
+        class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black px-2 border border-terminal-green transition-colors"
+        data-nav-item th:data-index="${#lists.size(posts.items) + 1}"
+        :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }">
+        &lt; PREV
+      </a>
+      <a th:if="${posts.hasNext()}" th:href="${posts.nextUrl}"
+        class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black px-2 border border-terminal-green transition-colors"
+        data-nav-item th:data-index="${#lists.size(posts.items) + (posts.hasPrevious() ? 2 : 1)}"
+        :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }">
+        NEXT &gt;
+      </a>
+    </div>
+
+    <!-- Total Files Footer -->
+    <div class="mt-4 text-xs text-terminal-dim">
+      <span th:text="${posts.total}">0</span> files found.
+    </div>
+
+  </div>
+</th:block>
+
 </html>

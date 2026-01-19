@@ -8,7 +8,7 @@ module.exports = {
         terminal: {
           black: "#0d0d0d",
           green: "#00ff00",
-          dim: "#003300",
+          dim: "#00aa00",
           glow: "rgba(0, 255, 0, 0.5)",
           cursor: "#00ff00",
         },

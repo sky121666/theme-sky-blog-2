@@ -6,7 +6,7 @@
 :root {
   --terminal-bg: #0d0d0d;
   --terminal-text: #00ff00;
-  --terminal-dim: rgba(0, 255, 0, 0.2);
+  --terminal-dim: rgba(0, 255, 0, 0.7);
   --terminal-glow: rgba(0, 255, 0, 0.6);
   --scanline-color: rgba(0, 0, 0, 0.5);
 }
@@ -30,16 +30,12 @@ body::before {
   left: 0;
   bottom: 0;
   right: 0;
-  background: linear-gradient(
-      rgba(18, 16, 16, 0) 50%,
-      rgba(0, 0, 0, 0.25) 50%
-    ),
-    linear-gradient(
-      90deg,
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%,
+      rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg,
       rgba(255, 0, 0, 0.06),
       rgba(0, 255, 0, 0.02),
-      rgba(0, 0, 255, 0.06)
-    );
+      rgba(0, 0, 255, 0.06));
   z-index: 999;
   background-size: 100% 2px, 3px 100%;
   pointer-events: none;
@@ -54,13 +50,21 @@ body::after {
   left: 0;
   bottom: 0;
   right: 0;
-  background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.4) 100%);
+  background: radial-gradient(circle, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.4) 100%);
   z-index: 999;
   pointer-events: none;
 }
 
 /* Text Glow Effect */
-h1, h2, h3, h4, h5, h6, a, strong, .glow-text {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+strong,
+.glow-text {
   text-shadow: 0 0 4px var(--terminal-glow);
 }
 
@@ -130,18 +134,65 @@ h1, h2, h3, h4, h5, h6, a, strong, .glow-text {
 
 /* CRT Flicker Keyframes (referenced in Tailwind config, but also here for raw CSS usage) */
 @keyframes flicker {
-  0% { opacity: 0.97; }
-  5% { opacity: 0.95; }
-  10% { opacity: 0.9; }
-  15% { opacity: 0.95; }
-  20% { opacity: 0.99; }
-  50% { opacity: 0.95; }
-  55% { opacity: 0.9; }
-  60% { opacity: 0.95; }
-  100% { opacity: 0.99; }
+  0% {
+    opacity: 0.97;
+  }
+
+  5% {
+    opacity: 0.95;
+  }
+
+  10% {
+    opacity: 0.9;
+  }
+
+  15% {
+    opacity: 0.95;
+  }
+
+  20% {
+    opacity: 0.99;
+  }
+
+  50% {
+    opacity: 0.95;
+  }
+
+  55% {
+    opacity: 0.9;
+  }
+
+  60% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0.99;
+  }
 }
 
 @keyframes cursor {
-  0%, 100% { opacity: 0; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Terminal Input Caret */
+.caret-terminal-green {
+  caret-color: var(--terminal-text);
+}
+
+/* Hide placeholder on focus */
+input::placeholder {
+  color: rgba(0, 255, 0, 0.3);
+}
+
+input:focus::placeholder {
+  color: transparent;
 }

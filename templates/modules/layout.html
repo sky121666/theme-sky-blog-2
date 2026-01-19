@@ -1,60 +1,107 @@
 <!DOCTYPE html>
 <html lang="en" th:fragment="html (content)">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title th:text="${site.title}"></title>
-    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
-    <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
-  </head>
-  <body class="p-4 md:p-8 h-screen overflow-hidden">
-    <div class="max-w-4xl mx-auto h-full flex flex-col">
-      <!-- Terminal Header -->
-      <header class="mb-4 select-none flex-shrink-0">
-        <div class="text-terminal-dim text-xs mb-2">Last login: <span x-text="new Date().toDateString()"></span> on ttys001</div>
-        <pre class="font-bold text-xs md:text-sm leading-none text-terminal-green opacity-80 hidden md:block">
-   _____ __          __     ____  __
-  / ___// /____  __ / /_   / __ )/ /___  ____ _
-  \__ \/ //_/ / / // __ \ / __  / // __ \/ __ `/
- ___/ / ,< / /_/ // /_/ // /_/ / // /_/ / /_/ /
-/____/_/|_|\__, /_.___(_)_____/_/ \____/\__, /
-          /____/                       /____/
-        </pre>
-        <div class="mt-4 flex items-center gap-2 text-terminal-green">
-          <span>guest@sky-blog:~$</span>
-          <span class="animate-cursor">█</span>
-        </div>
-      </header>
 
-      <!-- Main Content Area -->
-      <main id="main" class="flex-1 relative overflow-auto scrollbar-hide">
-        <th:block th:replace="${content}" />
-      </main>
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title th:text="${site.title}"></title>
+  <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+  <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
+</head>
 
-      <!-- Terminal Footer -->
-      <footer class="mt-4 py-2 border-t border-dashed border-terminal-dim text-xs text-terminal-dim flex flex-col md:flex-row justify-between flex-shrink-0">
-        <div class="flex gap-4">
-          <span>[MODE: NORMAL]</span>
-          <span class="hidden md:inline">[ENCODING: UTF-8]</span>
+<body class="p-4 md:p-8 h-screen overflow-hidden">
+  <div class="max-w-4xl mx-auto h-full flex flex-col">
+    <!-- Terminal Header -->
+    <header class="mb-4 select-none flex-shrink-0">
+      <div class="text-terminal-dim text-xs mb-2">Last login: <span x-text="new Date().toDateString()"></span> on
+        ttys001</div>
+
+      <!-- Auto-generated ASCII Art from config or site title -->
+      <pre x-data="asciiTitle($el.getAttribute('data-title'), $el.getAttribute('data-font'))"
+        th:data-title="${theme.config.basic.ascii_title_text != null and theme.config.basic.ascii_title_text != '' ? theme.config.basic.ascii_title_text : site.title}"
+        th:data-font="${theme.config.basic.ascii_font != null ? theme.config.basic.ascii_font : 'Standard'}"
+        x-text="asciiArt"
+        class="font-bold text-xs md:text-sm leading-none text-terminal-green opacity-80 hidden md:block whitespace-pre"></pre>
+
+      <div class="mt-4 flex items-center gap-2 text-terminal-green">
+        <!-- Login/User Info -->
+        <div class="ml-auto text-xs flex gap-4">
+          <a th:if="${#authentication.name == 'anonymousUser'}" href="/login"
+            class="text-terminal-dim hover:text-terminal-green">[LOGIN]</a>
+          <div th:if="${#authentication.name != 'anonymousUser'}" class="text-terminal-dim"
+            th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}">
+            <span class="mr-2">USER: <span th:text="${currentUser.displayName}"
+                class="text-terminal-green"></span></span>
+            <a href="/logout" class="hover:text-terminal-green">[LOGOUT]</a>
+          </div>
         </div>
-        <div class="flex flex-col md:flex-row md:gap-4 text-right md:text-left">
-           <div th:if="${theme.config.footer.icp}">
-              <a href="https://beian.miit.gov.cn/" target="_blank" class="hover:text-terminal-green transition-colors" th:text="${theme.config.footer.icp}"></a>
-           </div>
-           <div th:if="${theme.config.footer.police_icp}">
-              <a href="http://www.beian.gov.cn/portal/registerSystemInfo" target="_blank" class="hover:text-terminal-green transition-colors">
-                  <span th:text="${theme.config.footer.police_icp}"></span>
-              </a>
-           </div>
-           <div>
-              &copy; <span th:text="${#dates.year(#dates.createNow())}"></span> <span th:text="${site.title}"></span>
-           </div>
-        </div>
-      </footer>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main" class="flex-1 relative overflow-auto scrollbar-hide">
+      <th:block th:replace="${content}" />
+    </main>
+
+    <!-- Terminal Command Input -->
+    <div x-data="terminalInput('~/blog')" class="mt-4 pt-2 border-t border-dashed border-terminal-dim flex-shrink-0">
+      <!-- Command Input Line -->
+      <div class="flex items-center gap-2 text-terminal-green text-sm">
+        <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name == 'anonymousUser'}">guest@<span
+            th:text="${site.title}"></span>:<span x-text="currentPath"></span>$</span>
+        <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name != 'anonymousUser'}"
+          th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}">
+          <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:<span
+            x-text="currentPath"></span>$
+        </span>
+        <input x-ref="cmdInput" x-model="command" @keydown="handleKeydown($event)" type="text"
+          class="flex-1 bg-transparent border-none outline-none text-terminal-green font-mono caret-terminal-green"
+          placeholder="type 'help' for commands..." autocomplete="off" spellcheck="false" />
+        <span class="animate-cursor text-terminal-green">█</span>
+      </div>
+
+      <!-- Command Output -->
+      <div x-show="output" x-text="output" class="mt-1 text-xs text-terminal-dim pl-4 whitespace-pre-wrap font-mono">
+      </div>
+
+      <!-- Help Output -->
+      <pre x-show="showHelp" x-text="helpText" class="mt-2 text-xs text-terminal-dim pl-4 whitespace-pre-wrap"></pre>
     </div>
-    <th:block th:if="${theme.config.footer.custom_head}">
-        <th:block th:utext="${theme.config.footer.custom_head}"></th:block>
-    </th:block>
-  </body>
+
+    <!-- Terminal Footer -->
+    <footer
+      class="mt-2 py-2 border-t border-dashed border-terminal-dim text-xs text-terminal-dim flex flex-col md:flex-row justify-between flex-shrink-0">
+      <div class="flex gap-4">
+        <span>[MODE: NORMAL]</span>
+        <span class="hidden md:inline">[ENCODING: UTF-8]</span>
+      </div>
+      <div class="flex flex-col md:flex-row md:gap-4 text-right md:text-left">
+        <div th:if="${theme.config.footer.icp}">
+          <a href="https://beian.miit.gov.cn/" target="_blank" class="hover:text-terminal-green transition-colors"
+            th:text="${theme.config.footer.icp}"></a>
+        </div>
+        <div th:if="${theme.config.footer.police_icp}">
+          <a href="http://www.beian.gov.cn/portal/registerSystemInfo" target="_blank"
+            class="hover:text-terminal-green transition-colors">
+            <span th:text="${theme.config.footer.police_icp}"></span>
+          </a>
+        </div>
+        <div>
+          &copy; <span th:text="${#dates.year(#dates.createNow())}"></span> <span th:text="${site.title}"></span>
+        </div>
+      </div>
+    </footer>
+  </div>
+  <th:block th:if="${theme.config.footer.custom_head}">
+    <th:block th:utext="${theme.config.footer.custom_head}"></th:block>
+  </th:block>
+  <script th:inline="javascript">
+    window.haloData = {
+      categories: /*[[${categoryFinder.listAll()}]]*/[],
+      tags: /*[[${tagFinder.listAll()}]]*/[]
+    };
+  </script>
+</body>
+
 </html>

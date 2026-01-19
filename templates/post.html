@@ -1,48 +1,58 @@
 <!DOCTYPE html>
 <html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
-  <th:block th:fragment="content">
-    <div class="px-2 md:px-0">
-      
-      <!-- Command Input Simulation -->
-      <div class="mb-6 flex items-center gap-2 text-terminal-green">
-        <span class="text-terminal-dim">user@host:~/blog/posts$</span>
-        <span class="typing-effect" x-data="typewriter('cat ' + $el.getAttribute('data-filename'), 30)" th:data-filename="${post.spec.slug} + '.md'" x-text="display"></span>
-      </div>
+<th:block th:fragment="content">
+  <div class="px-2 md:px-0">
 
-      <article class="prose prose-invert max-w-none">
-        
-        <!-- File Metadata Header -->
-        <div class="border border-terminal-green p-4 mb-8 bg-terminal-dim/30 text-xs font-mono relative overflow-hidden">
-          <div class="absolute top-0 left-0 w-full h-1 bg-terminal-green animate-scanline opacity-20"></div>
-          <div class="grid grid-cols-2 gap-y-2">
-            <div><span class="text-terminal-dim">File:</span> <span th:text="${post.spec.slug} + '.md'"></span></div>
-            <div><span class="text-terminal-dim">Size:</span> <span th:text="${#strings.length(post.content.content)} + ' bytes'"></span></div>
-            <div><span class="text-terminal-dim">Owner:</span> <span th:text="${post.spec.owner}"></span></div>
-            <div><span class="text-terminal-dim">Created:</span> <span th:text="${#dates.format(post.spec.publishTime, 'yyyy-MM-dd HH:mm:ss')}"></span></div>
-          </div>
-        </div>
-
-        <!-- Post Content -->
-        <div class="terminal-content">
-          <h1 th:text="${post.spec.title}" class="text-3xl mb-8 border-b-2 border-dashed border-terminal-green pb-4"></h1>
-          
-          <th:block th:utext="${post.content.content}"> </th:block>
-        </div>
-
-      </article>
-
-      <!-- EOF Marker -->
-      <div class="mt-12 mb-8 text-center text-terminal-dim animate-pulse">
-        *** END OF FILE ***
-      </div>
-
-      <!-- Back Button -->
-      <div class="mb-8">
-        <a href="/" class="inline-block border border-terminal-green text-terminal-green px-4 py-1 hover:bg-terminal-green hover:text-terminal-black transition-colors">
-          cd ..
-        </a>
-      </div>
-
+    <!-- Command Input Simulation -->
+    <div class="mb-6 flex items-center gap-2 text-terminal-green">
+      <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}">guest@<span
+          th:text="${site.title}"></span>:~/blog/posts$</span>
+      <span class="text-terminal-dim" th:if="${#authentication.name != 'anonymousUser'}"
+        th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}">
+        <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:~/blog/posts$
+      </span>
+      <span class="typing-effect" x-data="typewriter('cat ' + $el.getAttribute('data-filename'), 30)"
+        th:data-filename="${post.spec.slug} + '.md'" x-text="display"></span>
     </div>
-  </th:block>
+
+    <article class="prose prose-invert max-w-none">
+
+      <!-- File Metadata Header -->
+      <div class="border border-terminal-green p-4 mb-8 bg-terminal-dim/30 text-xs font-mono relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-1 bg-terminal-green animate-scanline opacity-20"></div>
+        <div class="grid grid-cols-2 gap-y-2">
+          <div><span class="text-terminal-dim">File:</span> <span th:text="${post.spec.slug} + '.md'"></span></div>
+          <div><span class="text-terminal-dim">Size:</span> <span
+              th:text="${#strings.length(post.content.content)} + ' bytes'"></span></div>
+          <div><span class="text-terminal-dim">Owner:</span> <span th:text="${post.spec.owner}"></span></div>
+          <div><span class="text-terminal-dim">Created:</span> <span
+              th:text="${#dates.format(post.spec.publishTime, 'yyyy-MM-dd HH:mm:ss')}"></span></div>
+        </div>
+      </div>
+
+      <!-- Post Content -->
+      <div class="terminal-content">
+        <h1 th:text="${post.spec.title}" class="text-3xl mb-8 border-b-2 border-dashed border-terminal-green pb-4"></h1>
+
+        <th:block th:utext="${post.content.content}"> </th:block>
+      </div>
+
+    </article>
+
+    <!-- EOF Marker -->
+    <div class="mt-12 mb-8 text-center text-terminal-dim animate-pulse">
+      *** END OF FILE ***
+    </div>
+
+    <!-- Back Button -->
+    <div class="mb-8">
+      <a href="/"
+        class="inline-block border border-terminal-green text-terminal-green px-4 py-1 hover:bg-terminal-green hover:text-terminal-black transition-colors">
+        cd ..
+      </a>
+    </div>
+
+  </div>
+</th:block>
+
 </html>

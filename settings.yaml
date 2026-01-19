@@ -8,10 +8,39 @@ spec:
       label: 基础设置
       formSchema:
         - $formkit: text
-          name: welcome_message
-          label: 欢迎语
-          value: Hello Halo
-          validation: required
+          name: ascii_title_text
+          label: ASCII 艺术字文本
+          placeholder: 例如：SkyBlog
+          help: 输入要显示的文字，将自动生成 ASCII 艺术字
+        - $formkit: select
+          name: ascii_font
+          label: ASCII 艺术字风格
+          value: Standard
+          options:
+            - label: Standard (标准)
+              value: Standard
+            - label: Banner (横幅)
+              value: Banner
+            - label: Big (大号)
+              value: Big
+            - label: Block (块状)
+              value: Block
+            - label: Doom (末日)
+              value: Doom
+            - label: Lean (倾斜)
+              value: Lean
+            - label: Mini (迷你)
+              value: Mini
+            - label: Script (手写)
+              value: Script
+            - label: Shadow (阴影)
+              value: Shadow
+            - label: Slant (斜体)
+              value: Slant
+            - label: Small (小号)
+              value: Small
+            - label: Speed (速度)
+              value: Speed
     - group: footer
       label: 页脚设置
       formSchema:

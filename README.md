@@ -53,7 +53,16 @@ Sky Blog 2 是一个基于 Halo 2.0 的极客风格博客主题。它模拟了�
 
 ## 📝 配置说明
 
-主题配置位于 `settings.yaml`，支持基础的欢迎语设置。大部分视觉效果通过 CSS 变量在 `src/styles/main.css` 中定义，方便进行二次定制（如修改为琥珀色终端）。
+主题配置位于 `settings.yaml`，目前支持以下设置：
+
+- **基础设置**
+  - `ascii_title`: 自定义 ASCII 艺术字标题
+- **页脚设置**
+  - `icp`: ICP 备案号
+  - `police_icp`: 公安联网备案号
+  - `custom_head`: 自定义头部代码
+
+大部分视觉效果通过 CSS 变量在 `src/styles/main.css` 中定义，方便进行二次定制。
 
 ## 📄 许可证
 
