@@ -24,21 +24,56 @@
     </div>
 
     <!-- File List -->
-    <ul class="space-y-1 font-mono text-xs md:text-sm">
-      <!-- Parent Directory Link -->
+    <ul class="space-y-1 font-mono text-xs md:text-sm"
+      th:with="allCategories=${categoryFinder.listAll()},allTags=${tagFinder.listAll()}">
+      <!-- Categories Folder -->
       <li data-nav-item :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 0 }"
+        class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer"
+        th:with="firstCat=${!allCategories.isEmpty() ? allCategories.get(0) : null},
+                 catPermalink=${firstCat != null and firstCat.status?.permalink != null ? firstCat.status.permalink : '/categories'},
+                 catSlug=${firstCat != null and firstCat.spec?.slug != null ? firstCat.spec.slug : ''},
+                 catUrl=${catSlug != '' and catPermalink.endsWith('/' + catSlug) ? catPermalink.substring(0, catPermalink.length() - catSlug.length() - 1) : '/categories'}">
+        <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
+        <div class="col-span-2 hidden md:block"
+          th:text="${#authentication.name != 'anonymousUser' ? #authentication.name : 'root'}">root</div>
+        <div class="col-span-3 md:col-span-2 text-terminal-dim" :class="{ '!text-terminal-black': selectedIndex === 0 }"
+          th:text="${#dates.format(#dates.createNow(), 'MMM dd HH:mm')}">Jan 01 00:00</div>
+        <div class="col-span-6">
+          <a th:href="${catUrl}" class="block w-full text-inherit">categories/</a>
+        </div>
+      </li>
+
+      <!-- Tags Folder -->
+      <li data-nav-item :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 1 }"
+        class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer"
+        th:with="firstTag=${!allTags.isEmpty() ? allTags.get(0) : null},
+                 tagPermalink=${firstTag != null and firstTag.status?.permalink != null ? firstTag.status.permalink : '/tags'},
+                 tagSlug=${firstTag != null and firstTag.spec?.slug != null ? firstTag.spec.slug : ''},
+                 tagUrl=${tagSlug != '' and tagPermalink.endsWith('/' + tagSlug) ? tagPermalink.substring(0, tagPermalink.length() - tagSlug.length() - 1) : '/tags'}">
+        <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
+        <div class="col-span-2 hidden md:block"
+          th:text="${#authentication.name != 'anonymousUser' ? #authentication.name : 'root'}">root</div>
+        <div class="col-span-3 md:col-span-2 text-terminal-dim" :class="{ '!text-terminal-black': selectedIndex === 1 }"
+          th:text="${#dates.format(#dates.createNow(), 'MMM dd HH:mm')}">Jan 01 00:00</div>
+        <div class="col-span-6">
+          <a th:href="${tagUrl}" class="block w-full text-inherit">tags/</a>
+        </div>
+      </li>
+
+      <!-- Parent Directory Link -->
+      <li data-nav-item :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 2 }"
         class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
         <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
         <div class="col-span-2 hidden md:block">root</div>
         <div class="col-span-3 md:col-span-2 text-terminal-dim"
-          :class="{ '!text-terminal-black': selectedIndex === 0 }">...</div>
+          :class="{ '!text-terminal-black': selectedIndex === 2 }">...</div>
         <div class="col-span-6">
           <a href="/" class="block w-full text-inherit">../</a>
         </div>
       </li>
 
       <!-- Posts Loop -->
-      <li th:each="post,iterStat : ${posts.items}" data-nav-item th:data-index="${iterStat.count}"
+      <li th:each="post,iterStat : ${posts.items}" data-nav-item th:data-index="${iterStat.count + 2}"
         :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }"
         class="group grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
         <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100 font-mono"
@@ -60,13 +95,13 @@
     <div class="mt-8 flex gap-4 text-sm" th:if="${posts.hasPrevious() || posts.hasNext()}">
       <a th:if="${posts.hasPrevious()}" th:href="${posts.prevUrl}"
         class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black px-2 border border-terminal-green transition-colors"
-        data-nav-item th:data-index="${#lists.size(posts.items) + 1}"
+        data-nav-item th:data-index="${#lists.size(posts.items) + 3}"
         :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }">
         &lt; PREV
       </a>
       <a th:if="${posts.hasNext()}" th:href="${posts.nextUrl}"
         class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black px-2 border border-terminal-green transition-colors"
-        data-nav-item th:data-index="${#lists.size(posts.items) + (posts.hasPrevious() ? 2 : 1)}"
+        data-nav-item th:data-index="${#lists.size(posts.items) + (posts.hasPrevious() ? 4 : 3)}"
         :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }">
         NEXT &gt;
       </a>

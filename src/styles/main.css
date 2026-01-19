@@ -1,5 +1,3 @@
-@import "nprogress/nprogress.css";
-
 /* Google Fonts - Fira Code */
 @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap");
 
@@ -74,30 +72,23 @@ strong,
   color: var(--terminal-bg);
 }
 
-/* NProgress Customization for Terminal Theme */
-#nprogress .bar {
-  background: var(--terminal-text) !important;
-  height: 2px !important;
-  box-shadow: 0 0 10px var(--terminal-text) !important;
-}
 
-#nprogress .peg {
-  box-shadow: 0 0 10px var(--terminal-text), 0 0 5px var(--terminal-text) !important;
-}
 
 /* Scrollbar Customization */
+/* Hide Scrollbar Globally */
 ::-webkit-scrollbar {
-  width: 10px;
-  background: var(--terminal-bg);
+  display: none;
+  width: 0;
+  background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--terminal-dim);
-  border: 1px solid var(--terminal-text);
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--terminal-text);
+html,
+body,
+#main {
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE and Edge */
 }
 
 /* Page Transition Animations */

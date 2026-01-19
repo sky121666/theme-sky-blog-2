@@ -47,18 +47,25 @@
     <!-- Terminal Command Input -->
     <div x-data="terminalInput('~/blog')" class="mt-4 pt-2 border-t border-dashed border-terminal-dim flex-shrink-0">
       <!-- Command Input Line -->
-      <div class="flex items-center gap-2 text-terminal-green text-sm">
-        <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name == 'anonymousUser'}">guest@<span
-            th:text="${site.title}"></span>:<span x-text="currentPath"></span>$</span>
-        <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name != 'anonymousUser'}"
-          th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}">
-          <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:<span
-            x-text="currentPath"></span>$
-        </span>
+      <div class="relative" @click="$refs.cmdInput.focus()">
+        <div class="flex items-center gap-2 text-terminal-green text-sm overflow-hidden">
+          <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name == 'anonymousUser'}">guest@<span
+              th:text="${site.title}"></span>:<span x-text="currentPath"></span>$</span>
+          <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name != 'anonymousUser'}"
+            th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}">
+            <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:<span
+              x-text="currentPath"></span>$
+          </span>
+
+          <!-- Visual Command & Cursor -->
+          <div class="flex items-center">
+            <span x-text="command" class="whitespace-pre font-mono"></span>
+            <span class="animate-cursor text-terminal-green">█</span>
+          </div>
+        </div>
+
         <input x-ref="cmdInput" x-model="command" @keydown="handleKeydown($event)" type="text"
-          class="flex-1 bg-transparent border-none outline-none text-terminal-green font-mono caret-terminal-green"
-          placeholder="type 'help' for commands..." autocomplete="off" spellcheck="false" />
-        <span class="animate-cursor text-terminal-green">█</span>
+          class="absolute inset-0 w-full h-full opacity-0 cursor-text" autocomplete="off" spellcheck="false" />
       </div>
 
       <!-- Command Output -->
@@ -97,10 +104,43 @@
     <th:block th:utext="${theme.config.footer.custom_head}"></th:block>
   </th:block>
   <script th:inline="javascript">
-    window.haloData = {
-      categories: /*[[${categoryFinder.listAll()}]]*/[],
-      tags: /*[[${tagFinder.listAll()}]]*/[]
-    };
+    (function () {
+      const categories = /*[[${categoryFinder.listAll()}]]*/[];
+      const tags = /*[[${tagFinder.listAll()}]]*/[];
+      // Use 'posts' variable if available (category/tag pages), otherwise empty array
+      const currentPosts = /*[[${posts != null ? posts.items : #lists.empty()}]]*/[];
+      const user = /*[[${#authentication.name != 'anonymousUser' ? #authentication.name : 'guest'}]]*/ 'guest';
+
+      // Infer URL prefix from first item's permalink
+      // e.g., permalink="/ts/ai", slug="ai" -> prefix="/ts"
+      function inferPrefix(items, defaultPrefix) {
+        if (items.length > 0 && items[0].status?.permalink && items[0].spec?.slug) {
+          const permalink = items[0].status.permalink;
+          const slug = items[0].spec.slug;
+          if (permalink.endsWith('/' + slug)) {
+            return permalink.slice(0, permalink.length - slug.length - 1);
+          }
+        }
+        return defaultPrefix;
+      }
+
+      console.log("[VFS Init] currentPosts length:", currentPosts.length);
+      console.log("[VFS Init] categories inferred URL:", inferPrefix(categories, "/categories"));
+      console.log("[VFS Init] tags inferred URL:", inferPrefix(tags, "/tags"));
+
+      window.haloData = {
+        categories: categories,
+        tags: tags,
+        currentPosts: currentPosts,
+        urls: {
+          categories: inferPrefix(categories, "/categories"),
+          tags: inferPrefix(tags, "/tags"),
+          archives: "/archives",
+          home: "/"
+        },
+        user: user
+      };
+    })();
   </script>
 </body>
 
