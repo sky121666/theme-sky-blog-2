@@ -23,6 +23,51 @@ Alpine.data("typewriter", (text = "", speed = 50) => ({
   },
 }));
 
+// Keyboard Navigation Component
+Alpine.data("fileListNav", () => ({
+  selectedIndex: -1,
+  items: [],
+  init() {
+    this.items = Array.from(this.$el.querySelectorAll("li[data-nav-item]"));
+    if (this.items.length > 0) {
+      this.selectedIndex = 0; // Default select first item
+    }
+    
+    // Watch for arrow keys
+    window.addEventListener('keydown', this.handleKeydown.bind(this));
+  },
+  destroy() {
+    window.removeEventListener('keydown', this.handleKeydown.bind(this));
+  },
+  handleKeydown(e: KeyboardEvent) {
+    // Only navigate if we have items
+    if (this.items.length === 0) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      this.selectedIndex = (this.selectedIndex + 1) % this.items.length;
+      this.scrollToSelected();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      this.selectedIndex = (this.selectedIndex - 1 + this.items.length) % this.items.length;
+      this.scrollToSelected();
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (this.selectedIndex >= 0 && this.selectedIndex < this.items.length) {
+        const link = this.items[this.selectedIndex].querySelector("a");
+        if (link) {
+          link.click();
+        }
+      }
+    }
+  },
+  scrollToSelected() {
+    if (this.selectedIndex >= 0 && this.items[this.selectedIndex]) {
+      this.items[this.selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+}));
+
 // Initialize Alpine
 window.Alpine = Alpine;
 Alpine.start();

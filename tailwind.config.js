@@ -51,7 +51,7 @@ module.exports = {
         DEFAULT: {
           css: {
             color: theme("colors.terminal.green"),
-            fontFamily: theme("fontFamily.mono"),
+            "font-family": theme("fontFamily.mono"),
             '[class~="lead"]': {
               color: theme("colors.terminal.green"),
             },

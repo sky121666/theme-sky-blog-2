@@ -18,24 +18,24 @@
       </div>
 
       <!-- File List -->
-      <ul class="space-y-1 font-mono text-xs md:text-sm">
+      <ul class="space-y-1 font-mono text-xs md:text-sm" x-data="fileListNav">
         <!-- Parent Directory Link -->
-        <li class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
+        <li data-nav-item :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 0 }" class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
           <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
           <div class="col-span-2 hidden md:block">root</div>
-          <div class="col-span-3 md:col-span-2 text-terminal-dim">...</div>
+          <div class="col-span-3 md:col-span-2 text-terminal-dim" :class="{ '!text-terminal-black': selectedIndex === 0 }">...</div>
           <div class="col-span-6">
-            <a href="/" class="block w-full">../</a>
+            <a href="/" class="block w-full text-inherit">../</a>
           </div>
         </li>
 
         <!-- Posts Loop -->
-        <li th:each="post : ${posts.items}" class="group grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1">
+        <li th:each="post,iterStat : ${posts.items}" data-nav-item th:data-index="${iterStat.count}" :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }" class="group grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer">
           <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100">-rw-r--r--</div>
           <div class="col-span-2 hidden md:block opacity-70 group-hover:opacity-100" th:text="${post.spec.owner}">user</div>
           <div class="col-span-3 md:col-span-2 opacity-70 group-hover:opacity-100" th:text="${#dates.format(post.spec.publishTime, 'MMM dd HH:mm')}">Jan 01 00:00</div>
           <div class="col-span-6 truncate">
-            <a th:href="${post.status.permalink}" th:text="${post.spec.title}" class="block w-full">Post Title</a>
+            <a th:href="${post.status.permalink}" th:text="${post.spec.title}" class="block w-full text-inherit">Post Title</a>
           </div>
         </li>
       </ul>

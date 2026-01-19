@@ -12,3 +12,19 @@ spec:
           label: 欢迎语
           value: Hello Halo
           validation: required
+    - group: footer
+      label: 页脚设置
+      formSchema:
+        - $formkit: text
+          name: icp
+          label: ICP 备案号
+          placeholder: 例如：京ICP备00000000号
+        - $formkit: text
+          name: police_icp
+          label: 公安联网备案号
+          placeholder: 例如：京公网安备00000000000000号
+        - $formkit: textarea
+          name: custom_head
+          label: 自定义头部代码
+          placeholder: 可用于添加统计代码等，将直接注入到 body 底部
+          rows: 5
