@@ -1,7 +1,8 @@
 {
   "name": "theme-sky-blog-2",
+  "type": "module",
   "version": "1.0.0",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "scripts": {
     "build": "tsc && vite build && theme-package",
     "build-only": "tsc && vite build",

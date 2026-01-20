@@ -2,20 +2,23 @@ apiVersion: theme.halo.run/v1alpha1
 kind: Theme
 metadata:
   name: theme-sky-blog-2
+  annotations:
+    # TODO: 上架应用市场后替换为实际 app-id
+    # "store.halo.run/app-id": "app-PLACEHOLDER"
 spec:
   displayName: Sky Blog 2
   author:
     name: Sky
-    website: ""
-  description: A modern blog theme for Halo 2.0
-  logo: ""
-  homepage: ""
-  repo: ""
-  issues: ""
+    website: "https://github.com/sky121666"
+  description: 复古终端风格主题，支持全键盘操作与 Vim 快捷键
+  logo: "/themes/theme-sky-blog-2/assets/images/heihei.png"
+  homepage: "https://github.com/sky121666/theme-sky-blog-2"
+  repo: "https://github.com/sky121666/theme-sky-blog-2"
+  issues: "https://github.com/sky121666/theme-sky-blog-2/issues"
   settingName: "theme-sky-blog-2-setting"
   configMapName: "theme-sky-blog-2-configMap"
   version: "1.0.0"
-  requires: "2.0.0"
+  requires: ">=2.21.0"
   license:
-    - name: "GPL-3.0"
-      url: "https://github.com/halo-dev/theme-modern-starter/blob/main/LICENSE"
+    - name: "MIT"
+      url: "https://github.com/sky121666/theme-sky-blog-2/blob/main/LICENSE"
