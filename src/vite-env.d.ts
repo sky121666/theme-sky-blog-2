@@ -22,3 +22,31 @@ declare module "lozad" {
     observer: IntersectionObserver;
   };
 }
+
+interface Window {
+  haloData?: {
+    categories: any[];
+    tags: any[];
+    currentPosts: any[];
+    urls: {
+      categories: string;
+      tags: string;
+      archives: string;
+      home: string;
+    };
+    user: string;
+    pagination?: {
+      hasPrev: boolean;
+      hasNext: boolean;
+      prevUrl: string | null;
+      nextUrl: string | null;
+    };
+    nextPost?: string | null;
+    prevPost?: string | null;
+    currentPost?: {
+      title: string | null;
+      slug: string | null;
+      permalink: string | null;
+    };
+  };
+}

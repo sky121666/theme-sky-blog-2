@@ -31,15 +31,16 @@
         class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer"
         th:with="firstCat=${!allCategories.isEmpty() ? allCategories.get(0) : null},
                  catPermalink=${firstCat != null and firstCat.status?.permalink != null ? firstCat.status.permalink : '/categories'},
+                 catPermalinkClean=${catPermalink.endsWith('/') ? catPermalink.substring(0, catPermalink.length() - 1) : catPermalink},
                  catSlug=${firstCat != null and firstCat.spec?.slug != null ? firstCat.spec.slug : ''},
-                 catUrl=${catSlug != '' and catPermalink.endsWith('/' + catSlug) ? catPermalink.substring(0, catPermalink.length() - catSlug.length() - 1) : '/categories'}">
+                 catUrl=${catSlug != '' and catPermalinkClean.endsWith('/' + catSlug) ? catPermalinkClean.substring(0, catPermalinkClean.length() - catSlug.length() - 1) : '/categories'}">
         <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
         <div class="col-span-2 hidden md:block"
           th:text="${#authentication.name != 'anonymousUser' ? #authentication.name : 'root'}">root</div>
         <div class="col-span-3 md:col-span-2 text-terminal-dim" :class="{ '!text-terminal-black': selectedIndex === 0 }"
           th:text="${#dates.format(#dates.createNow(), 'MMM dd HH:mm')}">Jan 01 00:00</div>
         <div class="col-span-6">
-          <a th:href="${catUrl}" class="block w-full text-inherit">categories/</a>
+          <a id="link-categories" th:href="${catUrl}" class="block w-full text-inherit">categories/</a>
         </div>
       </li>
 
@@ -48,15 +49,16 @@
         class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer"
         th:with="firstTag=${!allTags.isEmpty() ? allTags.get(0) : null},
                  tagPermalink=${firstTag != null and firstTag.status?.permalink != null ? firstTag.status.permalink : '/tags'},
+                 tagPermalinkClean=${tagPermalink.endsWith('/') ? tagPermalink.substring(0, tagPermalink.length() - 1) : tagPermalink},
                  tagSlug=${firstTag != null and firstTag.spec?.slug != null ? firstTag.spec.slug : ''},
-                 tagUrl=${tagSlug != '' and tagPermalink.endsWith('/' + tagSlug) ? tagPermalink.substring(0, tagPermalink.length() - tagSlug.length() - 1) : '/tags'}">
+                 tagUrl=${tagSlug != '' and tagPermalinkClean.endsWith('/' + tagSlug) ? tagPermalinkClean.substring(0, tagPermalinkClean.length() - tagSlug.length() - 1) : '/tags'}">
         <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
         <div class="col-span-2 hidden md:block"
           th:text="${#authentication.name != 'anonymousUser' ? #authentication.name : 'root'}">root</div>
         <div class="col-span-3 md:col-span-2 text-terminal-dim" :class="{ '!text-terminal-black': selectedIndex === 1 }"
           th:text="${#dates.format(#dates.createNow(), 'MMM dd HH:mm')}">Jan 01 00:00</div>
         <div class="col-span-6">
-          <a th:href="${tagUrl}" class="block w-full text-inherit">tags/</a>
+          <a id="link-tags" th:href="${tagUrl}" class="block w-full text-inherit">tags/</a>
         </div>
       </li>
 

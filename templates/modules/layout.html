@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" th:fragment="html (content)">
+<html lang="en" class="terminal-theme" th:fragment="html (content)">
 
 <head>
   <meta charset="UTF-8" />
@@ -108,15 +108,18 @@
       const categories = /*[[${categoryFinder.listAll()}]]*/[];
       const tags = /*[[${tagFinder.listAll()}]]*/[];
       // Use 'posts' variable if available (category/tag pages), otherwise empty array
-      const currentPosts = /*[[${posts != null ? posts.items : #lists.empty()}]]*/[];
+      const currentPosts = /*[[${posts != null ? posts.items : null}]]*/[];
       const user = /*[[${#authentication.name != 'anonymousUser' ? #authentication.name : 'guest'}]]*/ 'guest';
 
       // Infer URL prefix from first item's permalink
       // e.g., permalink="/ts/ai", slug="ai" -> prefix="/ts"
       function inferPrefix(items, defaultPrefix) {
-        if (items.length > 0 && items[0].status?.permalink && items[0].spec?.slug) {
-          const permalink = items[0].status.permalink;
+        if (items && items.length > 0 && items[0].status?.permalink && items[0].spec?.slug) {
+          let permalink = items[0].status.permalink;
           const slug = items[0].spec.slug;
+          if (permalink.endsWith('/')) {
+            permalink = permalink.slice(0, -1);
+          }
           if (permalink.endsWith('/' + slug)) {
             return permalink.slice(0, permalink.length - slug.length - 1);
           }
@@ -124,21 +127,34 @@
         return defaultPrefix;
       }
 
-      console.log("[VFS Init] currentPosts length:", currentPosts.length);
+      console.log("[VFS Init] currentPosts length:", (currentPosts || []).length);
       console.log("[VFS Init] categories inferred URL:", inferPrefix(categories, "/categories"));
       console.log("[VFS Init] tags inferred URL:", inferPrefix(tags, "/tags"));
 
       window.haloData = {
         categories: categories,
         tags: tags,
-        currentPosts: currentPosts,
+        currentPosts: currentPosts || [],
         urls: {
           categories: inferPrefix(categories, "/categories"),
           tags: inferPrefix(tags, "/tags"),
           archives: "/archives",
           home: "/"
         },
-        user: user
+        user: user,
+        pagination: {
+          hasPrev: /*[[${posts != null and posts.hasPrevious()}]]*/ false,
+          hasNext: /*[[${posts != null and posts.hasNext()}]]*/ false,
+          prevUrl: /*[[${posts != null and posts.hasPrevious() ? posts.prevUrl : null}]]*/ null,
+          nextUrl: /*[[${posts != null and posts.hasNext() ? posts.nextUrl : null}]]*/ null
+        },
+        nextPost: /*[[${nextPost != null ? nextPost.status.permalink : null}]]*/null,
+        prevPost: /*[[${prevPost != null ? prevPost.status.permalink : null}]]*/null,
+        currentPost: {
+          title: /*[[${post != null ? post.spec.title : null}]]*/null,
+          slug: /*[[${post != null ? post.spec.slug : null}]]*/null,
+          permalink: /*[[${post != null ? post.status.permalink : null}]]*/null
+        }
       };
     })();
   </script>

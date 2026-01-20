@@ -49,7 +49,7 @@ figlet.parseFont("Speed", Speed);
 declare global {
   interface Window {
     Alpine: typeof Alpine;
-    haloData: {
+    haloData?: {
       categories: any[];
       tags: any[];
       currentPosts: any[];
@@ -60,6 +60,19 @@ declare global {
         home: string;
       };
       user: string;
+      pagination?: {
+        hasPrev: boolean;
+        hasNext: boolean;
+        prevUrl: string | null;
+        nextUrl: string | null;
+      };
+      nextPost?: string | null;
+      prevPost?: string | null;
+      currentPost?: {
+        title: string | null;
+        slug: string | null;
+        permalink: string | null;
+      };
     };
   }
 }
@@ -115,26 +128,79 @@ Alpine.data("terminalInput", (currentPath: string = "~/blog") => ({
   historyIndex: -1,
   suggestions: [] as string[],
   showHelp: false,
-  helpText: `
-Available commands:
-  cd <path>     - Navigate to a path (e.g. 'cd categories/ai')
-  ls            - List directory contents
-  search <key>  - Search posts by keyword
-  help          - Show this help message
-  clear         - Clear command output
+
+  // Dynamic help text based on page type
+  get helpText(): string {
+    if (this.isPostPage()) {
+      return `
+Post Page Commands:
+  cd ..         - Go back to list
+  next          - Next article
+  prev          - Previous article
+  back          - Browser back
+  help          - Show this help
+  clear         - Clear output
 
 Navigation:
-  ↑/↓           - History
+  ↑/↓           - Command history
   Tab           - Auto-complete
   Enter         - Execute
-`.trim(),
+`.trim();
+    }
+    return `
+List Page Commands:
+  ls            - List directory contents
+  cd <path>     - Navigate to path
+  pd / npage    - Next page
+  pu / ppage    - Previous page
+  back          - Browser back
+  help          - Show this help
+  clear         - Clear output
+
+Navigation:
+  ↑/↓           - Command history
+  Tab           - Auto-complete
+  Enter         - Execute
+`.trim();
+  },
+
+  isPostPage(): boolean {
+    const currentPost = window.haloData?.currentPost;
+    if (!currentPost || !currentPost.permalink) return false;
+
+    const pathname = window.location.pathname;
+    const postPermalink = currentPost.permalink;
+
+    // Handle both full URLs and relative paths
+    try {
+      const postUrl = new URL(postPermalink, window.location.origin);
+      return pathname === postUrl.pathname;
+    } catch {
+      // Fallback: direct comparison
+      return pathname === postPermalink || pathname === '/' + postPermalink;
+    }
+  },
+
   output: "",
 
   init() {
-    console.log("[VFS] Terminal initialized at ~/blog (fixed path)");
+    console.log("[VFS] Terminal context awareness initialization");
 
-    // Path stays fixed at ~/blog regardless of page
-    this.currentPath = "~/blog";
+    // Initial sync
+    this.syncPathWithUrl();
+
+    // Listen for Pjax navigation updates to keep terminal path in sync
+    document.addEventListener("pjax:complete", () => {
+      console.log("[VFS] Pjax complete, syncing path...");
+      this.syncPathWithUrl();
+    });
+
+    // Listen for History navigation (Back/Forward buttons, history.back())
+    window.addEventListener("popstate", () => {
+      console.log("[VFS] Popstate detected, syncing path...");
+      // Small delay to ensure URL is updated? Usually immediate.
+      this.syncPathWithUrl();
+    });
 
     this.$nextTick(() => {
       const input = this.$refs.cmdInput as HTMLInputElement;
@@ -162,6 +228,8 @@ Navigation:
       this.command = "";
       this.showHelp = false;
       this.output = "";
+      // Blur the input to enable keyboard scrolling
+      (this.$refs.cmdInput as HTMLInputElement)?.blur();
     }
   },
 
@@ -210,51 +278,63 @@ Navigation:
   getSuggestions(input: string): string[] {
     const inputLower = input.toLowerCase();
 
-    // 1. Top-level commands
+    // 1. Top-level commands - filtered by page type
     if (!input.includes(" ")) {
-      const commands = ["cd", "ls", "search", "help", "clear"];
+      const isPost = this.isPostPage();
+      const postCommands = ["cd", "next", "prev", "back", "help", "clear"];
+      const listCommands = ["cd", "ls", "ll", "pd", "pu", "npage", "ppage", "back", "help", "clear"];
+      const commands = isPost ? postCommands : listCommands;
+      const noArgCommands = ["help", "clear", "back", "next", "prev", "pd", "pu", "npage", "ppage", "ls", "ll"];
       return commands
         .filter(c => c.startsWith(inputLower))
-        .map(c => c + (c === "help" || c === "clear" ? "" : " "));
+        .map(c => c + (noArgCommands.includes(c) ? "" : " "));
     }
 
     // 2. Argument completion
-    const parts = input.split(" ");
-    const cmd = parts[0].toLowerCase();
-    const arg = parts.slice(1).join(" ");
+    // Simple split by space - assumes no spaces in paths for now
+    const firstSpace = input.indexOf(" ");
+    const cmd = input.substring(0, firstSpace).toLowerCase();
+    const arg = input.substring(firstSpace + 1); // Keep original case for path matching logic
     const argLower = arg.toLowerCase();
 
     if (cmd === "cd" || cmd === "ls" || cmd === "ll") {
       const candidates: string[] = [];
-      const baseDirs = ["categories/", "tags/", "../", "/", "~"];
 
-      if (!arg || !arg.includes("/")) {
-        baseDirs.filter(d => d.startsWith(argLower)).forEach(m => candidates.push(`${cmd} ${m}`));
+      // Determine directory to search in and the partial filename to match
+      let dirPart = "";
+      let filePart = arg;
+      let filePartLower = argLower;
+
+      const lastSlash = arg.lastIndexOf('/');
+      if (lastSlash !== -1) {
+        dirPart = arg.substring(0, lastSlash + 1);
+        filePart = arg.substring(lastSlash + 1);
+        filePartLower = filePart.toLowerCase();
       }
 
-      if (argLower.startsWith("categories/")) {
-        const prefix = arg.substring("categories/".length);
-        const categories = window.haloData?.categories || [];
-        categories.forEach((c: any) => {
-          const slug = c.spec?.slug || "";
-          const name = c.spec?.displayName || "";
-          if (slug.toLowerCase().startsWith(prefix.toLowerCase())) {
-            candidates.push(`${cmd} categories/${slug}`);
-          } else if (name.toLowerCase().startsWith(prefix.toLowerCase())) {
-            candidates.push(`${cmd} categories/${name}`);
+      // Resolve the target directory relative to current path
+      // If dirPart is empty, we are looking in current directory (".")
+      const targetDir = this.resolvePath(dirPart || ".");
+      const content = this.getDirectoryContent(targetDir);
+
+      if (content) {
+        content.forEach((item: any) => {
+          // Case-insensitive match on start
+          if (item.name.toLowerCase().startsWith(filePartLower)) {
+            const suffix = item.type === 'dir' ? '/' : '';
+            candidates.push(`${cmd} ${dirPart}${item.name}${suffix}`);
           }
         });
       }
 
-      if (argLower.startsWith("tags/")) {
-        const prefix = arg.substring("tags/".length);
-        const tags = window.haloData?.tags || [];
-        tags.forEach((t: any) => {
-          const slug = t.spec?.slug || "";
-          if (slug.toLowerCase().startsWith(prefix.toLowerCase())) {
-            candidates.push(`${cmd} tags/${slug}`);
-          }
-        });
+      // Special handling for ".." if at start and no dirPart
+      if (!dirPart && "..".startsWith(filePartLower)) {
+        candidates.push(`${cmd} ../`);
+      }
+
+      // Special handling for "~" if at start
+      if (!dirPart && "~".startsWith(filePartLower)) {
+        candidates.push(`${cmd} ~/`);
       }
 
       return candidates;
@@ -289,12 +369,29 @@ Navigation:
       case "ll":
         await this.handleLs(args);
         break;
+      case "back":
+        window.history.back();
+        break;
+      case "next":
+        this.handleNext();
+        break;
+      case "prev":
+        this.handlePrev();
+        break;
       case "search":
         if (args) {
           window.location.href = `/search?keyword=${encodeURIComponent(args)}`;
         } else {
           this.output = "Usage: search <keyword>";
         }
+        break;
+      case "pd":
+      case "npage":
+        this.handlePage(true);
+        break;
+      case "pu":
+      case "ppage":
+        this.handlePage(false);
         break;
       case "help":
         this.showHelp = true;
@@ -346,6 +443,12 @@ Navigation:
     console.log("[VFS] handleCd called with:", path);
     if (!path || path === ".") return;
 
+    // Handle cd .. - go back
+    if (path === ".." || path === "../") {
+      window.history.back();
+      return;
+    }
+
     const target = this.resolvePath(path);
     console.log("[VFS] handleCd target:", target);
 
@@ -376,16 +479,60 @@ Navigation:
     // Get parent content to verify file
     const parentContent = this.getDirectoryContent(parentPath);
     if (parentContent) {
-      const file = parentContent.find((f: any) => f.name === fileName && f.type === 'file');
+      // Match by name (display name) or slug
+      const file = parentContent.find((f: any) =>
+        (f.name === fileName || f.slug === fileName) && f.type === 'file'
+      );
       if (file && file.permalink) {
         console.log("[VFS] handleCd file found, navigating to:", file.permalink);
         window.location.href = file.permalink;
+        return;
+      }
+      // Also check for directory match by name or slug
+      const dir = parentContent.find((f: any) =>
+        (f.name === fileName || f.slug === fileName) && f.type === 'dir'
+      );
+      if (dir && dir.permalink) {
+        console.log("[VFS] handleCd dir found, navigating to:", dir.permalink);
+        window.location.href = dir.permalink;
         return;
       }
     }
 
     console.log("[VFS] handleCd failed - no such file or directory");
     this.output = `bash: cd: ${path}: No such file or directory`;
+  },
+
+  handleNext() {
+    const nextPost = window.haloData?.nextPost;
+    if (nextPost) {
+      window.location.href = nextPost;
+    } else {
+      this.output = "No next article available.";
+    }
+  },
+
+  handlePrev() {
+    const prevPost = window.haloData?.prevPost;
+    if (prevPost) {
+      window.location.href = prevPost;
+    } else {
+      this.output = "No previous article available.";
+    }
+  },
+
+  handlePage(next: boolean) {
+    const pagination = window.haloData?.pagination;
+    if (!pagination) {
+      this.output = "Pagination not available on this page.";
+      return;
+    }
+    const targetUrl = next ? pagination.nextUrl : pagination.prevUrl;
+    if (targetUrl) {
+      window.location.href = targetUrl;
+    } else {
+      this.output = next ? "Already at the last page." : "Already at the first page.";
+    }
   },
 
   // --- VFS Helpers ---
@@ -438,20 +585,138 @@ Navigation:
     return result;
   },
 
+  syncPathWithUrl() {
+    const pathname = window.location.pathname;
+    const haloUrls = window.haloData?.urls;
+
+    if (!haloUrls) return;
+
+    // Check for Categories List Page (exact match)
+    if (haloUrls.categories && pathname === haloUrls.categories) {
+      this.currentPath = "~/blog/categories";
+      return;
+    }
+
+    // Check for Tags List Page (exact match)
+    if (haloUrls.tags && pathname === haloUrls.tags) {
+      this.currentPath = "~/blog/tags";
+      return;
+    }
+
+    // Check for Specific Category (subdirectory)
+    if (haloUrls.categories && pathname.startsWith(haloUrls.categories + "/")) {
+      const slug = pathname.substring(haloUrls.categories.length + 1);
+      this.currentPath = "~/blog/categories/" + slug;
+      return;
+    }
+
+    // Check for Specific Tag (subdirectory)
+    if (haloUrls.tags && pathname.startsWith(haloUrls.tags + "/")) {
+      const slug = pathname.substring(haloUrls.tags.length + 1);
+      this.currentPath = "~/blog/tags/" + slug;
+      return;
+    }
+
+    // Check for Post Page (using injected currentPost data)
+    const currentPost = window.haloData?.currentPost;
+    if (currentPost && currentPost.permalink && pathname === currentPost.permalink) {
+      // Display the post title in the path
+      this.currentPath = "~/blog/posts/" + (currentPost.title || currentPost.slug);
+      return;
+    }
+
+    // Check for Home Page
+    if (pathname === haloUrls.home || pathname === "/") {
+      this.currentPath = "~/blog";
+      return;
+    }
+    this.currentPath = "~/blog";
+  },
+
   getDirectoryContent(path: string): any[] | null {
     console.log("[VFS] getDirectoryContent called with:", path);
-    console.log("[VFS] haloData:", window.haloData);
-
     // 1. Root
     if (path === "~/blog") {
-      console.log("[VFS] getDirectoryContent matched: ~/blog (root)");
       return [
         { name: "categories", type: "dir", count: (window.haloData?.categories || []).length },
         { name: "tags", type: "dir", count: (window.haloData?.tags || []).length }
       ];
     }
 
-    console.log("[VFS] getDirectoryContent - path not supported (root-only mode)");
+    // 2. Categories Root
+    if (path === "~/blog/categories") {
+      const cats = window.haloData?.categories || [];
+      return cats.map((cat: any) => ({
+        name: cat.spec?.displayName || cat.spec?.slug || cat.metadata?.name,
+        slug: cat.spec?.slug || cat.metadata?.name,
+        type: "dir",
+        count: 0,
+        permalink: cat.status?.permalink,
+        date: cat.metadata?.creationTimestamp
+      }));
+    }
+
+    // 3. Tags Root
+    if (path === "~/blog/tags") {
+      const tags = window.haloData?.tags || [];
+      return tags.map((tag: any) => ({
+        name: tag.spec?.displayName || tag.spec?.slug || tag.metadata?.name,
+        slug: tag.spec?.slug || tag.metadata?.name,
+        type: "dir",
+        count: 0,
+        permalink: tag.status?.permalink,
+        date: tag.metadata?.creationTimestamp
+      }));
+    }
+
+    // 4. Specific Category Subdirectory
+    if (path.startsWith("~/blog/categories/")) {
+      const slug = path.substring("~/blog/categories/".length);
+      const pathname = window.location.pathname;
+      const targetUrl = this.virtualPathToUrl(path);
+
+      // Only show posts if we are actually on that page (data is in haloData.currentPosts)
+      if (pathname === targetUrl && (window.haloData?.currentPosts || []).length > 0) {
+        return (window.haloData?.currentPosts || []).map((p: any) => ({
+          name: p.spec?.title || p.spec?.slug || p.metadata?.name,
+          slug: p.spec?.slug || p.metadata?.name,
+          type: "file",
+          permalink: p.status?.permalink,
+          date: p.spec?.publishTime || p.metadata?.creationTimestamp
+        }));
+      }
+
+      const cats = window.haloData?.categories || [];
+      const cat = cats.find((c: any) => (c.spec?.slug || c.metadata?.name) === slug);
+      if (cat) {
+        return [];
+      }
+    }
+
+    // 5. Specific Tag Subdirectory
+    if (path.startsWith("~/blog/tags/")) {
+      const slug = path.substring("~/blog/tags/".length);
+      const pathname = window.location.pathname;
+      const targetUrl = this.virtualPathToUrl(path);
+
+      if (pathname === targetUrl && (window.haloData?.currentPosts || []).length > 0) {
+        return (window.haloData?.currentPosts || []).map((p: any) => ({
+          name: p.spec?.title || p.spec?.slug || p.metadata?.name,
+          slug: p.spec?.slug || p.metadata?.name,
+          type: "file",
+          permalink: p.status?.permalink,
+          date: p.spec?.publishTime || p.metadata?.creationTimestamp
+        }));
+      }
+
+      const tags = window.haloData?.tags || [];
+      const tag = tags.find((t: any) => (t.spec?.slug || t.metadata?.name) === slug);
+      if (tag) {
+        return [];
+      }
+    }
+
+    console.log("[VFS] getDirectoryContent - path not supported");
     return null;
   },
 
@@ -461,18 +726,27 @@ Navigation:
     if (path === "~/blog") return window.haloData?.urls?.home || "/";
 
     if (path === "~/blog/categories") {
-      const url = window.haloData?.urls?.categories || "/categories";
-      console.log("[VFS] virtualPathToUrl -> categories URL:", url);
-      return url;
+      return window.haloData?.urls?.categories || "/categories";
+    }
+
+    if (path.startsWith("~/blog/categories/")) {
+      const slug = path.substring("~/blog/categories/".length);
+      const cats = window.haloData?.categories || [];
+      const cat = cats.find((c: any) => (c.spec?.slug || c.metadata?.name) === slug);
+      if (cat && cat.status?.permalink) return cat.status.permalink;
     }
 
     if (path === "~/blog/tags") {
-      const url = window.haloData?.urls?.tags || "/tags";
-      console.log("[VFS] virtualPathToUrl -> tags URL:", url);
-      return url;
+      return window.haloData?.urls?.tags || "/tags";
     }
 
-    console.log("[VFS] virtualPathToUrl - no URL mapping found");
+    if (path.startsWith("~/blog/tags/")) {
+      const slug = path.substring("~/blog/tags/".length);
+      const tags = window.haloData?.tags || [];
+      const tag = tags.find((t: any) => (t.spec?.slug || t.metadata?.name) === slug);
+      if (tag && tag.status?.permalink) return tag.status.permalink;
+    }
+
     return null;
   }
 }));
@@ -489,11 +763,23 @@ Alpine.data("fileListNav", () => ({
 
     // Watch for arrow keys
     window.addEventListener('keydown', this.handleKeydown.bind(this));
+    // Deselect list when input is focused
+    window.addEventListener('focusin', this.handleFocusIn.bind(this));
   },
   destroy() {
     window.removeEventListener('keydown', this.handleKeydown.bind(this));
+    window.removeEventListener('focusin', this.handleFocusIn.bind(this));
+  },
+  handleFocusIn(e: FocusEvent) {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+      this.selectedIndex = -1;
+    }
   },
   handleKeydown(e: KeyboardEvent) {
+    const target = e.target as HTMLElement;
+    if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') return;
+
     // Only navigate if we have items
     if (this.items.length === 0) return;
 
@@ -513,7 +799,26 @@ Alpine.data("fileListNav", () => ({
         if (item.tagName === "A") {
           (item as HTMLAnchorElement).click();
         } else {
-          // It's a file list item, find the link inside
+          // Special handling for categories/tags folders to ensure dynamic routing
+          const catLink = item.querySelector("#link-categories") as HTMLAnchorElement;
+          if (catLink) {
+            const url = window.haloData?.urls?.categories;
+            if (url) {
+              window.location.href = url;
+              return;
+            }
+          }
+
+          const tagLink = item.querySelector("#link-tags") as HTMLAnchorElement;
+          if (tagLink) {
+            const url = window.haloData?.urls?.tags;
+            if (url) {
+              window.location.href = url;
+              return;
+            }
+          }
+
+          // Fallback: It's a file list item, find the link inside
           const link = item.querySelector("a");
           if (link) {
             link.click();
@@ -525,6 +830,67 @@ Alpine.data("fileListNav", () => ({
   scrollToSelected() {
     if (this.selectedIndex >= 0 && this.items[this.selectedIndex]) {
       this.items[this.selectedIndex].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }
+}));
+
+// Post Viewer Component for keyboard scrolling
+Alpine.data("postViewer", () => ({
+  scrollAmount: 100, // pixels per keypress
+
+  init() {
+    console.log("[PostViewer] Initialized");
+  },
+
+  handleKeydown(e: KeyboardEvent) {
+    console.log("[PostViewer] Key pressed:", e.key, "Target:", (e.target as HTMLElement).tagName);
+
+    // Skip if focus is in an input element
+    if ((e.target as HTMLElement).tagName === 'INPUT' ||
+      (e.target as HTMLElement).tagName === 'TEXTAREA') {
+      console.log("[PostViewer] Skipping - focus in input");
+      return;
+    }
+
+    const main = document.getElementById('main');
+    if (!main) return;
+
+    switch (e.key) {
+      case 'ArrowUp':
+      case 'k': // Vim-style
+        e.preventDefault();
+        console.log("[PostViewer] Scrolling up");
+        main.scrollBy({ top: -this.scrollAmount, behavior: 'smooth' });
+        break;
+      case 'ArrowDown':
+      case 'j': // Vim-style
+        e.preventDefault();
+        console.log("[PostViewer] Scrolling down");
+        main.scrollBy({ top: this.scrollAmount, behavior: 'smooth' });
+        break;
+      case 'PageUp':
+        e.preventDefault();
+        console.log("[PostViewer] Page up");
+        main.scrollBy({ top: -main.clientHeight * 0.8, behavior: 'smooth' });
+        break;
+      case 'PageDown':
+      case ' ': // Spacebar
+        e.preventDefault();
+        console.log("[PostViewer] Page down");
+        main.scrollBy({ top: main.clientHeight * 0.8, behavior: 'smooth' });
+        break;
+      case 'Home':
+        e.preventDefault();
+        console.log("[PostViewer] Scroll to top");
+        main.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      case 'End':
+        e.preventDefault();
+        console.log("[PostViewer] Scroll to bottom");
+        main.scrollTo({ top: main.scrollHeight, behavior: 'smooth' });
+        break;
+      default:
+        console.log("[PostViewer] Unhandled key:", e.key);
     }
   }
 }));
@@ -589,4 +955,34 @@ document.addEventListener("pjax:complete", () => {
 
 document.addEventListener("pjax:error", () => {
   console.error("Pjax error");
+});
+
+// Task List Checkbox Interaction
+function initTaskListInteraction() {
+  document.querySelectorAll('ul[data-type="taskList"] li[data-type="taskItem"]').forEach((item) => {
+    const label = item.querySelector('label');
+    if (label) {
+      label.addEventListener('click', (e) => {
+        e.preventDefault();
+        const li = label.closest('li[data-type="taskItem"]');
+        if (li) {
+          const isChecked = li.getAttribute('data-checked') === 'true';
+          li.setAttribute('data-checked', isChecked ? 'false' : 'true');
+          // Also update the hidden checkbox
+          const checkbox = li.querySelector('input[type="checkbox"]') as HTMLInputElement;
+          if (checkbox) {
+            checkbox.checked = !isChecked;
+          }
+        }
+      });
+    }
+  });
+}
+
+// Initialize on page load
+initTaskListInteraction();
+
+// Re-initialize on Pjax navigation
+document.addEventListener("pjax:complete", () => {
+  initTaskListInteraction();
 });
