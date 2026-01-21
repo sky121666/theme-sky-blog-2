@@ -3,8 +3,7 @@ kind: Theme
 metadata:
   name: theme-sky-blog-2
   annotations:
-    # TODO: 上架应用市场后替换为实际 app-id
-    # "store.halo.run/app-id": "app-PLACEHOLDER"
+    "store.halo.run/app-id": "app-1xzraibt"
 spec:
   displayName: Sky Blog 2
   author:

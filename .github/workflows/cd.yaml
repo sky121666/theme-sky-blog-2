@@ -13,8 +13,7 @@ jobs:
     permissions:
       contents: write
     with:
-      # TODO: 上架应用市场后替换为实际 app-id
-      # app-id: app-PLACEHOLDER
-      skip-appstore-release: true
+      app-id: app-1xzraibt
+      skip-appstore-release: false
       node-version: 22
       pnpm-version: 10
