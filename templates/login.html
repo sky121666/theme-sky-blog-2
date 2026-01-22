@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org"
+    th:replace="~{gateway_fragments/layout :: layout(title = 'System Login - ' + ${site.title}, head = null, body = ~{::body}, pageType = 'login')}">
+<th:block th:fragment="body">
+    <div class="terminal-login-wrapper w-full">
+        <!-- The Form Container -->
+        <div class="terminal-form-box">
+            <!-- Replace with our custom form fragment -->
+            <div th:replace="~{gateway_fragments/login::form}"></div>
+
+            <!-- Social Auth (if needed) -->
+            <div th:replace="~{gateway_fragments/login::formAuthProviders}"></div>
+            <div th:replace="~{gateway_fragments/common::socialAuthProviders}"></div>
+        </div>
+
+        <!-- Footer Links (Register/Return) -->
+        <div
+            class="mt-8 pt-4 border-t border-dashed border-terminal-green/30 text-xs text-terminal-dim flex flex-col gap-2 items-center text-center">
+            <div th:replace="~{gateway_fragments/common::signupNoticeContent}"></div>
+            <div th:replace="~{gateway_fragments/common::returnToSiteContent}"></div>
+            <div th:replace="~{gateway_fragments/common::languageSwitcher}"></div>
+        </div>
+    </div>
+</th:block>
+
+</html>

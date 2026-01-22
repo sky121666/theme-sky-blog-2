@@ -1,0 +1,18 @@
+<!doctype html>
+<html xmlns:th="https://www.thymeleaf.org"
+    th:replace="~{gateway_fragments/layout:: layout(title = |#{title} - ${site.title}|, head = null, body = ~{::body}, pageType = 'reset')}">
+    <th:block th:fragment="body">
+        <div class="terminal-login-wrapper w-full">
+            <!-- Form Container -->
+            <div class="terminal-form-box">
+                <div th:replace="~{gateway_fragments/password_reset_email_send::form}"></div>
+                <div th:replace="~{gateway_fragments/common::passwordResetMethods}"></div>
+            </div>
+
+            <!-- Footer -->
+            <div class="mt-6 pt-4 border-t border-dashed border-terminal-green/30 text-xs text-terminal-dim flex flex-col gap-2 items-center text-center">
+                <div th:replace="~{gateway_fragments/common::returnToSiteContent}"></div>
+            </div>
+        </div>
+    </th:block>
+</html>

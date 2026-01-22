@@ -698,3 +698,327 @@ input:focus::placeholder {
   --halo-hyperlink-card-skeleton-color: rgba(0, 255, 0, 0.3);
   color-scheme: dark;
 }
+
+/* ========================================
+   Authentication Terminal Styles
+   ======================================== */
+/* Exclude checkboxes and radios from generic input styling */
+.auth-form-terminal input:not([type="checkbox"]):not([type="radio"]) {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 2px solid var(--terminal-dim) !important;
+  border-radius: 0 !important;
+  color: var(--terminal-text) !important;
+  font-family: "Fira Code", monospace !important;
+  padding: 0.5rem 0 !important;
+  width: 100% !important;
+  outline: none !important;
+  box-shadow: none !important;
+  transition: all 0.3s ease;
+}
+
+.auth-form-terminal input:focus {
+  border-bottom-color: var(--terminal-text) !important;
+  box-shadow: 0 4px 0 -2px var(--terminal-glow) !important;
+}
+
+.auth-form-terminal button {
+  background: transparent !important;
+  border: 2px solid var(--terminal-text) !important;
+  color: var(--terminal-text) !important;
+  font-family: "Fira Code", monospace !important;
+  text-transform: uppercase !important;
+  font-weight: bold !important;
+  padding: 0.75rem 2rem !important;
+  width: 100% !important;
+  cursor: pointer !important;
+  margin-top: 1.5rem !important;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.auth-form-terminal button:hover {
+  background: var(--terminal-text) !important;
+  color: var(--terminal-bg) !important;
+  box-shadow: 0 0 15px var(--terminal-glow) !important;
+}
+
+.auth-form-terminal label {
+  color: var(--terminal-dim) !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.1em !important;
+  margin-bottom: 0.25rem !important;
+  display: block;
+}
+
+.auth-form-terminal .form-item {
+  margin-bottom: 1.5rem;
+}
+
+.auth-form-terminal a {
+  color: var(--terminal-dim) !important;
+  font-size: 0.8rem !important;
+  text-decoration: none !important;
+  border-bottom: 1px dashed var(--terminal-dim);
+}
+
+.auth-form-terminal a:hover {
+  color: var(--terminal-text) !important;
+  border-bottom-style: solid;
+}
+
+/* ========================================
+   ALTCHA Security Verification Widget Styles
+   ======================================== */
+altcha-widget {
+  display: block;
+  margin: 1.5rem 0;
+  font-family: "Fira Code", monospace !important;
+}
+
+/* ALTCHA Custom Properties for Terminal Theme */
+altcha-widget {
+  --altcha-color-base: transparent;
+  --altcha-color-border: var(--terminal-dim);
+  --altcha-color-border-focus: var(--terminal-text);
+  --altcha-color-text: var(--terminal-text);
+  /* Main text color */
+  --altcha-color-text-secondary: var(--terminal-dim);
+  --altcha-color-background: transparent;
+  --altcha-color-active: var(--terminal-green);
+  /* Active state/loader */
+  --altcha-color-error: #ff5555;
+  --altcha-color-footer-bg: transparent;
+  --altcha-border-radius: 0;
+  --altcha-border-width: 1px;
+  --altcha-max-width: 100%;
+}
+
+/* Override button inside ALTCHA */
+altcha-widget button {
+  background: transparent !important;
+  border: 1px solid var(--terminal-green) !important;
+  color: var(--terminal-green) !important;
+  font-family: "Fira Code", monospace !important;
+  cursor: pointer !important;
+  border-radius: 0 !important;
+  transition: all 0.2s ease;
+}
+
+altcha-widget button:hover {
+  background: var(--terminal-green) !important;
+  color: var(--terminal-bg) !important;
+}
+
+/* Checkbox styling for ALTCHA */
+altcha-widget input[type="checkbox"] {
+  appearance: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--terminal-dim);
+  background: transparent;
+  cursor: pointer;
+  position: relative;
+}
+
+altcha-widget input[type="checkbox"]:checked {
+  border-color: var(--terminal-text);
+  background: var(--terminal-text);
+}
+
+altcha-widget input[type="checkbox"]:checked::after {
+  content: "x";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--terminal-bg);
+  font-weight: bold;
+  font-family: "Fira Code", monospace;
+}
+
+/* Loading/Verifying state */
+altcha-widget .altcha-main {
+  border: 1px solid var(--terminal-dim) !important;
+  background: rgba(0, 255, 0, 0.02) !important;
+  padding: 0.75rem !important;
+}
+
+altcha-widget .altcha-label {
+  color: var(--terminal-text) !important;
+  font-family: "Fira Code", monospace !important;
+  font-size: 0.85rem !important;
+}
+
+altcha-widget .altcha-checkbox {
+  border-color: var(--terminal-dim) !important;
+}
+
+altcha-widget .altcha-checkbox:checked {
+  background-color: var(--terminal-text) !important;
+  border-color: var(--terminal-text) !important;
+}
+
+/* Footer text */
+altcha-widget .altcha-footer {
+  color: var(--terminal-dim) !important;
+  font-size: 0.65rem !important;
+  opacity: 0.7;
+}
+
+altcha-widget a {
+  color: var(--terminal-dim) !important;
+  text-decoration: underline dashed !important;
+}
+
+altcha-widget a:hover {
+  color: var(--terminal-text) !important;
+}
+
+/* ========================================
+   Terminal Form Layout Helper
+   ======================================== */
+.terminal-form-box {
+  width: 100%;
+  max-width: 400px;
+  margin: 1rem auto;
+  position: relative;
+}
+
+/* ========================================
+   Terminal Checkbox (Custom Appearance)
+   ======================================== */
+/* HIDE the actual input completely, but keep it accessible-ish */
+.terminal-checkbox {
+  opacity: 0;
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+/* The Box (Outer Frame) */
+.terminal-checkbox+label {
+  position: relative;
+  display: inline-flex !important;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  min-height: 1.2rem;
+  padding-left: 1.8rem;
+  font-size: 0.75rem;
+  color: var(--terminal-dim);
+  font-family: "Fira Code", monospace;
+  transition: color 0.2s ease;
+}
+
+.terminal-checkbox+label:hover {
+  color: var(--terminal-text);
+}
+
+.terminal-checkbox+label::before {
+  content: "[ ]";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.85rem;
+  color: var(--terminal-dim);
+  font-family: "Fira Code", monospace;
+  transition: all 0.2s ease;
+  letter-spacing: -2px;
+}
+
+/* Hover State */
+.terminal-checkbox+label:hover::before {
+  color: var(--terminal-text);
+  text-shadow: 0 0 6px rgba(0, 255, 0, 0.5);
+}
+
+/* Checked State */
+.terminal-checkbox:checked+label::before {
+  content: "[x]";
+  color: var(--terminal-text);
+  text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+}
+
+.terminal-checkbox:checked+label {
+  color: var(--terminal-text);
+}
+
+/* ========================================
+   Fixes for Browser Native Controls
+   ======================================== */
+/* Hide Chrome/Safari password reveal eye (if any) */
+input::-webkit-password-toggle-visibility {
+  appearance: none;
+  display: none;
+}
+
+/* Ensure no native styling on inputs */
+input {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Fix text wrapping */
+.whitespace-nowrap {
+  white-space: nowrap;
+}
+
+/* ========================================
+   Password Toggle Icon Positioning
+   ======================================== */
+.form-input-stack {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.form-input-stack-icon {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  z-index: 10;
+}
+
+.form-input-stack-icon svg {
+  display: block;
+}
+
+/* Ensure input has right padding for icon */
+.form-input-stack input {
+  padding-right: 2.5rem !important;
+}
+
+/* ========================================
+   Form Label Group (User Requested Structure)
+   ======================================== */
+.form-label-group {
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  width: 100%;
+}
+
+.form-item-extra-link {
+  font-size: 0.75rem;
+  color: var(--terminal-dim);
+  text-decoration: none;
+  font-family: inherit;
+  transition: color 0.2s;
+}
+
+.form-item-extra-link:hover {
+  color: var(--terminal-green);
+  text-decoration: underline;
+  text-decoration-style: dashed;
+}

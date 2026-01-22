@@ -1,0 +1,98 @@
+<div th:fragment="form">
+    <!-- Restore Halo Encryption Logic -->
+    <script src="/webjars/jsencrypt/3.5.4/bin/jsencrypt.min.js" defer></script>
+    <script th:inline="javascript" type="text/javascript">
+        const publicKey = /*[[${publicKey}]]*/ "";
+
+        function encryptPassword(password) {
+            const encrypt = new JSEncrypt();
+            encrypt.setPublicKey(publicKey);
+            return encrypt.encrypt(password);
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const loginForm = document.getElementById("login-form");
+            loginForm.addEventListener("submit", function (event) {
+                const plainPasswordInput = document.getElementById("plainPassword");
+                const passwordInput = document.getElementById("password");
+                passwordInput.value = encryptPassword(plainPasswordInput.value);
+            });
+        });
+    </script>
+
+    <input type="hidden" name="password" id="password" />
+
+    <!-- 用户名/邮箱 + 密码 (两列布局) -->
+    <div class="login-row">
+        <div class="form-item group">
+            <label for="username"
+                class="block text-xs uppercase tracking-widest text-terminal-dim mb-1 group-focus-within:text-terminal-green transition-colors font-mono">
+                用户名/邮箱
+            </label>
+            <input type="text" id="username" name="username" required autofocus
+                placeholder="请输入用户名或邮箱" />
+        </div>
+        <div class="form-item group">
+            <div class="form-label-group flex justify-between items-center mb-1">
+                <label for="plainPassword"
+                    class="block text-xs uppercase tracking-widest text-terminal-dim group-focus-within:text-terminal-green transition-colors font-mono">
+                    密码
+                </label>
+                <a th:href="@{/password-reset}"
+                    class="form-item-extra-link text-[10px] text-terminal-dim hover:text-terminal-green hover:underline decoration-dashed font-mono whitespace-nowrap">
+                    忘记密码?
+                </a>
+            </div>
+            <div class="form-input form-input-stack toggle-password-display-flag relative flex items-center">
+                <input type="password" id="plainPassword" name="plainPassword" required autocomplete="off"
+                    spellcheck="false" autocorrect="off" autocapitalize="off" maxlength="257"
+                    placeholder="请输入密码" />
+                <div class="form-input-stack-icon toggle-password-button absolute right-0 cursor-pointer text-terminal-dim hover:text-terminal-green transition-colors">
+                    <svg class="password-hidden-icon" style="display: none" viewBox="0 0 24 24" width="1.2em" height="1.2em">
+                        <path fill="currentColor" d="M12 3c5.392 0 9.878 3.88 10.819 9c-.94 5.12-5.427 9-10.819 9c-5.392 0-9.878-3.88-10.818-9C2.122 6.88 6.608 3 12 3Zm0 16a9.005 9.005 0 0 0 8.778-7a9.005 9.005 0 0 0-17.555 0A9.005 9.005 0 0 0 12 19Zm0-2.5a4.5 4.5 0 1 1 0-9a4.5 4.5 0 0 1 0 9Zm0-2a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z"></path>
+                    </svg>
+                    <svg class="password-display-icon" viewBox="0 0 24 24" width="1.2em" height="1.2em">
+                        <path fill="currentColor" d="M17.883 19.297A10.949 10.949 0 0 1 12 21c-5.392 0-9.878-3.88-10.818-9A10.982 10.982 0 0 1 4.52 5.935L1.394 2.808l1.414-1.414l19.799 19.798l-1.414 1.415l-3.31-3.31ZM5.936 7.35A8.965 8.965 0 0 0 3.223 12a9.005 9.005 0 0 0 13.201 5.838l-2.028-2.028A4.5 4.5 0 0 1 8.19 9.604L5.936 7.35Zm6.978 6.978l-3.242-3.241a2.5 2.5 0 0 0 3.241 3.241Zm7.893 2.265l-1.431-1.431A8.935 8.935 0 0 0 20.778 12A9.005 9.005 0 0 0 9.552 5.338L7.974 3.76C9.221 3.27 10.58 3 12 3c5.392 0 9.878 3.88 10.819 9a10.947 10.947 0 0 1-2.012 4.593Zm-9.084-9.084a4.5 4.5 0 0 1 4.769 4.769l-4.77-4.77Z"></path>
+                    </svg>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .login-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        @media (max-width: 480px) {
+            .login-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const toggleButton = document.querySelector(".toggle-password-button");
+            const passwordInput = document.getElementById("plainPassword");
+            const hiddenIcon = document.querySelector(".password-hidden-icon");
+            const displayIcon = document.querySelector(".password-display-icon");
+
+            if (toggleButton && passwordInput) {
+                toggleButton.addEventListener("click", function () {
+                    if (passwordInput.type === "password") {
+                        passwordInput.type = "text";
+                        hiddenIcon.style.display = "block";
+                        displayIcon.style.display = "none";
+                    } else {
+                        passwordInput.type = "password";
+                        hiddenIcon.style.display = "none";
+                        displayIcon.style.display = "block";
+                    }
+                });
+            }
+        });
+    </script>
+</div>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html th:lang="${#locale.toLanguageTag}" th:fragment="layout (title,head,body,pageType)">
+
+<head>
+    <!-- Basic Metas -->
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2" />
+    <title th:text="${title}"></title>
+
+    <!-- Theme Styles -->
+    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+
+    <th:block th:if="${head != null}">
+        <th:block th:replace="${head}" />
+    </th:block>
+
+    <!-- Halo Basic Resources -->
+    <th:block th:replace="~{gateway_fragments/common::basicStaticResources}"></th:block>
+</head>
+
+<body
+    class="bg-terminal-black text-terminal-green font-mono min-h-screen flex flex-col items-center justify-center p-4 bg-[length:4px_4px] relative overflow-y-auto">
+
+    <!-- CRT Overlay Config -->
+    <div
+        class="pointer-events-none fixed inset-0 z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]">
+    </div>
+    <div class="pointer-events-none fixed inset-0 z-40 bg-terminal-black/10 animate-flicker"></div>
+
+    <!-- Main Terminal Window -->
+    <div
+        class="w-full max-w-md border-2 border-terminal-green bg-terminal-black shadow-[0_0_30px_rgba(51,255,51,0.15)] relative backdrop-blur-sm z-10 transition-all duration-300">
+
+        <!-- Window Header -->
+        <div
+            class="bg-terminal-green text-terminal-black px-3 py-1 font-bold flex justify-between items-center text-xs uppercase tracking-wider">
+            <span class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-terminal-black rounded-full animate-pulse"></span>
+                Authentication Protocol
+            </span>
+            <span>SEC-LEVEL: <span class="animate-pulse">MAX</span></span>
+        </div>
+
+        <!-- Content Area -->
+        <div class="p-8">
+            <style>
+                .ascii-art {
+                    display: none;
+                }
+
+                .mobile-header {
+                    display: block;
+                }
+
+                @media (min-width: 768px) {
+                    .ascii-art {
+                        display: block;
+                    }
+
+                    .mobile-header {
+                        display: none;
+                    }
+                }
+            </style>
+
+            <!-- Ascii Header -->
+            <pre th:if="${pageType == null or pageType == 'login'}"
+                class="ascii-art text-[0.6rem] leading-[0.6rem] md:text-xs md:leading-none font-bold select-none text-center mb-8 text-terminal-green opacity-80 whitespace-pre">
+  _                 _       
+ | |               (_)      
+ | |     ___   __ _ _ _ __  
+ | |    / _ \ / _` | | '_ \ 
+ | |___| (_) | (_| | | | | |
+ |______\___/ \__, |_|_| |_|
+               __/ |        
+              |___/         
+            </pre>
+            <pre th:if="${pageType == 'signup'}"
+                class="ascii-art text-[0.6rem] leading-[0.6rem] md:text-xs md:leading-none font-bold select-none text-center mb-8 text-terminal-green opacity-80 whitespace-pre">
+  _____ _                   
+ / ____(_)                  
+| (___  _  __ _ _ __  _   _ _ __  
+ \___ \| |/ _` | '_ \| | | | '_ \ 
+ ____) | | (_| | | | | |_| | |_) |
+|_____/|_|\__, |_| |_|\__,_| .__/ 
+           __/ |           | |    
+          |___/            |_|    
+            </pre>
+            <pre th:if="${pageType == 'reset'}"
+                class="ascii-art text-[0.6rem] leading-[0.6rem] md:text-xs md:leading-none font-bold select-none text-center mb-8 text-terminal-green opacity-80 whitespace-pre">
+ _____                _   
+|  __ \              | |  
+| |__) |___  ___  ___| |_ 
+|  _  // _ \/ __|/ _ \ __|
+| | \ \  __/\__ \  __/ |_ 
+|_|  \_\___||___/\___|\__|
+            </pre>
+            <div th:if="${pageType == null or pageType == 'login'}"
+                class="mobile-header text-center mb-8 text-2xl font-bold font-mono text-terminal-green tracking-widest border-b-2 border-dashed border-terminal-green pb-4">
+                LOGIN
+            </div>
+            <div th:if="${pageType == 'signup'}"
+                class="mobile-header text-center mb-8 text-2xl font-bold font-mono text-terminal-green tracking-widest border-b-2 border-dashed border-terminal-green pb-4">
+                SIGNUP
+            </div>
+            <div th:if="${pageType == 'reset'}"
+                class="mobile-header text-center mb-8 text-2xl font-bold font-mono text-terminal-green tracking-widest border-b-2 border-dashed border-terminal-green pb-4">
+                RESET
+            </div>
+
+            <!-- Warning Text -->
+            <div class="mb-8 text-center border-b border-dashed border-terminal-green/30 pb-6">
+                <p class="text-red-500 font-bold mb-2 tracking-widest animate-pulse">[ ACCESS DENIED ]</p>
+                <p class="text-xs text-terminal-dim">Protected Resource. Credentials Required.</p>
+                <p class="text-[10px] text-terminal-dim/50 mt-1">IP: [PROTECTED] LOGGED</p>
+            </div>
+
+            <!-- Injected Body (The Form) -->
+            <div class="auth-form-terminal">
+                <th:block th:replace="${body}" />
+            </div>
+        </div>
+
+        <!-- StatusBar -->
+        <div
+            class="border-t border-terminal-green p-2 text-[10px] text-terminal-dim flex justify-between uppercase tracking-wider bg-terminal-dim/5">
+            <span>SYS: ONLINE</span>
+            <span class="flex items-center gap-1">
+                WAITING_INPUT<span
+                    class="w-2 h-4 bg-terminal-green animate-blink inline-block align-middle ml-1"></span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <!-- basicScriptResources is already included in basicStaticResources in the head, so we don't need it here -->
+</body>
+
+</html>

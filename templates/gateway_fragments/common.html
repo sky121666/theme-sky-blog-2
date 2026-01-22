@@ -1,0 +1,139 @@
+<th:block th:fragment="basicStaticResources">
+    <th:block th:replace="~{gateway_fragments/common::basicStyleResources}"></th:block>
+    <th:block th:replace="~{gateway_fragments/common::basicScriptResources}"></th:block>
+</th:block>
+
+<th:block th:fragment="basicScriptResources">
+    <script th:inline="javascript">
+        // Hardcoded messages for JS
+        const i18nResources = {
+            sendVerificationCodeSuccess: "Verification code sent successfully.",
+            sendVerificationCodeFailed: "Failed to send verification code.",
+            sendVerificationCodeSending: "Sending...",
+            passwordConfirmationFailed: "Passwords do not match.",
+        };
+    </script>
+
+    <script src="/js/main.js"></script>
+    
+    <!-- Altcha Captcha Scripts (Halo Pro) -->
+    <th:block th:if="${#strings.equalsIgnoreCase(globalInfo.captchaProvider, 'ALTCHA')}">
+        <script async defer src="/webjars/altcha/2.0.3/dist/altcha.i18n.js" type="module"></script>
+        <script src="/js/altcha-lib.iife.js"></script>
+        <script src="/js/altcha-utils.js"></script>
+    </th:block>
+</th:block>
+
+<th:block th:fragment="basicStyleResources">
+    <link rel="stylesheet" href="/webjars/normalize.css/8.0.1/normalize.css" />
+    <link rel="stylesheet" th:href="|/styles/main.css?v=${site.version}|" />
+</th:block>
+
+<div th:remove="tag" th:fragment="languageSwitcher">
+    <!-- Removed Language Switcher as requested by user -->
+</div>
+
+<div th:remove="tag" th:fragment="haloLogo">
+    <style>
+        .halo-logo {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2em;
+        }
+
+        .halo-logo img {
+            width: 6em;
+        }
+    </style>
+    <div class="halo-logo">
+        <img src="/images/wordmark.svg" alt="Halo" />
+    </div>
+</div>
+
+<div th:remove="tag" th:fragment="socialAuthProviders">
+    <th:block th:unless="${#lists.isEmpty(socialAuthProviders)}">
+        <div class="divider-wrapper my-6 flex items-center gap-2 text-terminal-dim text-xs font-mono">
+            <span class="h-px bg-terminal-dim/30 flex-1"></span>
+            <span>Social Login</span>
+            <span class="h-px bg-terminal-dim/30 flex-1"></span>
+        </div>
+        <ul class="pill-items flex gap-4 justify-center">
+            <li th:each="provider : ${socialAuthProviders}">
+                <form class="social-auth-provider-form"
+                    th:action="|/login/social/${provider.metadata.name}?remember-me=false|" method="post">
+                    <button type="submit"
+                        class="border border-terminal-dim p-2 hover:border-terminal-green hover:shadow-[0_0_10px_rgba(0,255,0,0.3)] transition-all block bg-transparent cursor-pointer">
+                        <img th:src="${provider.spec.logo}" th:alt="|${provider.spec.displayName}'s icon|"
+                            class="w-6 h-6 grayscale hover:grayscale-0" />
+                    </button>
+                </form>
+            </li>
+        </ul>
+    </th:block>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const rememberMeCheckbox = document.getElementById("remember-me");
+            const socialAuthProviders = document.querySelectorAll(".social-auth-provider-form");
+
+            if (rememberMeCheckbox) {
+                rememberMeCheckbox.addEventListener("change", function (e) {
+                    const rememberMe = e.target.checked;
+
+                    socialAuthProviders.forEach((form) => {
+                        const url = new URL(form.action, window.location.origin);
+                        url.searchParams.set("remember-me", rememberMe ? "true" : "false");
+                        form.action = url.pathname + url.search;
+                    });
+                });
+            }
+        });
+    </script>
+</div>
+
+<div th:remove="tag" th:fragment="passwordResetMethods">
+    <th:block th:unless="${#lists.isEmpty(otherMethods)}">
+        <div class="divider-wrapper">
+            <hr />
+            <span>Reset Password via</span>
+            <hr />
+        </div>
+        <ul class="pill-items">
+            <li th:each="method : ${otherMethods}">
+                <a th:href="${method.href}">
+                    <img th:src="${method.icon}" th:alt="|${method.name}'s icon|" />
+                    <span th:text="${method.name}"></span>
+                </a>
+            </li>
+        </ul>
+    </th:block>
+</div>
+
+<div th:remove="tag" th:fragment="signupNoticeContent">
+    <div th:if="${globalInfo.allowRegistration}" class="signup-notice-content text-terminal-dim text-xs">
+        <div>
+            <span>还没有账号？</span>
+            <a th:href="@{/signup}"
+                class="text-terminal-green hover:underline decoration-dashed transition-colors">立即注册</a>
+        </div>
+    </div>
+</div>
+
+<div th:remove="tag" th:fragment="loginNoticeContent">
+    <div th:if="${globalInfo.allowRegistration}" class="login-notice-content text-terminal-dim text-xs">
+        <div>
+            <span>已有账号？</span>
+            <a th:href="@{/login}" class="text-terminal-green hover:underline decoration-dashed transition-colors">立即登录</a>
+        </div>
+    </div>
+</div>
+
+<div th:remove="tag" th:fragment="returnToSiteContent">
+    <div
+        class="returntosite-content text-terminal-dim text-[10px] mt-4 opacity-50 hover:opacity-100 transition-opacity">
+        <a th:href="@{/}" class="flex items-center gap-1 justify-center">
+            <span>&larr;</span>
+            <span>返回首页</span>
+        </a>
+    </div>
+</div>
