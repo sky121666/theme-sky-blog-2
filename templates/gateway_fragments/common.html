@@ -15,12 +15,14 @@
     </script>
 
     <script src="/js/main.js"></script>
-    
+
     <!-- Altcha Captcha Scripts (Halo Pro) -->
-    <th:block th:if="${#strings.equalsIgnoreCase(globalInfo.captchaProvider, 'ALTCHA')}">
-        <script async defer src="/webjars/altcha/2.0.3/dist/altcha.i18n.js" type="module"></script>
-        <script src="/js/altcha-lib.iife.js"></script>
-        <script src="/js/altcha-utils.js"></script>
+    <th:block th:if="${globalInfo != null and #strings.contains(globalInfo.toString(), 'captchaProvider')}">
+        <th:block th:if="${#strings.equalsIgnoreCase(globalInfo.captchaProvider, 'ALTCHA')}">
+            <script async defer src="/webjars/altcha/2.0.3/dist/altcha.i18n.js" type="module"></script>
+            <script src="/js/altcha-lib.iife.js"></script>
+            <script src="/js/altcha-utils.js"></script>
+        </th:block>
     </th:block>
 </th:block>
 
@@ -123,7 +125,8 @@
     <div th:if="${globalInfo.allowRegistration}" class="login-notice-content text-terminal-dim text-xs">
         <div>
             <span>已有账号？</span>
-            <a th:href="@{/login}" class="text-terminal-green hover:underline decoration-dashed transition-colors">立即登录</a>
+            <a th:href="@{/login}"
+                class="text-terminal-green hover:underline decoration-dashed transition-colors">立即登录</a>
         </div>
     </div>
 </div>
