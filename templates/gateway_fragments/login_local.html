@@ -2,24 +2,31 @@
     <!-- JSEncrypt with version fallback for Halo compatibility -->
     <!-- TODO: Remove 3.3.2 fallback after Halo 2.22.12 release -->
     <script th:inline="javascript" type="text/javascript">
-        const publicKey = /*[[${publicKey}]]*/ "";
+        (function () {
+            const publicKey = /*[[${publicKey}]]*/ "";
 
-        // Try loading jsencrypt 3.5.4 first, fallback to 3.3.2 if not available
-        (function() {
-            const versions = ['3.5.4', '3.3.2'];
-            let loaded = false;
-
+            // Dynamic script loading is essential for Pjax compatibility where static script tags might be ignored
             function tryLoadScript(version) {
                 return new Promise((resolve, reject) => {
+                    if (document.querySelector('script[src*="jsencrypt.min.js"]')) {
+                        // Already in DOM, perhaps from an earlier Pjax visit
+                        resolve(version);
+                        return;
+                    }
                     const script = document.createElement('script');
                     script.src = `/webjars/jsencrypt/${version}/bin/jsencrypt.min.js`;
                     script.onload = () => resolve(version);
-                    script.onerror = () => reject(version);
+                    script.onerror = () => {
+                        script.remove();
+                        reject(version);
+                    };
                     document.head.appendChild(script);
                 });
             }
 
             async function loadJSEncrypt() {
+                if (typeof window.JSEncrypt !== 'undefined') return;
+                const versions = ['3.5.4', '3.3.2'];
                 for (const version of versions) {
                     try {
                         await tryLoadScript(version);
@@ -32,30 +39,34 @@
                 console.error('Failed to load any version of JSEncrypt');
             }
 
+            // Start loading in the background
             loadJSEncrypt();
-        })();
 
-        function encryptPassword(password) {
-            if (typeof JSEncrypt === 'undefined') {
-                console.error('JSEncrypt not loaded');
-                return password;
+            function encryptPassword(password) {
+                if (typeof window.JSEncrypt === 'undefined') {
+                    console.error('JSEncrypt not loaded, sending plaintext');
+                    return password;
+                }
+                const encrypt = new window.JSEncrypt();
+                encrypt.setPublicKey(publicKey);
+                return encrypt.encrypt(password);
             }
-            const encrypt = new JSEncrypt();
-            encrypt.setPublicKey(publicKey);
-            return encrypt.encrypt(password);
-        }
 
-        document.addEventListener("DOMContentLoaded", function () {
+            // Bind submit event directly to the form (which already exists in the DOM at this parsed moment)
             const loginForm = document.getElementById("login-form");
-            loginForm.addEventListener("submit", function (event) {
-                const plainPasswordInput = document.getElementById("plainPassword");
-                const passwordInput = document.getElementById("password");
-                passwordInput.value = encryptPassword(plainPasswordInput.value);
-            });
-        });
+            if (loginForm) {
+                loginForm.addEventListener("submit", function (event) {
+                    const passwordInput = document.getElementById("password");
+                    if (passwordInput && !passwordInput.dataset.encrypted) {
+                        if (passwordInput.value) {
+                            passwordInput.value = encryptPassword(passwordInput.value);
+                            passwordInput.dataset.encrypted = "true";
+                        }
+                    }
+                });
+            }
+        })();
     </script>
-
-    <input type="hidden" name="password" id="password" />
 
     <!-- 用户名/邮箱 + 密码 (两列布局) -->
     <div class="login-row">
@@ -64,12 +75,12 @@
                 class="block text-xs uppercase tracking-widest text-terminal-dim mb-1 group-focus-within:text-terminal-green transition-colors font-mono">
                 用户名/邮箱
             </label>
-            <input type="text" id="username" name="username" required autofocus
-                placeholder="请输入用户名或邮箱" />
+            <input type="text" id="username" name="username" required autofocus placeholder="请输入用户名或邮箱"
+                autocomplete="username" />
         </div>
         <div class="form-item group">
             <div class="form-label-group flex justify-between items-center mb-1">
-                <label for="plainPassword"
+                <label for="password"
                     class="block text-xs uppercase tracking-widest text-terminal-dim group-focus-within:text-terminal-green transition-colors font-mono">
                     密码
                 </label>
@@ -79,15 +90,20 @@
                 </a>
             </div>
             <div class="form-input form-input-stack toggle-password-display-flag relative flex items-center">
-                <input type="password" id="plainPassword" name="plainPassword" required autocomplete="off"
-                    spellcheck="false" autocorrect="off" autocapitalize="off" maxlength="257"
-                    placeholder="请输入密码" />
-                <div class="form-input-stack-icon toggle-password-button absolute right-0 cursor-pointer text-terminal-dim hover:text-terminal-green transition-colors">
-                    <svg class="password-hidden-icon" style="display: none" viewBox="0 0 24 24" width="1.2em" height="1.2em">
-                        <path fill="currentColor" d="M12 3c5.392 0 9.878 3.88 10.819 9c-.94 5.12-5.427 9-10.819 9c-5.392 0-9.878-3.88-10.818-9C2.122 6.88 6.608 3 12 3Zm0 16a9.005 9.005 0 0 0 8.778-7a9.005 9.005 0 0 0-17.555 0A9.005 9.005 0 0 0 12 19Zm0-2.5a4.5 4.5 0 1 1 0-9a4.5 4.5 0 0 1 0 9Zm0-2a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z"></path>
+                <input type="password" id="password" name="password" required autocomplete="current-password"
+                    spellcheck="false" autocorrect="off" autocapitalize="off" maxlength="257" placeholder="请输入密码" />
+                <div
+                    class="form-input-stack-icon toggle-password-button absolute right-0 cursor-pointer text-terminal-dim hover:text-terminal-green transition-colors">
+                    <svg class="password-hidden-icon" style="display: none" viewBox="0 0 24 24" width="1.2em"
+                        height="1.2em">
+                        <path fill="currentColor"
+                            d="M12 3c5.392 0 9.878 3.88 10.819 9c-.94 5.12-5.427 9-10.819 9c-5.392 0-9.878-3.88-10.818-9C2.122 6.88 6.608 3 12 3Zm0 16a9.005 9.005 0 0 0 8.778-7a9.005 9.005 0 0 0-17.555 0A9.005 9.005 0 0 0 12 19Zm0-2.5a4.5 4.5 0 1 1 0-9a4.5 4.5 0 0 1 0 9Zm0-2a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z">
+                        </path>
                     </svg>
                     <svg class="password-display-icon" viewBox="0 0 24 24" width="1.2em" height="1.2em">
-                        <path fill="currentColor" d="M17.883 19.297A10.949 10.949 0 0 1 12 21c-5.392 0-9.878-3.88-10.818-9A10.982 10.982 0 0 1 4.52 5.935L1.394 2.808l1.414-1.414l19.799 19.798l-1.414 1.415l-3.31-3.31ZM5.936 7.35A8.965 8.965 0 0 0 3.223 12a9.005 9.005 0 0 0 13.201 5.838l-2.028-2.028A4.5 4.5 0 0 1 8.19 9.604L5.936 7.35Zm6.978 6.978l-3.242-3.241a2.5 2.5 0 0 0 3.241 3.241Zm7.893 2.265l-1.431-1.431A8.935 8.935 0 0 0 20.778 12A9.005 9.005 0 0 0 9.552 5.338L7.974 3.76C9.221 3.27 10.58 3 12 3c5.392 0 9.878 3.88 10.819 9a10.947 10.947 0 0 1-2.012 4.593Zm-9.084-9.084a4.5 4.5 0 0 1 4.769 4.769l-4.77-4.77Z"></path>
+                        <path fill="currentColor"
+                            d="M17.883 19.297A10.949 10.949 0 0 1 12 21c-5.392 0-9.878-3.88-10.818-9A10.982 10.982 0 0 1 4.52 5.935L1.394 2.808l1.414-1.414l19.799 19.798l-1.414 1.415l-3.31-3.31ZM5.936 7.35A8.965 8.965 0 0 0 3.223 12a9.005 9.005 0 0 0 13.201 5.838l-2.028-2.028A4.5 4.5 0 0 1 8.19 9.604L5.936 7.35Zm6.978 6.978l-3.242-3.241a2.5 2.5 0 0 0 3.241 3.241Zm7.893 2.265l-1.431-1.431A8.935 8.935 0 0 0 20.778 12A9.005 9.005 0 0 0 9.552 5.338L7.974 3.76C9.221 3.27 10.58 3 12 3c5.392 0 9.878 3.88 10.819 9a10.947 10.947 0 0 1-2.012 4.593Zm-9.084-9.084a4.5 4.5 0 0 1 4.769 4.769l-4.77-4.77Z">
+                        </path>
                     </svg>
                 </div>
             </div>
@@ -101,6 +117,7 @@
             gap: 1rem;
             margin-bottom: 0.5rem;
         }
+
         @media (max-width: 480px) {
             .login-row {
                 grid-template-columns: 1fr;
@@ -109,13 +126,13 @@
     </style>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        (function () {
             const toggleButton = document.querySelector(".toggle-password-button");
-            const passwordInput = document.getElementById("plainPassword");
+            const passwordInput = document.getElementById("password");
             const hiddenIcon = document.querySelector(".password-hidden-icon");
             const displayIcon = document.querySelector(".password-display-icon");
 
-            if (toggleButton && passwordInput) {
+            if (toggleButton && passwordInput && hiddenIcon && displayIcon) {
                 toggleButton.addEventListener("click", function () {
                     if (passwordInput.type === "password") {
                         passwordInput.type = "text";
@@ -128,6 +145,6 @@
                     }
                 });
             }
-        });
+        })();
     </script>
 </div>

@@ -22,13 +22,71 @@
             <script async defer src="/webjars/altcha/2.0.3/dist/altcha.i18n.js" type="module"></script>
             <script src="/js/altcha-lib.iife.js"></script>
             <script src="/js/altcha-utils.js"></script>
+            <!-- 弹窗位置强制内联修复（彻底解决 3D 变换引起的偏移） -->
+            <script>
+                (function fixAltchaPosition() {
+                    const styleId = 'altcha-global-fix';
+                    if (!document.getElementById(styleId)) {
+                        const style = document.createElement('style');
+                        style.id = styleId;
+                        style.textContent = `
+                            .altcha-submit-container { position: relative !important; z-index: 50; }
+                            .altcha[data-floating], altcha-widget[floating] .altcha {
+                                position: absolute !important; top: 100% !important; bottom: auto !important;
+                                left: 0 !important; right: 0 !important; transform: none !important;
+                                margin-top: 10px !important; margin-left: auto !important; margin-right: auto !important;
+                                width: 100% !important; box-sizing: border-box !important;
+                                background-color: var(--color-base-100, #0a0a0a) !important;
+                                border: 1px solid var(--color-terminal-green, #33ff33) !important;
+                                z-index: 100 !important;
+                                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
+                            }
+                        `;
+                        document.head.appendChild(style);
+                    }
+                    function applyFix() {
+                        const widget = document.querySelector('altcha-widget');
+                        if (!widget || !widget.hasAttribute('floating')) return;
+                        const form = widget.closest('form');
+                        if (form) {
+                            const submitBtn = form.querySelector('button[type="submit"]');
+                            if (submitBtn) {
+                                if (!submitBtn.id) submitBtn.id = 'altcha-anchor-' + Math.random().toString(36).substring(2, 9);
+                                widget.setAttribute('floatinganchor', '#' + submitBtn.id);
+                                const btnWrapper = submitBtn.closest('.form-item') || submitBtn.parentNode;
+                                if (btnWrapper && widget.parentNode !== btnWrapper) {
+                                    btnWrapper.classList.add('altcha-submit-container');
+                                    btnWrapper.appendChild(widget);
+                                }
+                            }
+                        }
+                    }
+                    function init() {
+                        const container = document.body || document.documentElement;
+                        const observer = new MutationObserver(function () {
+                            const widget = document.querySelector('altcha-widget');
+                            if (widget && widget.hasAttribute('floating')) {
+                                observer.disconnect();
+                                requestAnimationFrame(() => requestAnimationFrame(applyFix));
+                            }
+                        });
+                        observer.observe(container, { childList: true, subtree: true });
+                        setTimeout(applyFix, 100);
+                    }
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', init);
+                    } else {
+                        init();
+                    }
+                })();
+            </script>
         </th:block>
     </th:block>
 </th:block>
 
 <th:block th:fragment="basicStyleResources">
     <link rel="stylesheet" href="/webjars/normalize.css/8.0.1/normalize.css" />
-    <link rel="stylesheet" th:href="|/styles/main.css?v=${site.version}|" />
+    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
 </th:block>
 
 <div th:remove="tag" th:fragment="languageSwitcher">
@@ -74,7 +132,7 @@
         </ul>
     </th:block>
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        (function () {
             const rememberMeCheckbox = document.getElementById("remember-me");
             const socialAuthProviders = document.querySelectorAll(".social-auth-provider-form");
 
@@ -89,7 +147,7 @@
                     });
                 });
             }
-        });
+        })();
     </script>
 </div>
 

@@ -909,7 +909,7 @@ observer.observe();
 
 // Initialize Pjax (using _pjax to silence unused variable warning - Pjax works by side effects)
 new Pjax({
-  elements: 'a[href]:not([target="_blank"])',
+  elements: 'a[href]:not([target="_blank"]):not([data-pjax="false"]):not([href^="/logout"])',
   selectors: ["title", "#main"],
   cacheBust: false,
   analytics: false,

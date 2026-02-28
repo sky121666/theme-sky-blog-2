@@ -30,7 +30,7 @@
                 class="block text-xs uppercase tracking-widest text-terminal-dim mb-1 group-focus-within:text-terminal-green transition-colors font-mono">
                 用户名
             </label>
-            <input type="text" id="username" name="username" th:field="*{username}" autocomplete="off"
+            <input type="text" id="username" name="username" th:field="*{username}" autocomplete="username"
                 spellcheck="false" autocorrect="off" autocapitalize="off" autofocus required minlength="4"
                 maxlength="63" placeholder="4-63 个字符" />
             <p class="text-red-500 text-xs mt-1 font-mono" th:if="${#fields.hasErrors('username')}"
@@ -41,7 +41,7 @@
                 class="block text-xs uppercase tracking-widest text-terminal-dim mb-1 group-focus-within:text-terminal-green transition-colors font-mono">
                 昵称
             </label>
-            <input type="text" id="displayName" name="displayName" th:field="*{displayName}" autocomplete="off"
+            <input type="text" id="displayName" name="displayName" th:field="*{displayName}" autocomplete="name"
                 spellcheck="false" autocorrect="off" autocapitalize="off" required placeholder="显示名称" />
             <p class="text-red-500 text-xs mt-1 font-mono" th:if="${#fields.hasErrors('displayName')}"
                 th:errors="*{displayName}"></p>
@@ -54,7 +54,7 @@
             class="block text-xs uppercase tracking-widest text-terminal-dim mb-1 group-focus-within:text-terminal-green transition-colors font-mono">
             邮箱
         </label>
-        <input type="email" id="email" name="email" th:field="*{email}" autocomplete="off" spellcheck="false"
+        <input type="email" id="email" name="email" th:field="*{email}" autocomplete="email" spellcheck="false"
             autocorrect="off" autocapitalize="off" required placeholder="user@example.com" />
         <p class="text-red-500 text-xs mt-1 font-mono" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
     </div>
@@ -183,7 +183,7 @@
     </style>
 
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
+        (function () {
             document.querySelectorAll('.toggle-password-btn').forEach(function (btn) {
                 btn.addEventListener('click', function () {
                     const targetId = this.getAttribute('data-target');
@@ -206,11 +206,11 @@
             if (typeof setupPasswordConfirmation === 'function') {
                 setupPasswordConfirmation("password", "confirmPassword");
             }
-        });
+        })();
     </script>
 
     <script th:if="${globalInfo.mustVerifyEmailOnRegistration}" th:inline="javascript">
-        document.addEventListener("DOMContentLoaded", function () {
+        (function () {
             const headerName = /*[[${_csrf.headerName}]]*/ "";
             const token = /*[[${_csrf.token}]]*/ "";
 
@@ -254,9 +254,9 @@
             }
 
             const emailCodeSendButton = document.getElementById("emailCodeSendButton");
-            if (typeof sendVerificationCode === 'function') {
+            if (typeof sendVerificationCode === 'function' && emailCodeSendButton) {
                 sendVerificationCode(emailCodeSendButton, sendRequest);
             }
-        });
+        })();
     </script>
 </form>

@@ -717,6 +717,21 @@ input:focus::placeholder {
   transition: all 0.3s ease;
 }
 
+/* Override browser autofill white background */
+.auth-form-terminal input:-webkit-autofill,
+.auth-form-terminal input:-webkit-autofill:hover,
+.auth-form-terminal input:-webkit-autofill:focus,
+.auth-form-terminal input:-webkit-autofill:active,
+.auth-form-terminal input:-webkit-autofill-strong-password,
+.auth-form-terminal input:-internal-autofill-selected {
+  -webkit-box-shadow: 0 0 0 1000px #0d0d0d inset !important;
+  -webkit-text-fill-color: var(--terminal-text) !important;
+  caret-color: var(--terminal-text) !important;
+  transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s;
+  background-color: transparent !important;
+  color-scheme: dark;
+}
+
 .auth-form-terminal input:focus {
   border-bottom-color: var(--terminal-text) !important;
   box-shadow: 0 4px 0 -2px var(--terminal-glow) !important;

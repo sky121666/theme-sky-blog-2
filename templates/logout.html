@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="https://www.thymeleaf.org" th:with="pageType='logout'"
+    th:replace="~{gateway_fragments/layout :: layout(title = 'Confirm Logout - ' + ${site.title}, head = ~{::head}, body = ~{::body})}">
+
+<head>
+    <style>
+        .logout-page-wrapper {
+            max-width: 32em;
+        }
+
+        /* 覆盖 main.css 中 .auth-form-terminal button 的 !important 样式 */
+        .auth-form-terminal .logout-btn {
+            margin-top: 0 !important;
+            padding: 0.75rem 1rem !important;
+            width: auto !important;
+            flex: 1 !important;
+        }
+    </style>
+</head>
+<th:block th:fragment="body">
+    <div class="terminal-login-wrapper w-full logout-page-wrapper">
+        <!-- The Form Container -->
+        <div class="terminal-form-box">
+
+            <div class="mb-6 text-center">
+                <p class="text-terminal-green mb-2">> Confirming termination of active session.</p>
+                <div class="flex items-center justify-center gap-2 text-sm">
+                    <span class="text-terminal-dim">CURRENT_USER:</span>
+                    <span
+                        class="font-bold text-terminal-green bg-terminal-green/10 px-2 py-0.5 rounded border border-terminal-green/30"
+                        th:text="${#authentication.name}">GUEST</span>
+                </div>
+            </div>
+
+            <!-- The actual logout form logic that posts to /logout -->
+            <form th:action="@{/logout}" method="post" class="space-y-6">
+
+                <div
+                    class="p-3 border border-terminal-green/30 bg-terminal-green/5 text-xs text-terminal-dim mb-6 text-center leading-relaxed">
+                    WARNING: Execution will forcefully sever connection. Unsaved buffers may be lost. Proceed with
+                    operation?
+                </div>
+
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <!-- Confirm Logout Button -->
+                    <button type="submit"
+                        class="logout-btn terminal-btn-primary flex justify-center items-center group relative overflow-hidden transition-all duration-300">
+                        <!-- Holographic scanline effect -->
+                        <div
+                            class="absolute inset-0 bg-gradient-to-b from-transparent via-terminal-black/20 to-transparent -translate-y-full group-hover:translate-y-full transition-transform duration-1000">
+                        </div>
+
+                        <span
+                            class="relative z-10 flex items-center justify-center font-bold tracking-widest whitespace-nowrap leading-none">
+                            <span
+                                class="text-terminal-black mr-2 opacity-50 group-hover:opacity-100 transition-opacity">[Y]</span>
+                            CONFIRM
+                        </span>
+
+                        <!-- Decorative corners -->
+                        <div
+                            class="absolute top-0 left-0 w-2 h-2 border-t-2 border-l-2 border-terminal-black opacity-50">
+                        </div>
+                        <div
+                            class="absolute bottom-0 right-0 w-2 h-2 border-b-2 border-r-2 border-terminal-black opacity-50">
+                        </div>
+                    </button>
+
+                    <!-- Cancel / Provide an easy way to go back -->
+                    <a th:href="@{/}"
+                        class="flex-1 py-3 px-4 flex justify-center items-center group relative overflow-hidden transition-all duration-300 border border-terminal-green text-terminal-green hover:bg-terminal-green/10 !h-auto">
+
+                        <span
+                            class="relative z-10 flex items-center justify-center font-bold tracking-widest whitespace-nowrap leading-none">
+                            <span
+                                class="text-terminal-green/50 mr-2 group-hover:text-terminal-green transition-colors">[N]</span>
+                            ABORT
+                        </span>
+
+                        <!-- Glitch box on hover -->
+                        <div
+                            class="absolute inset-0 border border-terminal-green opacity-0 group-hover:opacity-100 group-hover:animate-flicker">
+                        </div>
+                    </a>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</th:block>
+
+</html>
