@@ -1,72 +1,6 @@
 <div th:fragment="form">
-    <!-- JSEncrypt with version fallback for Halo compatibility -->
-    <!-- TODO: Remove 3.3.2 fallback after Halo 2.22.12 release -->
-    <script th:inline="javascript" type="text/javascript">
-        (function () {
-            const publicKey = /*[[${publicKey}]]*/ "";
-
-            // Dynamic script loading is essential for Pjax compatibility where static script tags might be ignored
-            function tryLoadScript(version) {
-                return new Promise((resolve, reject) => {
-                    if (document.querySelector('script[src*="jsencrypt.min.js"]')) {
-                        // Already in DOM, perhaps from an earlier Pjax visit
-                        resolve(version);
-                        return;
-                    }
-                    const script = document.createElement('script');
-                    script.src = `/webjars/jsencrypt/${version}/bin/jsencrypt.min.js`;
-                    script.onload = () => resolve(version);
-                    script.onerror = () => {
-                        script.remove();
-                        reject(version);
-                    };
-                    document.head.appendChild(script);
-                });
-            }
-
-            async function loadJSEncrypt() {
-                if (typeof window.JSEncrypt !== 'undefined') return;
-                const versions = ['3.5.4', '3.3.2'];
-                for (const version of versions) {
-                    try {
-                        await tryLoadScript(version);
-                        console.log(`JSEncrypt ${version} loaded successfully`);
-                        return;
-                    } catch (v) {
-                        console.warn(`JSEncrypt ${v} not available, trying next version...`);
-                    }
-                }
-                console.error('Failed to load any version of JSEncrypt');
-            }
-
-            // Start loading in the background
-            loadJSEncrypt();
-
-            function encryptPassword(password) {
-                if (typeof window.JSEncrypt === 'undefined') {
-                    console.error('JSEncrypt not loaded, sending plaintext');
-                    return password;
-                }
-                const encrypt = new window.JSEncrypt();
-                encrypt.setPublicKey(publicKey);
-                return encrypt.encrypt(password);
-            }
-
-            // Bind submit event directly to the form (which already exists in the DOM at this parsed moment)
-            const loginForm = document.getElementById("login-form");
-            if (loginForm) {
-                loginForm.addEventListener("submit", function (event) {
-                    const passwordInput = document.getElementById("password");
-                    if (passwordInput && !passwordInput.dataset.encrypted) {
-                        if (passwordInput.value) {
-                            passwordInput.value = encryptPassword(passwordInput.value);
-                            passwordInput.dataset.encrypted = "true";
-                        }
-                    }
-                });
-            }
-        })();
-    </script>
+    <!-- 隐藏的加密密码字段 (加密逻辑在 common.html) -->
+    <input type="hidden" name="password" id="password" />
 
     <!-- 用户名/邮箱 + 密码 (两列布局) -->
     <div class="login-row">
@@ -80,7 +14,7 @@
         </div>
         <div class="form-item group">
             <div class="form-label-group flex justify-between items-center mb-1">
-                <label for="password"
+                <label for="plainPassword"
                     class="block text-xs uppercase tracking-widest text-terminal-dim group-focus-within:text-terminal-green transition-colors font-mono">
                     密码
                 </label>
@@ -90,7 +24,7 @@
                 </a>
             </div>
             <div class="form-input form-input-stack toggle-password-display-flag relative flex items-center">
-                <input type="password" id="password" name="password" required autocomplete="current-password"
+                <input type="password" id="plainPassword" required autocomplete="current-password"
                     spellcheck="false" autocorrect="off" autocapitalize="off" maxlength="257" placeholder="请输入密码" />
                 <div
                     class="form-input-stack-icon toggle-password-button absolute right-0 cursor-pointer text-terminal-dim hover:text-terminal-green transition-colors">
@@ -128,7 +62,7 @@
     <script>
         (function () {
             const toggleButton = document.querySelector(".toggle-password-button");
-            const passwordInput = document.getElementById("password");
+            const passwordInput = document.getElementById("plainPassword");
             const hiddenIcon = document.querySelector(".password-hidden-icon");
             const displayIcon = document.querySelector(".password-display-icon");
 

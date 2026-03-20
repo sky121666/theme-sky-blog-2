@@ -4,6 +4,32 @@
 </th:block>
 
 <th:block th:fragment="basicScriptResources">
+    <!-- RSA 密码加密 (Halo 2.23+ 官方架构：加密逻辑放在 common.html) -->
+    <th:block th:if="${not #strings.isEmpty(publicKey)} and ${fragmentTemplateName} == 'login_local'">
+        <script src="/webjars/jsencrypt/bin/jsencrypt.min.js" defer></script>
+        <script th:inline="javascript" type="text/javascript">
+            const publicKey = /*[[${publicKey}]]*/ "";
+
+            function encryptPassword(password) {
+                const encrypt = new JSEncrypt();
+                encrypt.setPublicKey(publicKey);
+                return encrypt.encrypt(password);
+            }
+
+            document.addEventListener("DOMContentLoaded", function () {
+                const loginForm = document.getElementById("login-form");
+                if (loginForm) {
+                    loginForm.addEventListener("submit", function (event) {
+                        const plainPasswordInput = document.getElementById("plainPassword");
+                        const passwordInput = document.getElementById("password");
+                        if (plainPasswordInput && passwordInput) {
+                            passwordInput.value = encryptPassword(plainPasswordInput.value);
+                        }
+                    });
+                }
+            });
+        </script>
+    </th:block>
     <script th:inline="javascript">
         // Hardcoded messages for JS
         const i18nResources = {
@@ -19,7 +45,7 @@
     <!-- Altcha Captcha Scripts (Halo Pro) -->
     <th:block th:if="${globalInfo != null and #strings.contains(globalInfo.toString(), 'captchaProvider')}">
         <th:block th:if="${#strings.equalsIgnoreCase(globalInfo.captchaProvider, 'ALTCHA')}">
-            <script async defer src="/webjars/altcha/2.0.3/dist/altcha.i18n.js" type="module"></script>
+            <script async defer src="/webjars/altcha/dist/altcha.i18n.js" type="module"></script>
             <script src="/js/altcha-lib.iife.js"></script>
             <script src="/js/altcha-utils.js"></script>
             <!-- 弹窗位置强制内联修复（彻底解决 3D 变换引起的偏移） -->
