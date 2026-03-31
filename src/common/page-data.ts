@@ -113,3 +113,66 @@ export function syncHaloDataFromDocument() {
   return haloData;
 }
 
+// ── SEO meta tag sync for Pjax ──────────────────────────────────
+
+function setMetaContent(selector: string, content: string | null) {
+  const el = document.querySelector<HTMLMetaElement>(selector);
+  if (el && content) {
+    el.content = content;
+  }
+}
+
+function setLinkHref(selector: string, href: string | null) {
+  const el = document.querySelector<HTMLLinkElement>(selector);
+  if (el && href) {
+    el.href = href;
+  }
+}
+
+export function updateSeoMeta() {
+  const element = document.getElementById(PAGE_DATA_ID);
+  if (!(element instanceof HTMLScriptElement)) {
+    return;
+  }
+
+  try {
+    const data = JSON.parse(element.textContent?.trim() ?? "{}");
+    const seo = data.seo;
+    if (!seo) {
+      return;
+    }
+
+    // Description
+    setMetaContent('meta[name="description"]', seo.description);
+    // Canonical
+    setLinkHref('link[rel="canonical"]', seo.canonical);
+    // Open Graph
+    setMetaContent('meta[property="og:title"]', seo.title);
+    setMetaContent('meta[property="og:description"]', seo.description);
+    setMetaContent('meta[property="og:url"]', seo.canonical);
+    setMetaContent('meta[property="og:site_name"]', seo.title?.split(" - ").pop() ?? null);
+
+    // OG Image: update or remove
+    const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]');
+    if (seo.ogImage) {
+      if (ogImage) {
+        ogImage.content = seo.ogImage;
+      } else {
+        const meta = document.createElement("meta");
+        meta.setAttribute("property", "og:image");
+        meta.content = seo.ogImage;
+        document.head.appendChild(meta);
+      }
+    } else if (ogImage) {
+      ogImage.remove();
+    }
+
+    // OG Type
+    setMetaContent('meta[property="og:type"]', data.pageType === "post" ? "article" : "website");
+    // Twitter
+    setMetaContent('meta[name="twitter:title"]', seo.title);
+    setMetaContent('meta[name="twitter:description"]', seo.description);
+  } catch {
+    // Silently ignore parse errors
+  }
+}

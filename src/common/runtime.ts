@@ -3,7 +3,7 @@ import lozad from "lozad";
 import Pjax from "pjax";
 
 import { setPjaxInstance } from "./navigation";
-import { syncHaloDataFromDocument } from "./page-data";
+import { syncHaloDataFromDocument, updateSeoMeta } from "./page-data";
 import { initTaskListInteraction } from "./task-list";
 
 let observer: ReturnType<typeof lozad> | null = null;
@@ -43,6 +43,7 @@ function bindGlobalEvents() {
     const main = document.getElementById("main");
 
     syncHaloDataFromDocument();
+    updateSeoMeta();
 
     if (main) {
       main.classList.remove("loading");

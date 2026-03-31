@@ -1,19 +1,19 @@
 <!doctype html>
-<html lang="en" class="terminal-theme" th:fragment="html (content)">
+<html lang="en" class="terminal-theme">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title th:text="${error.code} + ' - ' + site.title">Error</title>
+    <title th:text="${error.status} + ' - ' + site.title">Error</title>
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
     <style
       th:with="
-        preset=${theme.config.color?.color_preset ?: 'classic_green'},
-        cPri=${theme.config.color?.custom_primary_color ?: '#00ff00'},
-        cBg=${theme.config.color?.custom_bg_color ?: '#0d0d0d'},
+        preset=${theme.config.appearance?.color_preset ?: 'classic_green'},
+        cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
+        cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
         priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
         bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))},
-        flickerOn=${theme.config.effects?.enable_flicker != null ? theme.config.effects.enable_flicker : true},
-        scanlineOn=${theme.config.effects?.enable_scanline != null ? theme.config.effects.enable_scanline : true}"
+        flickerOn=${theme.config.appearance?.enable_flicker != null ? theme.config.appearance.enable_flicker : true},
+        scanlineOn=${theme.config.appearance?.enable_scanline != null ? theme.config.appearance.enable_scanline : true}"
       th:inline="text">
       :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
       [(${flickerOn ? '' : 'body { animation: none !important; }'})]
@@ -24,13 +24,13 @@
   <body class="flex h-screen items-center justify-center overflow-hidden p-4 md:p-8">
     <div class="w-full max-w-2xl font-mono">
       <!-- Panic header for 5xx, Segfault for 4xx -->
-      <div th:if="${error.code >= 500}" class="mb-6">
+      <div th:if="${error.status >= 500}" class="mb-6">
         <pre class="text-terminal-green text-sm leading-snug md:text-base" style="text-shadow: 0 0 8px var(--terminal-glow)">
 ╔══════════════════════════════════════════════════╗
 ║           KERNEL PANIC - NOT SYNCING             ║
 ╚══════════════════════════════════════════════════╝</pre>
       </div>
-      <div th:if="${error.code < 500}" class="mb-6">
+      <div th:if="${error.status < 500}" class="mb-6">
         <pre class="text-terminal-green text-sm leading-snug md:text-base" style="text-shadow: 0 0 8px var(--terminal-glow)">
 ╔══════════════════════════════════════════════════╗
 ║          SEGMENTATION FAULT (core dumped)        ║
@@ -41,20 +41,24 @@
       <div class="text-terminal-green space-y-2 text-sm md:text-base" style="text-shadow: 0 0 4px var(--terminal-glow)">
         <p>
           <span class="text-terminal-green/70">PID:&nbsp;&nbsp;</span>
-          <span th:text="${#numbers.formatInteger(error.code, 1)}">404</span>
+          <span th:text="${error.status}">404</span>
         </p>
         <p>
           <span class="text-terminal-green/70">Signal:</span>
-          <span th:text="${error.code >= 500 ? 'SIGABRT' : (error.code == 404 ? 'SIGSEGV' : (error.code == 403 ? 'SIGKILL' : 'SIGTERM'))}">SIGSEGV</span>
+          <span th:text="${error.status >= 500 ? 'SIGABRT' : (error.status == 404 ? 'SIGSEGV' : (error.status == 403 ? 'SIGKILL' : 'SIGTERM'))}">SIGSEGV</span>
         </p>
         <p>
+          <span class="text-terminal-green/70">Title:</span>
+          <span th:text="${error.title ?: 'Unknown Error'}">Not Found</span>
+        </p>
+        <p th:if="${error.detail != null}">
           <span class="text-terminal-green/70">Fault:</span>
-          <span th:text="${error.message ?: 'Unknown error. The requested resource could not be located.'}">not found</span>
+          <span th:text="${error.detail}">detail</span>
         </p>
 
         <div class="border-terminal-green/30 my-4 border-t pt-4">
           <p class="text-terminal-green/70 mb-2">Stack trace:</p>
-          <pre class="text-terminal-green/50 text-xs leading-relaxed">  at PageHandler.resolve(/<span th:text="${error.requestPath ?: '/unknown'}"></span>)
+          <pre class="text-terminal-green/50 text-xs leading-relaxed">  at PageHandler.resolve(<span th:text="${error.instance ?: '/unknown'}"></span>)
   at Router.dispatch(kernel/router.c:421)
   at HttpServer.processRequest(net/http.c:892)
   at main(init/main.c:1)</pre>

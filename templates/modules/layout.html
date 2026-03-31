@@ -19,38 +19,38 @@
         post != null ? (post.status.excerpt ?: post.spec.title) :
         (category != null ? category.spec.displayName + ' - ' + site.title :
         (tag != null ? tag.spec.displayName + ' - ' + site.title :
-        (site.spec.subtitle ?: site.spec.title)))
+        (site.subtitle ?: site.title)))
       }" />
     <!-- SEO: Canonical URL -->
     <link rel="canonical"
-      th:href="${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.spec.externalUrl))}" />
+      th:href="${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.url))}" />
     <!-- SEO: Open Graph -->
     <meta property="og:type" th:content="${post != null ? 'article' : 'website'}" />
     <meta property="og:title"
-      th:content="${post != null ? post.spec.title : (category != null ? category.spec.displayName : (tag != null ? tag.spec.displayName : site.spec.title))}" />
+      th:content="${post != null ? post.spec.title : (category != null ? category.spec.displayName : (tag != null ? tag.spec.displayName : site.title))}" />
     <meta property="og:description"
-      th:content="${post != null ? (post.status.excerpt ?: '') : (site.spec.subtitle ?: '')}" />
+      th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}" />
     <meta property="og:url"
-      th:content="${post != null ? post.status.permalink : site.spec.externalUrl}" />
-    <meta property="og:site_name" th:content="${site.spec.title}" />
+      th:content="${post != null ? post.status.permalink : site.url}" />
+    <meta property="og:site_name" th:content="${site.title}" />
     <meta property="og:image" th:if="${post != null and post.spec.cover != null}"
       th:content="${post.spec.cover}" />
     <!-- SEO: Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title"
-      th:content="${post != null ? post.spec.title : site.spec.title}" />
+      th:content="${post != null ? post.spec.title : site.title}" />
     <meta name="twitter:description"
-      th:content="${post != null ? (post.status.excerpt ?: '') : (site.spec.subtitle ?: '')}" />
+      th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}" />
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
     <style
       th:with="
-        preset=${theme.config.color?.color_preset ?: 'classic_green'},
-        cPri=${theme.config.color?.custom_primary_color ?: '#00ff00'},
-        cBg=${theme.config.color?.custom_bg_color ?: '#0d0d0d'},
+        preset=${theme.config.appearance?.color_preset ?: 'classic_green'},
+        cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
+        cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
         priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
         bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))},
-        flickerOn=${theme.config.effects?.enable_flicker != null ? theme.config.effects.enable_flicker : true},
-        scanlineOn=${theme.config.effects?.enable_scanline != null ? theme.config.effects.enable_scanline : true}"
+        flickerOn=${theme.config.appearance?.enable_flicker != null ? theme.config.appearance.enable_flicker : true},
+        scanlineOn=${theme.config.appearance?.enable_scanline != null ? theme.config.appearance.enable_scanline : true}"
       th:inline="text">
       :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
       [(${flickerOn ? '' : 'body { animation: none !important; }'})]
@@ -132,7 +132,13 @@
             },
             "prevPost": /*[[${prevPost != null ? prevPost.status.permalink : null}]]*/ null,
             "tags": /*[[${tagFinder.listAll()}]]*/ null,
-            "user": /*[[${#authentication.name != 'anonymousUser' ? #authentication.name : 'guest'}]]*/ "guest"
+            "user": /*[[${#authentication.name != 'anonymousUser' ? #authentication.name : 'guest'}]]*/ "guest",
+            "seo": {
+              "title": /*[[${post != null ? post.spec.title + ' - ' + site.title : (category != null ? category.spec.displayName + ' - ' + site.title : (tag != null ? '#' + tag.spec.displayName + ' - ' + site.title : site.title))}]]*/ null,
+              "description": /*[[${post != null ? (post.status.excerpt ?: post.spec.title) : (site.subtitle ?: site.title)}]]*/ null,
+              "canonical": /*[[${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.url))}]]*/ null,
+              "ogImage": /*[[${post != null and post.spec.cover != null ? post.spec.cover : null}]]*/ null
+            }
           }
         </script>
       </main>

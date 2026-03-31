@@ -16,13 +16,13 @@
 
     <style
       th:with="
-        preset=${theme.config.color?.color_preset ?: 'classic_green'},
-        cPri=${theme.config.color?.custom_primary_color ?: '#00ff00'},
-        cBg=${theme.config.color?.custom_bg_color ?: '#0d0d0d'},
+        preset=${theme.config.appearance?.color_preset ?: 'classic_green'},
+        cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
+        cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
         priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
         bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))},
-        flickerOn=${theme.config.effects?.enable_flicker != null ? theme.config.effects.enable_flicker : true},
-        scanlineOn=${theme.config.effects?.enable_scanline != null ? theme.config.effects.enable_scanline : true}"
+        flickerOn=${theme.config.appearance?.enable_flicker != null ? theme.config.appearance.enable_flicker : true},
+        scanlineOn=${theme.config.appearance?.enable_scanline != null ? theme.config.appearance.enable_scanline : true}"
       th:inline="text">
       :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
       [(${flickerOn ? '' : 'body { animation: none !important; }'})]
@@ -34,10 +34,10 @@
     class="bg-terminal-black text-terminal-green relative flex min-h-screen flex-col items-center justify-center overflow-y-auto bg-[length:4px_4px] p-4 font-mono"
   >
     <!-- CRT Overlay Config -->
-    <div th:if="${theme.config.effects?.enable_scanline != false}"
+    <div th:if="${theme.config.appearance?.enable_scanline != false}"
       class="pointer-events-none fixed inset-0 z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"
     ></div>
-    <div th:if="${theme.config.effects?.enable_flicker != false}" class="bg-terminal-black/10 animate-flicker pointer-events-none fixed inset-0 z-40"></div>
+    <div th:if="${theme.config.appearance?.enable_flicker != false}" class="bg-terminal-black/10 animate-flicker pointer-events-none fixed inset-0 z-40"></div>
 
     <!-- Main Terminal Window -->
     <div
