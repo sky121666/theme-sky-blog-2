@@ -1,52 +1,38 @@
 /// <reference types="vite/client" />
 
 declare module "pjax" {
+  export interface PjaxOptions {
+    analytics?: boolean;
+    cacheBust?: boolean;
+    elements?: string;
+    scrollRestoration?: boolean;
+    selectors?: string[];
+  }
+
   export default class Pjax {
-    constructor(options?: any);
-    loadUrl(url: string, options?: any): void;
+    constructor(options?: PjaxOptions);
+    loadUrl(url: string, options?: Record<string, unknown>): void;
   }
 }
 
 declare module "lozad" {
-  export default function lozad(
-    selector?: string | Element | NodeList,
-    options?: {
-      rootMargin?: string;
-      threshold?: number;
-      enableAutoReload?: boolean;
-      loaded?: (el: Element) => void;
-    }
-  ): {
+  export interface LozadObserver {
     observe: () => void;
-    triggerLoad: (el: Element) => void;
     observer: IntersectionObserver;
-  };
+    triggerLoad: (element: Element) => void;
+  }
+
+  export interface LozadOptions {
+    enableAutoReload?: boolean;
+    loaded?: (element: Element) => void;
+    rootMargin?: string;
+    threshold?: number;
+  }
+
+  export default function lozad(selector?: string | Element | NodeList, options?: LozadOptions): LozadObserver;
 }
 
-interface Window {
-  haloData?: {
-    categories: any[];
-    tags: any[];
-    currentPosts: any[];
-    urls: {
-      categories: string;
-      tags: string;
-      archives: string;
-      home: string;
-    };
-    user: string;
-    pagination?: {
-      hasPrev: boolean;
-      hasNext: boolean;
-      prevUrl: string | null;
-      nextUrl: string | null;
-    };
-    nextPost?: string | null;
-    prevPost?: string | null;
-    currentPost?: {
-      title: string | null;
-      slug: string | null;
-      permalink: string | null;
-    };
-  };
+declare module "figlet/importable-fonts/*" {
+  const font: string;
+  export default font;
 }

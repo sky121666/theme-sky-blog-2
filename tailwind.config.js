@@ -14,12 +14,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        mono: [
-          '"Fira Code"',
-          '"Courier New"',
-          "Courier",
-          "monospace",
-        ],
+        mono: ['"Fira Code"', '"Courier New"', "Courier", "monospace"],
       },
       animation: {
         cursor: "cursor 1s infinite step-end",

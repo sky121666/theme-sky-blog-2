@@ -5,17 +5,7 @@ import globals from "globals";
 
 export default tseslint.config(
   {
-    ignores: [
-      "dist",
-      "node_modules",
-      ".git",
-      "templates/assets/dist",
-      "**/*.min.js",
-      ".gradle",
-      "build",
-      "logs",
-      "*.log",
-    ],
+    ignores: ["dist", "node_modules", ".git", "templates/assets", "**/*.min.js", ".gradle", "build", "logs", "*.log"],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommended,

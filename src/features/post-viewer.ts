@@ -1,0 +1,59 @@
+import Alpine from "alpinejs";
+
+export function registerPostViewerComponent() {
+  Alpine.data("postViewer", () => ({
+    handleKeydown(event: KeyboardEvent) {
+      const target = event.target as HTMLElement | null;
+      if (!target) {
+        return;
+      }
+
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+        return;
+      }
+
+      const main = document.getElementById("main");
+      if (!main) {
+        return;
+      }
+
+      switch (event.key) {
+        case "ArrowDown":
+        case "j":
+          event.preventDefault();
+          main.scrollBy({ behavior: "smooth", top: this.scrollAmount });
+          break;
+        case "ArrowUp":
+        case "k":
+          event.preventDefault();
+          main.scrollBy({ behavior: "smooth", top: -this.scrollAmount });
+          break;
+        case " ":
+        case "PageDown":
+          event.preventDefault();
+          main.scrollBy({ behavior: "smooth", top: main.clientHeight * 0.8 });
+          break;
+        case "End":
+          event.preventDefault();
+          main.scrollTo({ behavior: "smooth", top: main.scrollHeight });
+          break;
+        case "Home":
+          event.preventDefault();
+          main.scrollTo({ behavior: "smooth", top: 0 });
+          break;
+        case "PageUp":
+          event.preventDefault();
+          main.scrollBy({ behavior: "smooth", top: -main.clientHeight * 0.8 });
+          break;
+        default:
+          break;
+      }
+    },
+
+    init() {
+      // Reserved for future reader-only hooks.
+    },
+
+    scrollAmount: 100,
+  }));
+}
