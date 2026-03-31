@@ -1,16 +1,16 @@
 /** @type {import('tailwindcss').Config} */
 const { addDynamicIconSelectors } = require("@iconify/tailwind");
 module.exports = {
-  content: ["./templates/**/*.html", "./src/main.ts"],
+  content: ["./templates/**/*.html", "./src/**/*.ts"],
   theme: {
     extend: {
       colors: {
         terminal: {
-          black: "#0d0d0d",
-          green: "#00ff00",
-          dim: "#00aa00",
-          glow: "rgba(0, 255, 0, 0.5)",
-          cursor: "#00ff00",
+          black: "var(--terminal-bg)",
+          green: "var(--terminal-text)",
+          dim: "var(--terminal-dim)",
+          glow: "var(--terminal-glow)",
+          cursor: "var(--terminal-text)",
         },
       },
       fontFamily: {

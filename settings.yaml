@@ -4,6 +4,49 @@ metadata:
   name: theme-sky-blog-2-setting
 spec:
   forms:
+    - group: appearance
+      label: 外观设置
+      formSchema:
+        - $formkit: toggle
+          id: color_preset_selector
+          name: color_preset
+          label: 终端配色方案
+          render-type: image
+          size: 100
+          gap: 15
+          help: 选择内置色彩配置以全局覆盖。如果选择“完全自定义”，请在下方手动指定颜色。
+          value: classic_green
+          options:
+            - label: 经典骇客
+              value: classic_green
+              render: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjMGQwZDBkIiAvPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTUiIGZpbGw9IiMxYTFhMWEiIHJ4PSI0IiAvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI3LjUiIHI9IjIuNSIgZmlsbD0iI2ZmNWY1NiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjcuNSIgcj0iMi41IiBmaWxsPSIjZmZiZDJlIiAvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iNy41IiByPSIyLjUiIGZpbGw9IiMyN2M5M2YiIC8+CiAgPHRleHQgeD0iNSIgeT0iMzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzAwZmYwMCI+PiBscyAtbGE8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzAwYjMwMCI+ZHJ3eHIteHIteDwvdGV4dD4KICA8dGV4dCB4PSI1IiB5PSI1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjMDBmZjAwIj4+IF88L3RleHQ+Cjwvc3ZnPg==
+            - label: 复古琥珀
+              value: amber
+              render: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjMWEwZjAwIiAvPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTUiIGZpbGw9IiMxYTFhMWEiIHJ4PSI0IiAvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI3LjUiIHI9IjIuNSIgZmlsbD0iI2ZmNWY1NiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjcuNSIgcj0iMi41IiBmaWxsPSIjZmZiZDJlIiAvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iNy41IiByPSIyLjUiIGZpbGw9IiMyN2M5M2YiIC8+CiAgPHRleHQgeD0iNSIgeT0iMzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2ZmYjAwMCI+PiBscyAtbGE8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2IzN2IwMCI+ZHJ3eHIteHIteDwvdGV4dD4KICA8dGV4dCB4PSI1IiB5PSI1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjZmZiMDAwIj4+IF88L3RleHQ+Cjwvc3ZnPg==
+            - label: 深海科技
+              value: phosphor_blue
+              render: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjMDAwODE0IiAvPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTUiIGZpbGw9IiMxYTFhMWEiIHJ4PSI0IiAvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI3LjUiIHI9IjIuNSIgZmlsbD0iI2ZmNWY1NiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjcuNSIgcj0iMi41IiBmaWxsPSIjZmZiZDJlIiAvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iNy41IiByPSIyLjUiIGZpbGw9IiMyN2M5M2YiIC8+CiAgPHRleHQgeD0iNSIgeT0iMzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzAwZmZmZiI+PiBscyAtbGE8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzAwYjNiMyI+ZHJ3eHIteHIteDwvdGV4dD4KICA8dGV4dCB4PSI1IiB5PSI1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjMDBmZmZmIj4+IF88L3RleHQ+Cjwvc3ZnPg==
+            - label: 赛博朋克
+              value: cyberpunk
+              render: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjMTEwMDIyIiAvPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTUiIGZpbGw9IiMxYTFhMWEiIHJ4PSI0IiAvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI3LjUiIHI9IjIuNSIgZmlsbD0iI2ZmNWY1NiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjcuNSIgcj0iMi41IiBmaWxsPSIjZmZiZDJlIiAvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iNy41IiByPSIyLjUiIGZpbGw9IiMyN2M5M2YiIC8+CiAgPHRleHQgeD0iNSIgeT0iMzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2ZmMDBjYyI+PiBscyAtbGE8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2IzMDA4ZiI+ZHJ3eHIteHIteDwvdGV4dD4KICA8dGV4dCB4PSI1IiB5PSI1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjZmYwMGNjIj4+IF88L3RleHQ+Cjwvc3ZnPg==
+            - label: 警报控制
+              value: alert_blood
+              render: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjMWMwNTA1IiAvPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTUiIGZpbGw9IiMxYTFhMWEiIHJ4PSI0IiAvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI3LjUiIHI9IjIuNSIgZmlsbD0iI2ZmNWY1NiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjcuNSIgcj0iMi41IiBmaWxsPSIjZmZiZDJlIiAvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iNy41IiByPSIyLjUiIGZpbGw9IiMyN2M5M2YiIC8+CiAgPHRleHQgeD0iNSIgeT0iMzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2ZmMjIyMiI+PiBscyAtbGE8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2IzMTcxNyI+ZHJ3eHIteHIteDwvdGV4dD4KICA8dGV4dCB4PSI1IiB5PSI1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjZmYyMjIyIj4+IF88L3RleHQ+Cjwvc3ZnPg==
+            - label: 完全自定义
+              value: custom
+              render: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjMjIyMjIyIiAvPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTUiIGZpbGw9IiMxYTFhMWEiIHJ4PSI0IiAvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI3LjUiIHI9IjIuNSIgZmlsbD0iI2ZmNWY1NiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjcuNSIgcj0iMi41IiBmaWxsPSIjZmZiZDJlIiAvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iNy41IiByPSIyLjUiIGZpbGw9IiMyN2M5M2YiIC8+CiAgPHRleHQgeD0iNSIgeT0iMzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2ZmZmZmZiI+PiBscyAtbGE8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzg4ODg4OCI+ZHJ3eHIteHIteDwvdGV4dD4KICA8dGV4dCB4PSI1IiB5PSI1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjZmZmZmZmIj4/IF88L3RleHQ+Cjwvc3ZnPg==
+        - $formkit: color
+          name: custom_primary_color
+          label: 自定义主色调 (Primary Text)
+          value: "#00ff00"
+          if: $get(color_preset_selector).value === 'custom'
+          help: 仅当配色方案选为“完全自定义”时生效
+        - $formkit: color
+          name: custom_bg_color
+          label: 自定义背景色 (Background)
+          value: "#0d0d0d"
+          if: $get(color_preset_selector).value === 'custom'
+          help: 仅当配色方案选为“完全自定义”时生效
     - group: basic
       label: 基础设置
       formSchema:

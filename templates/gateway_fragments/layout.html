@@ -13,6 +13,17 @@
 
     <!-- Halo Basic Resources -->
     <th:block th:replace="~{gateway_fragments/common::basicStaticResources}"></th:block>
+
+    <style
+      th:with="
+        preset=${theme.config.appearance?.color_preset ?: 'classic_green'},
+        cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
+        cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
+        priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
+        bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))}"
+      th:inline="text">
+      :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
+    </style>
   </head>
 
   <body
@@ -145,7 +156,7 @@
         <div class="border-terminal-green/30 mb-8 border-b border-dashed pb-6 text-center">
           <p class="mb-2 animate-pulse font-bold tracking-widest text-red-500">[ ACCESS DENIED ]</p>
           <p class="text-terminal-dim text-xs">Protected Resource. Credentials Required.</p>
-          <p class="text-terminal-dim/50 mt-1 text-[10px]">IP: [PROTECTED] LOGGED</p>
+          <p class="text-terminal-green/35 mt-1 text-[10px]">IP: [PROTECTED] LOGGED</p>
         </div>
 
         <!-- Injected Body (The Form) -->
@@ -156,7 +167,7 @@
 
       <!-- StatusBar -->
       <div
-        class="border-terminal-green text-terminal-dim bg-terminal-dim/5 flex justify-between border-t p-2 text-[10px] tracking-wider uppercase"
+        class="border-terminal-green text-terminal-dim bg-terminal-green/5 flex justify-between border-t p-2 text-[10px] tracking-wider uppercase"
       >
         <span>SYS: ONLINE</span>
         <span class="flex items-center gap-1">

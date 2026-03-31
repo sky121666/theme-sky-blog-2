@@ -140,9 +140,9 @@
 <div th:remove="tag" th:fragment="socialAuthProviders">
     <th:block th:unless="${#lists.isEmpty(socialAuthProviders)}">
         <div class="divider-wrapper my-6 flex items-center gap-2 text-terminal-dim text-xs font-mono">
-            <span class="h-px bg-terminal-dim/30 flex-1"></span>
+            <span class="h-px bg-terminal-green/20 flex-1"></span>
             <span>Social Login</span>
-            <span class="h-px bg-terminal-dim/30 flex-1"></span>
+            <span class="h-px bg-terminal-green/20 flex-1"></span>
         </div>
         <ul class="pill-items flex gap-4 justify-center">
             <li th:each="provider : ${socialAuthProviders}">

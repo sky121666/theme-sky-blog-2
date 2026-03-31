@@ -2,11 +2,11 @@
 @import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap");
 
 :root {
-  --terminal-bg: #0d0d0d;
-  --terminal-text: #00ff00;
-  --terminal-dim: rgba(0, 255, 0, 0.7);
-  --terminal-glow: rgba(0, 255, 0, 0.6);
-  --scanline-color: rgba(0, 0, 0, 0.5);
+  --terminal-bg: var(--theme-color-bg, #0d0d0d);
+  --terminal-text: var(--theme-color-primary, #00ff00);
+  --terminal-dim: color-mix(in srgb, var(--terminal-text) 70%, transparent);
+  --terminal-glow: color-mix(in srgb, var(--terminal-text) 60%, transparent);
+  --scanline-color: color-mix(in srgb, var(--terminal-bg) 50%, transparent);
 }
 
 body {
@@ -29,10 +29,10 @@ body::before {
   bottom: 0;
   right: 0;
   background: linear-gradient(rgba(18, 16, 16, 0) 50%,
-      rgba(0, 0, 0, 0.25) 50%),
+      color-mix(in srgb, var(--terminal-bg) 25%, transparent) 50%),
     linear-gradient(90deg,
       rgba(255, 0, 0, 0.06),
-      rgba(0, 255, 0, 0.02),
+      color-mix(in srgb, var(--terminal-text) 2%, transparent),
       rgba(0, 0, 255, 0.06));
   z-index: 999;
   background-size: 100% 2px, 3px 100%;
@@ -48,7 +48,7 @@ body::after {
   left: 0;
   bottom: 0;
   right: 0;
-  background: radial-gradient(circle, rgba(0, 0, 0, 0) 60%, rgba(0, 0, 0, 0.4) 100%);
+  background: radial-gradient(circle, color-mix(in srgb, var(--terminal-bg) 0%, transparent) 60%, color-mix(in srgb, var(--terminal-bg) 40%, transparent) 100%);
   z-index: 999;
   pointer-events: none;
 }
@@ -181,7 +181,7 @@ body,
 
 /* Hide placeholder on focus */
 input::placeholder {
-  color: rgba(0, 255, 0, 0.3);
+  color: color-mix(in srgb, var(--terminal-text) 30%, transparent);
 }
 
 input:focus::placeholder {
@@ -281,7 +281,7 @@ input:focus::placeholder {
 
 /* Inline Code */
 .terminal-content code:not(pre code) {
-  background: rgba(0, 255, 0, 0.1);
+  background: color-mix(in srgb, var(--terminal-text) 10%, transparent);
   border: 1px solid var(--terminal-dim);
   padding: 0.1em 0.4em;
   border-radius: 2px;
@@ -292,7 +292,7 @@ input:focus::placeholder {
 /* Code Blocks */
 .terminal-content pre,
 .terminal-content shiki-code {
-  background: rgba(0, 0, 0, 0.5) !important;
+  background: color-mix(in srgb, var(--terminal-bg) 50%, transparent) !important;
   border: 1px solid var(--terminal-dim);
   border-radius: 0;
   padding: 1rem;
@@ -322,7 +322,7 @@ input:focus::placeholder {
 /* Blockquotes */
 .terminal-content blockquote {
   border-left: 3px solid var(--terminal-text);
-  background: rgba(0, 255, 0, 0.05);
+  background: color-mix(in srgb, var(--terminal-text) 5%, transparent);
   margin: 1rem 0;
   padding: 0.75rem 1rem;
   position: relative;
@@ -448,7 +448,7 @@ input:focus::placeholder {
 }
 
 .terminal-content table th {
-  background: rgba(0, 255, 0, 0.1);
+  background: color-mix(in srgb, var(--terminal-text) 10%, transparent);
   color: var(--terminal-text);
   font-weight: 600;
   text-transform: uppercase;
@@ -457,7 +457,7 @@ input:focus::placeholder {
 }
 
 .terminal-content table tr:hover {
-  background: rgba(0, 255, 0, 0.05);
+  background: color-mix(in srgb, var(--terminal-text) 5%, transparent);
 }
 
 /* Images */
@@ -471,7 +471,7 @@ input:focus::placeholder {
   margin: 1rem 0;
   border: 1px solid var(--terminal-dim);
   padding: 0.5rem;
-  background: rgba(0, 0, 0, 0.3);
+  background: color-mix(in srgb, var(--terminal-bg) 30%, transparent);
 }
 
 .terminal-content figure::before {
@@ -494,13 +494,13 @@ input:focus::placeholder {
   margin: 1rem 0;
   border: 1px solid var(--terminal-dim);
   padding: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: color-mix(in srgb, var(--terminal-bg) 40%, transparent);
 }
 
 .terminal-content figure[data-content-type="video"]::before {
   content: "▶ MEDIA PLAYER :: VIDEO";
   display: block;
-  background: rgba(0, 255, 0, 0.1);
+  background: color-mix(in srgb, var(--terminal-text) 10%, transparent);
   padding: 0.5rem 0.75rem;
   border-bottom: 1px dashed var(--terminal-dim);
   font-size: 0.75rem;
@@ -511,7 +511,7 @@ input:focus::placeholder {
 .terminal-content figure[data-content-type="audio"]::before {
   content: "♪ MEDIA PLAYER :: AUDIO";
   display: block;
-  background: rgba(0, 255, 0, 0.1);
+  background: color-mix(in srgb, var(--terminal-text) 10%, transparent);
   padding: 0.5rem 0.75rem;
   border-bottom: 1px dashed var(--terminal-dim);
   font-size: 0.75rem;
@@ -623,14 +623,14 @@ input:focus::placeholder {
   display: block;
   border: 1px solid var(--terminal-dim) !important;
   margin: 0.5rem 0;
-  background: rgba(0, 0, 0, 0.4) !important;
+  background: color-mix(in srgb, var(--terminal-bg) 40%, transparent) !important;
   transition: all 0.2s;
   font-family: "Fira Code", monospace;
 }
 
 .terminal-content hyperlink-card:hover,
 .terminal-content hyperlink-inline-card:hover {
-  background: rgba(0, 255, 0, 0.1) !important;
+  background: color-mix(in srgb, var(--terminal-text) 10%, transparent) !important;
   border-color: var(--terminal-text) !important;
 }
 
@@ -685,17 +685,17 @@ input:focus::placeholder {
 /* Terminal Theme Hyperlink Card Variables */
 .terminal-theme hyperlink-card,
 .terminal-theme hyperlink-inline-card {
-  --halo-hyperlink-card-bg-color: rgba(0, 0, 0, 0.5);
-  --halo-hyperlink-card-inline-bg-color: rgba(0, 255, 0, 0.05);
-  --halo-hyperlink-card-inline-hover-bg-color: rgba(0, 255, 0, 0.15);
-  --halo-hyperlink-card-title-color: #00ff00;
-  --halo-hyperlink-card-inline-title-color: #00ff00;
-  --halo-hyperlink-card-description-color: rgba(0, 255, 0, 0.7);
-  --halo-hyperlink-card-link-color: #00ff00;
-  --halo-hyperlink-card-bg-gradient: linear-gradient(rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.4)), linear-gradient(transparent, transparent);
-  --halo-hyperlink-card-border-color: rgba(0, 255, 0, 0.5);
-  --halo-hyperlink-card-border-hover-color: #00ff00;
-  --halo-hyperlink-card-skeleton-color: rgba(0, 255, 0, 0.3);
+  --halo-hyperlink-card-bg-color: color-mix(in srgb, var(--terminal-bg) 50%, transparent);
+  --halo-hyperlink-card-inline-bg-color: color-mix(in srgb, var(--terminal-text) 5%, transparent);
+  --halo-hyperlink-card-inline-hover-bg-color: color-mix(in srgb, var(--terminal-text) 15%, transparent);
+  --halo-hyperlink-card-title-color: var(--terminal-text);
+  --halo-hyperlink-card-inline-title-color: var(--terminal-text);
+  --halo-hyperlink-card-description-color: var(--terminal-dim);
+  --halo-hyperlink-card-link-color: var(--terminal-text);
+  --halo-hyperlink-card-bg-gradient: linear-gradient(color-mix(in srgb, var(--terminal-bg) 40%, transparent), color-mix(in srgb, var(--terminal-bg) 40%, transparent)), linear-gradient(transparent, transparent);
+  --halo-hyperlink-card-border-color: color-mix(in srgb, var(--terminal-text) 50%, transparent);
+  --halo-hyperlink-card-border-hover-color: var(--terminal-text);
+  --halo-hyperlink-card-skeleton-color: color-mix(in srgb, var(--terminal-text) 30%, transparent);
   color-scheme: dark;
 }
 
@@ -857,7 +857,7 @@ altcha-widget input[type="checkbox"]:checked::after {
 /* Loading/Verifying state */
 altcha-widget .altcha-main {
   border: 1px solid var(--terminal-dim) !important;
-  background: rgba(0, 255, 0, 0.02) !important;
+  background: color-mix(in srgb, var(--terminal-text) 2%, transparent) !important;
   padding: 0.75rem !important;
 }
 
@@ -949,14 +949,14 @@ altcha-widget a:hover {
 /* Hover State */
 .terminal-checkbox+label:hover::before {
   color: var(--terminal-text);
-  text-shadow: 0 0 6px rgba(0, 255, 0, 0.5);
+  text-shadow: 0 0 6px color-mix(in srgb, var(--terminal-text) 50%, transparent);
 }
 
 /* Checked State */
 .terminal-checkbox:checked+label::before {
   content: "[x]";
   color: var(--terminal-text);
-  text-shadow: 0 0 8px rgba(0, 255, 0, 0.6);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--terminal-text) 60%, transparent);
 }
 
 .terminal-checkbox:checked+label {

@@ -14,6 +14,16 @@
       }"
     ></title>
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+    <style
+      th:with="
+        preset=${theme.config.appearance?.color_preset ?: 'classic_green'},
+        cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
+        cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
+        priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
+        bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))}"
+      th:inline="text">
+      :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
+    </style>
     <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
   </head>
 
@@ -74,7 +84,7 @@
               "slug": /*[[${post != null ? post.spec.slug : null}]]*/ null,
               "title": /*[[${post != null ? post.spec.title : null}]]*/ null
             },
-            "currentPosts": /*[[${posts != null ? posts.items : T(java.util.Collections).emptyList()}]]*/ null,
+            "currentPosts": /*[[${posts?.items}]]*/ null,
             "currentTag": {
               "displayName": /*[[${tag != null ? tag.spec.displayName : null}]]*/ null,
               "permalink": /*[[${tag != null ? tag.status.permalink : null}]]*/ null,
