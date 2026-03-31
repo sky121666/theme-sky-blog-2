@@ -85,7 +85,7 @@ module.exports = {
               fontWeight: "bold",
             },
             pre: {
-              backgroundColor: theme("colors.terminal.dim"),
+              backgroundColor: "color-mix(in srgb, var(--terminal-bg) 85%, var(--terminal-text))",
               color: theme("colors.terminal.green"),
               border: `1px solid ${theme("colors.terminal.green")}`,
             },
