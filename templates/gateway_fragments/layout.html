@@ -35,7 +35,7 @@
   >
     <!-- CRT Overlay Config -->
     <div th:if="${theme.config.appearance?.enable_scanline != false}"
-      class="pointer-events-none fixed inset-0 z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]"
+      class="pointer-events-none fixed inset-0 z-50 bg-[length:100%_4px,3px_100%]" style="background: linear-gradient(rgba(18,16,16,0) 50%, color-mix(in srgb, var(--terminal-bg) 25%, transparent) 50%), linear-gradient(90deg, rgba(255,0,0,0.06), color-mix(in srgb, var(--terminal-text) 2%, transparent), rgba(0,0,255,0.06)); background-size: 100% 4px, 3px 100%;"
     ></div>
     <div th:if="${theme.config.appearance?.enable_flicker != false}" class="bg-terminal-black/10 animate-flicker pointer-events-none fixed inset-0 z-40"></div>
 

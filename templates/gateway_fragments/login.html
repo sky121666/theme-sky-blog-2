@@ -44,7 +44,7 @@
     <!-- Submit Button -->
     <div class="form-item mt-8">
         <button type="submit"
-            class="group relative w-full py-3 px-4 border-2 border-terminal-green text-terminal-green font-bold uppercase tracking-widest hover:bg-terminal-green hover:text-black transition-all overflow-hidden flex items-center justify-center">
+            class="group relative w-full py-3 px-4 border-2 border-terminal-green text-terminal-green font-bold uppercase tracking-widest hover:bg-terminal-green hover:text-terminal-black transition-all overflow-hidden flex items-center justify-center">
             <span class="relative z-10 flex items-center justify-center gap-2 font-mono">
                 <span>LOGIN</span>
                 <span class="group-hover:translate-x-1 transition-transform">-&gt;</span>
@@ -63,7 +63,7 @@
         <ul class="pill-items flex gap-4 justify-center">
             <li th:each="provider : ${formAuthProviders}">
                 <a th:href="'/login?method=' + ${provider.metadata.name}"
-                    class="border border-terminal-dim p-2 hover:border-terminal-green hover:shadow-[0_0_10px_rgba(0,255,0,0.3)] transition-all block">
+                    class="border border-terminal-dim p-2 hover:border-terminal-green hover:shadow-[0_0_10px_var(--terminal-glow)] transition-all block">
                     <img th:src="${provider.spec.logo}" th:alt="|${provider.spec.displayName}'s icon|"
                         class="w-6 h-6 grayscale hover:grayscale-0" />
                 </a>
