@@ -4,8 +4,8 @@ metadata:
   name: theme-sky-blog-2-setting
 spec:
   forms:
-    - group: appearance
-      label: 外观设置
+    - group: color
+      label: 配色方案
       formSchema:
         - $formkit: toggle
           id: color_preset_selector
@@ -14,7 +14,7 @@ spec:
           render-type: image
           size: 100
           gap: 15
-          help: 选择内置色彩配置以全局覆盖。如果选择“完全自定义”，请在下方手动指定颜色。
+          help: 选择内置色彩配置以全局覆盖。如果选择"完全自定义"，请在下方手动指定颜色。
           value: classic_green
           options:
             - label: 经典骇客
@@ -40,23 +40,16 @@ spec:
           label: 自定义主色调 (Primary Text)
           value: "#00ff00"
           if: $get(color_preset_selector).value === 'custom'
-          help: 仅当配色方案选为“完全自定义”时生效
-        - $formkit: checkbox
-          name: enable_scanline
-          label: CRT 扫描线效果
-          value: true
-          help: 模拟老式 CRT 显示器的扫描线，关闭可提升低性能设备流畅度
-        - $formkit: checkbox
-          name: enable_flicker
-          label: CRT 闪烁动画
-          value: true
-          help: 模拟显示器微弱闪烁，部分用户对闪烁敏感可关闭
+          help: 仅当配色方案选为"完全自定义"时生效
         - $formkit: color
           name: custom_bg_color
           label: 自定义背景色 (Background)
           value: "#0d0d0d"
           if: $get(color_preset_selector).value === 'custom'
-          help: 仅当配色方案选为“完全自定义”时生效
+          help: 仅当配色方案选为"完全自定义"时生效
+    - group: effects
+      label: 特效设置
+      formSchema:
         - $formkit: checkbox
           name: enable_scanline
           label: CRT 扫描线效果
