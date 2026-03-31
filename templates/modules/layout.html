@@ -13,6 +13,34 @@
         (tags != null ? 'Tags - ' + site.title : site.title))))
       }"
     ></title>
+    <!-- SEO: Description -->
+    <meta name="description"
+      th:content="${
+        post != null ? (post.status.excerpt ?: post.spec.title) :
+        (category != null ? category.spec.displayName + ' - ' + site.title :
+        (tag != null ? tag.spec.displayName + ' - ' + site.title :
+        (site.spec.subtitle ?: site.spec.title)))
+      }" />
+    <!-- SEO: Canonical URL -->
+    <link rel="canonical"
+      th:href="${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.spec.externalUrl))}" />
+    <!-- SEO: Open Graph -->
+    <meta property="og:type" th:content="${post != null ? 'article' : 'website'}" />
+    <meta property="og:title"
+      th:content="${post != null ? post.spec.title : (category != null ? category.spec.displayName : (tag != null ? tag.spec.displayName : site.spec.title))}" />
+    <meta property="og:description"
+      th:content="${post != null ? (post.status.excerpt ?: '') : (site.spec.subtitle ?: '')}" />
+    <meta property="og:url"
+      th:content="${post != null ? post.status.permalink : site.spec.externalUrl}" />
+    <meta property="og:site_name" th:content="${site.spec.title}" />
+    <meta property="og:image" th:if="${post != null and post.spec.cover != null}"
+      th:content="${post.spec.cover}" />
+    <!-- SEO: Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title"
+      th:content="${post != null ? post.spec.title : site.spec.title}" />
+    <meta name="twitter:description"
+      th:content="${post != null ? (post.status.excerpt ?: '') : (site.spec.subtitle ?: '')}" />
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
     <style
       th:with="
@@ -20,9 +48,13 @@
         cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
         cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
         priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
-        bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))}"
+        bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))},
+        flickerOn=${theme.config.appearance?.enable_flicker != null ? theme.config.appearance.enable_flicker : true},
+        scanlineOn=${theme.config.appearance?.enable_scanline != null ? theme.config.appearance.enable_scanline : true}"
       th:inline="text">
       :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
+      [(${flickerOn ? '' : 'body { animation: none !important; }'})]
+      [(${scanlineOn ? '' : 'body::before { display: none !important; }'})]
     </style>
     <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
   </head>

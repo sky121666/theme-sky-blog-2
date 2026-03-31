@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en" class="terminal-theme" th:fragment="html (content)">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:text="${error.code} + ' - ' + site.title">Error</title>
+    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+    <style
+      th:with="
+        preset=${theme.config.appearance?.color_preset ?: 'classic_green'},
+        cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
+        cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
+        priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
+        bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))},
+        flickerOn=${theme.config.appearance?.enable_flicker != null ? theme.config.appearance.enable_flicker : true},
+        scanlineOn=${theme.config.appearance?.enable_scanline != null ? theme.config.appearance.enable_scanline : true}"
+      th:inline="text">
+      :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
+      [(${flickerOn ? '' : 'body { animation: none !important; }'})]
+      [(${scanlineOn ? '' : 'body::before { display: none !important; }'})]
+    </style>
+  </head>
+
+  <body class="flex h-screen items-center justify-center overflow-hidden p-4 md:p-8">
+    <div class="w-full max-w-2xl font-mono">
+      <!-- Panic header for 5xx, Segfault for 4xx -->
+      <div th:if="${error.code >= 500}" class="mb-6">
+        <pre class="text-terminal-green text-sm leading-snug md:text-base" style="text-shadow: 0 0 8px var(--terminal-glow)">
+╔══════════════════════════════════════════════════╗
+║           KERNEL PANIC - NOT SYNCING             ║
+╚══════════════════════════════════════════════════╝</pre>
+      </div>
+      <div th:if="${error.code < 500}" class="mb-6">
+        <pre class="text-terminal-green text-sm leading-snug md:text-base" style="text-shadow: 0 0 8px var(--terminal-glow)">
+╔══════════════════════════════════════════════════╗
+║          SEGMENTATION FAULT (core dumped)        ║
+╚══════════════════════════════════════════════════╝</pre>
+      </div>
+
+      <!-- Error details -->
+      <div class="text-terminal-green space-y-2 text-sm md:text-base" style="text-shadow: 0 0 4px var(--terminal-glow)">
+        <p>
+          <span class="text-terminal-green/70">PID:&nbsp;&nbsp;</span>
+          <span th:text="${#numbers.formatInteger(error.code, 1)}">404</span>
+        </p>
+        <p>
+          <span class="text-terminal-green/70">Signal:</span>
+          <span th:text="${error.code >= 500 ? 'SIGABRT' : (error.code == 404 ? 'SIGSEGV' : (error.code == 403 ? 'SIGKILL' : 'SIGTERM'))}">SIGSEGV</span>
+        </p>
+        <p>
+          <span class="text-terminal-green/70">Fault:</span>
+          <span th:text="${error.message ?: 'Unknown error. The requested resource could not be located.'}">not found</span>
+        </p>
+
+        <div class="border-terminal-green/30 my-4 border-t pt-4">
+          <p class="text-terminal-green/70 mb-2">Stack trace:</p>
+          <pre class="text-terminal-green/50 text-xs leading-relaxed">  at PageHandler.resolve(/<span th:text="${error.requestPath ?: '/unknown'}"></span>)
+  at Router.dispatch(kernel/router.c:421)
+  at HttpServer.processRequest(net/http.c:892)
+  at main(init/main.c:1)</pre>
+        </div>
+
+        <div class="border-terminal-green/30 my-4 border-t pt-4">
+          <p class="text-terminal-green/70 mb-3">Recovery options:</p>
+          <div class="space-y-1">
+            <p>&gt; <a href="/" class="text-terminal-green underline decoration-dotted underline-offset-4 transition-all hover:brightness-125">cd /</a>
+              <span class="text-terminal-green/50">&nbsp;&nbsp;# return to home</span>
+            </p>
+            <p>&gt; <a href="javascript:history.back()" class="text-terminal-green underline decoration-dotted underline-offset-4 transition-all hover:brightness-125">back</a>
+              <span class="text-terminal-green/50">&nbsp;&nbsp;# go to previous page</span>
+            </p>
+          </div>
+        </div>
+
+        <!-- Blinking cursor -->
+        <p class="mt-6">
+          <span class="text-terminal-green/70">root@system</span>:<span class="text-terminal-green/70">~#</span>
+          <span class="animate-pulse">▊</span>
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

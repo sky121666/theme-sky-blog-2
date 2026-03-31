@@ -1,195 +1,9 @@
 import Alpine from "alpinejs";
 
 import { navigateToUrl } from "../common/navigation";
-import {
-  getCurrentUser,
-  getDirectoryContent,
-  getParentPath,
-  resolvePath,
-  syncPathWithUrl,
-  virtualPathToUrl,
-} from "../common/virtual-fs";
-
-// ── Help text ──────────────────────────────────────────────────────
-
-const LIST_HELP = `
-List Page Commands:
-  ls            - List directory contents
-  cd <path>     - Navigate to path
-  pd / npage    - Next page
-  pu / ppage    - Previous page
-  back          - Browser back
-  help          - Show this help
-  clear         - Clear output
-
-Navigation:
-  ↑/↓           - Command history
-  Tab           - Auto-complete
-  Enter         - Execute
-`.trim();
-
-const POST_HELP = `
-Post Page Commands:
-  cd ..         - Go back to list
-  next          - Next article
-  prev          - Previous article
-  back          - Browser back
-  help          - Show this help
-  clear         - Clear output
-
-Navigation:
-  ↑/↓           - Command history
-  Tab           - Auto-complete
-  Enter         - Execute
-`.trim();
-
-// ── Command handlers ───────────────────────────────────────────────
-
-function handleCd(path: string, currentPath: string): { navigate?: string; newPath?: string; output?: string } {
-  if (!path || path === ".") {
-    return {};
-  }
-
-  if (path === ".." || path === "../") {
-    const parentPath = getParentPath(currentPath);
-    const url = virtualPathToUrl(parentPath);
-
-    return url ? { navigate: url } : { newPath: parentPath };
-  }
-
-  const targetPath = resolvePath(path, currentPath);
-  const content = getDirectoryContent(targetPath);
-
-  if (content !== null) {
-    const url = virtualPathToUrl(targetPath);
-    return url ? { navigate: url } : { newPath: targetPath };
-  }
-
-  // Try to resolve as a file in the parent directory
-  const parentPath = getParentPath(targetPath);
-  const fileName = targetPath.slice(targetPath.lastIndexOf("/") + 1);
-  const parentContent = getDirectoryContent(parentPath);
-
-  const targetEntry = parentContent?.find(
-    (entry) => (entry.name === fileName || entry.slug === fileName) && entry.permalink,
-  );
-
-  if (targetEntry?.permalink) {
-    return { navigate: targetEntry.permalink };
-  }
-
-  return { output: `bash: cd: ${path}: No such file or directory` };
-}
-
-function handleLs(args: string, currentPath: string): string {
-  const targetPath = args ? resolvePath(args, currentPath) : currentPath;
-  const content = getDirectoryContent(targetPath);
-
-  if (content === null) {
-    return `ls: ${args}: No such file or directory`;
-  }
-
-  if (content.length === 0) {
-    return args && targetPath !== currentPath ? "Directory is empty." : "Total 0";
-  }
-
-  const lines = content.map((item) => {
-    const date = item.date || new Date().toISOString().slice(0, 10);
-    const permissions = item.type === "dir" ? "drwxr-xr-x" : "-rw-r--r--";
-    const size = item.count ? String(item.count).padStart(3) : "  1";
-    const suffix = item.type === "dir" ? "/" : "";
-
-    return `${permissions}  ${size} ${getCurrentUser()}  staff  ${date}  ${item.name}${suffix}`;
-  });
-
-  return `Total ${content.length}\n${lines.join("\n")}`;
-}
-
-function handleNavPost(direction: "next" | "prev"): string | null {
-  const url = direction === "next" ? window.haloData?.nextPost : window.haloData?.prevPost;
-
-  if (!url) {
-    return direction === "next" ? "No next article available." : "No previous article available.";
-  }
-
-  navigateToUrl(url);
-  return null;
-}
-
-function handlePage(next: boolean): string | null {
-  const pagination = window.haloData?.pagination;
-
-  if (!pagination) {
-    return "Pagination not available on this page.";
-  }
-
-  const targetUrl = next ? pagination.nextUrl : pagination.prevUrl;
-
-  if (!targetUrl) {
-    return next ? "Already at the last page." : "Already at the first page.";
-  }
-
-  navigateToUrl(targetUrl);
-  return null;
-}
-
-// ── Auto-complete ──────────────────────────────────────────────────
-
-function getSuggestions(input: string, currentPath: string, isPost: boolean): string[] {
-  const inputLower = input.toLowerCase();
-
-  if (!input.includes(" ")) {
-    const commands = isPost
-      ? ["cd", "next", "prev", "back", "help", "clear"]
-      : ["cd", "ls", "ll", "pd", "pu", "npage", "ppage", "back", "help", "clear"];
-    const noArgCommands = ["help", "clear", "back", "next", "prev", "pd", "pu", "npage", "ppage", "ls", "ll"];
-
-    return commands
-      .filter((candidate) => candidate.startsWith(inputLower))
-      .map((candidate) => (noArgCommands.includes(candidate) ? candidate : `${candidate} `));
-  }
-
-  const firstSpace = input.indexOf(" ");
-  const command = input.slice(0, firstSpace).toLowerCase();
-  const rawArgument = input.slice(firstSpace + 1);
-  const rawArgumentLower = rawArgument.toLowerCase();
-
-  if (!["cd", "ls", "ll"].includes(command)) {
-    return [];
-  }
-
-  const candidates: string[] = [];
-  let directoryPart = "";
-  let filePartLower = rawArgumentLower;
-
-  const lastSlash = rawArgument.lastIndexOf("/");
-  if (lastSlash !== -1) {
-    directoryPart = rawArgument.slice(0, lastSlash + 1);
-    filePartLower = rawArgument.slice(lastSlash + 1).toLowerCase();
-  }
-
-  const targetDirectory = resolvePath(directoryPart || ".", currentPath);
-  const content = getDirectoryContent(targetDirectory);
-
-  content?.forEach((item) => {
-    if (!item.name.toLowerCase().startsWith(filePartLower)) {
-      return;
-    }
-
-    const suffix = item.type === "dir" ? "/" : "";
-    candidates.push(`${command} ${directoryPart}${item.name}${suffix}`);
-  });
-
-  if (!directoryPart && "..".startsWith(filePartLower)) {
-    candidates.push(`${command} ../`);
-  }
-
-  if (!directoryPart && "~".startsWith(filePartLower)) {
-    candidates.push(`${command} ~/`);
-  }
-
-  return candidates;
-}
+import { syncPathWithUrl } from "../common/virtual-fs";
+import { getSuggestions } from "./autocomplete";
+import { type CommandResult, dispatchCommand, LIST_HELP, POST_HELP } from "./commands";
 
 // ── Alpine component ───────────────────────────────────────────────
 
@@ -205,6 +19,8 @@ export function registerTerminalInputComponent() {
     historyIndex: -1,
     output: "",
     showHelp: false,
+
+    // ── Tab completion ───────────────────────────────────────────
 
     autoComplete() {
       const currentInput = this.command;
@@ -223,6 +39,8 @@ export function registerTerminalInputComponent() {
       }
     },
 
+    // ── Command execution ────────────────────────────────────────
+
     async executeCommand() {
       const rawCommand = this.command.trim();
       if (!rawCommand) {
@@ -240,66 +58,44 @@ export function registerTerminalInputComponent() {
       this.showHelp = false;
       this.output = "";
 
-      switch (command.toLowerCase()) {
-        case "back":
-          window.history.back();
-          break;
-        case "cd":
-          this.applyCdResult(handleCd(args, String(this.currentPath)));
-          break;
-        case "clear":
-          break;
-        case "help":
-          this.showHelp = true;
-          break;
-        case "ll":
-        case "ls":
-          this.output = "Loading...";
-          await new Promise((resolve) => window.setTimeout(resolve, 50));
-          this.output = handleLs(args, String(this.currentPath));
-          break;
-        case "next":
-          this.output = handleNavPost("next") || "";
-          break;
-        case "npage":
-        case "pd":
-          this.output = handlePage(true) || "";
-          break;
-        case "ppage":
-        case "pu":
-          this.output = handlePage(false) || "";
-          break;
-        case "prev":
-          this.output = handleNavPost("prev") || "";
-          break;
-        case "search":
-          if (!args) {
-            this.output = "Usage: search <keyword>";
-            break;
-          }
-          navigateToUrl(`/search?keyword=${encodeURIComponent(args)}`);
-          break;
-        default:
-          this.output = `bash: ${command}: command not found. Type 'help' for available commands.`;
+      // Show loading for ls
+      if (command.toLowerCase() === "ls" || command.toLowerCase() === "ll") {
+        this.output = "Loading...";
+        await new Promise((resolve) => window.setTimeout(resolve, 50));
       }
 
+      const result: CommandResult = await dispatchCommand(
+        command,
+        args,
+        String(this.currentPath),
+      );
+
+      this.applyResult(result);
       this.command = "";
     },
 
-    applyCdResult(result: { navigate?: string; newPath?: string; output?: string }) {
+    // ── Apply command result ─────────────────────────────────────
+
+    applyResult(result: CommandResult) {
       if (result.navigate) {
         navigateToUrl(result.navigate);
       } else if (result.newPath) {
         this.currentPath = result.newPath;
         this.output = "";
+      } else if (result.showHelp) {
+        this.showHelp = true;
       } else if (result.output) {
         this.output = result.output;
       }
     },
 
+    // ── Getters ──────────────────────────────────────────────────
+
     get helpText() {
       return this.isPostPage() ? POST_HELP : LIST_HELP;
     },
+
+    // ── Keyboard handler ─────────────────────────────────────────
 
     handleKeydown(event: KeyboardEvent) {
       if (event.isComposing) {
@@ -334,6 +130,8 @@ export function registerTerminalInputComponent() {
           break;
       }
     },
+
+    // ── Init ─────────────────────────────────────────────────────
 
     init() {
       this.currentPath = syncPathWithUrl();

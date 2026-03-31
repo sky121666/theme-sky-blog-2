@@ -724,7 +724,7 @@ input:focus::placeholder {
 .auth-form-terminal input:-webkit-autofill:active,
 .auth-form-terminal input:-webkit-autofill-strong-password,
 .auth-form-terminal input:-internal-autofill-selected {
-  -webkit-box-shadow: 0 0 0 1000px #0d0d0d inset !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--terminal-bg) inset !important;
   -webkit-text-fill-color: var(--terminal-text) !important;
   caret-color: var(--terminal-text) !important;
   transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s;
