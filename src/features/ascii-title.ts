@@ -1,10 +1,12 @@
 import Alpine from "alpinejs";
 import figlet from "figlet";
 
+import { registerFigletFonts } from "../common/figlet-fonts";
+
 interface AsciiTitleState {
   asciiArt: string;
   font: string;
-  init: () => void;
+  init: () => Promise<void>;
   title: string;
 }
 
@@ -14,10 +16,12 @@ export function registerAsciiTitleComponent() {
     (title: string = "", font: string = "Standard"): AsciiTitleState => ({
       asciiArt: "",
       font,
-      init() {
+      async init() {
         if (!this.title) {
           return;
         }
+
+        await registerFigletFonts();
 
         figlet.text(
           this.title,

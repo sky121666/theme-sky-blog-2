@@ -1,8 +1,10 @@
 import type { HaloCurrentRef, HaloData, HaloPageDataPayload, HaloPageType, HaloPostRecord, HaloTaxonomyRecord } from "./types";
 
 const PAGE_DATA_ID = "halo-page-data";
+const POSTS_API = "/apis/api.content.halo.run/v1alpha1/posts?sort=spec.publishTime%2Cdesc&size=50";
 
 let cachedHomePosts: HaloPostRecord[] = [];
+let fetchInFlight: Promise<void> | null = null;
 
 function ensureArray<T>(value: T[] | null | undefined): T[] {
   return Array.isArray(value) ? value : [];
@@ -110,7 +112,77 @@ export function syncHaloDataFromDocument() {
   };
 
   window.haloData = haloData;
+
+  // If not on index and no cached home posts, fetch via API in background
+  if (pageType !== "index" && cachedHomePosts.length === 0) {
+    fetchHomePostsFromApi();
+  }
+
   return haloData;
+}
+
+// ── API fallback for home posts ──────────────────────────────────
+
+interface ContentApiPostItem {
+  metadata?: { name?: string; creationTimestamp?: string };
+  spec?: { title?: string; slug?: string; publishTime?: string; owner?: string };
+  status?: { permalink?: string };
+}
+
+interface ContentApiListResponse {
+  items?: ContentApiPostItem[];
+}
+
+function mapApiPostsToRecords(items: ContentApiPostItem[]): HaloPostRecord[] {
+  return items.map((item) => ({
+    metadata: {
+      creationTimestamp: item.metadata?.creationTimestamp ?? null,
+      name: item.metadata?.name ?? null,
+    },
+    spec: {
+      owner: item.spec?.owner ?? null,
+      publishTime: item.spec?.publishTime ?? null,
+      slug: item.spec?.slug ?? null,
+      title: item.spec?.title ?? null,
+    },
+    status: {
+      permalink: item.status?.permalink ?? null,
+    },
+  }));
+}
+
+function fetchHomePostsFromApi() {
+  if (fetchInFlight) {
+    return fetchInFlight;
+  }
+
+  fetchInFlight = (async () => {
+    try {
+      const response = await fetch(POSTS_API);
+      if (!response.ok) {
+        return;
+      }
+
+      const data = (await response.json()) as ContentApiListResponse;
+      const items = data.items;
+      if (!Array.isArray(items) || items.length === 0) {
+        return;
+      }
+
+      cachedHomePosts = mapApiPostsToRecords(items);
+
+      // Patch live haloData so ls immediately reflects the fetched posts
+      if (window.haloData) {
+        window.haloData.homePosts = cachedHomePosts;
+      }
+    } catch {
+      // Silently ignore network errors — terminal will just show empty
+    } finally {
+      fetchInFlight = null;
+    }
+  })();
+
+  return fetchInFlight;
 }
 
 // ── SEO meta tag sync for Pjax ──────────────────────────────────
