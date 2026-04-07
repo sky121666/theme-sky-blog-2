@@ -27,6 +27,7 @@ List Page Commands:
   back          - Browser back
   help          - Show this help
   clear         - Clear output
+  search        - Open search
 
 Navigation:
   ↑/↓           - Command history
@@ -51,7 +52,7 @@ Navigation:
 
 // ── Command implementations ────────────────────────────────────────
 
-export function handleCd(
+function handleCd(
   path: string,
   currentPath: string,
 ): CommandResult {
@@ -83,16 +84,12 @@ export function handleCd(
     return { navigate: fileEntry.permalink };
   }
 
-  const dirContent = getDirectoryContent(targetPath);
-  if (dirContent) {
-    const url = virtualPathToUrl(targetPath);
-    return url ? { navigate: url } : { newPath: targetPath };
-  }
-
-  return { output: `cd: no such file or directory: ${path}` };
+  // content is already verified non-null from L70 check
+  const url = virtualPathToUrl(targetPath);
+  return url ? { navigate: url } : { newPath: targetPath };
 }
 
-export function handleLs(args: string, currentPath: string): string {
+function handleLs(args: string, currentPath: string): string {
   const targetPath = args ? resolvePath(args, currentPath) : currentPath;
   const content = getDirectoryContent(targetPath);
 
@@ -115,7 +112,7 @@ export function handleLs(args: string, currentPath: string): string {
   return `Total ${content.length}\n${lines.join("\n")}`;
 }
 
-export function handleNavPost(direction: "next" | "prev"): CommandResult {
+function handleNavPost(direction: "next" | "prev"): CommandResult {
   const url =
     direction === "next" ? window.haloData?.nextPost : window.haloData?.prevPost;
 
@@ -132,7 +129,7 @@ export function handleNavPost(direction: "next" | "prev"): CommandResult {
   return {};
 }
 
-export function handlePage(next: boolean): CommandResult {
+function handlePage(next: boolean): CommandResult {
   const pagination = window.haloData?.pagination;
 
   if (!pagination) {
@@ -153,6 +150,40 @@ export function handlePage(next: boolean): CommandResult {
   return {};
 }
 
+function handleSearch(args: string): CommandResult {
+  if (!args) {
+    const sw = (window as unknown as Record<string, unknown>).SearchWidget;
+    if (typeof sw !== "undefined" && sw && typeof (sw as { open?: unknown }).open === "function") {
+      (sw as { open: () => void }).open();
+    } else {
+      navigateToUrl("/search");
+    }
+    return {};
+  }
+  navigateToUrl(`/search?keyword=${encodeURIComponent(args)}`);
+  return {};
+}
+
+// ── Command registry (Map pattern) ─────────────────────────────────
+
+type CommandHandler = (args: string, currentPath: string) => CommandResult | Promise<CommandResult>;
+
+const commandRegistry = new Map<string, CommandHandler>([
+  ["back", () => { window.history.back(); return {}; }],
+  ["cd", (args, path) => handleCd(args, path)],
+  ["clear", () => ({})],
+  ["help", () => ({ showHelp: true })],
+  ["ll", (args, path) => ({ output: handleLs(args, path) })],
+  ["ls", (args, path) => ({ output: handleLs(args, path) })],
+  ["next", () => handleNavPost("next")],
+  ["npage", () => handlePage(true)],
+  ["pd", () => handlePage(true)],
+  ["ppage", () => handlePage(false)],
+  ["prev", () => handleNavPost("prev")],
+  ["pu", () => handlePage(false)],
+  ["search", (args) => handleSearch(args)],
+]);
+
 // ── Command dispatcher ─────────────────────────────────────────────
 
 export async function dispatchCommand(
@@ -160,38 +191,13 @@ export async function dispatchCommand(
   args: string,
   currentPath: string,
 ): Promise<CommandResult> {
-  switch (command.toLowerCase()) {
-    case "back":
-      window.history.back();
-      return {};
-    case "cd":
-      return handleCd(args, currentPath);
-    case "clear":
-      return {};
-    case "help":
-      return { showHelp: true };
-    case "ll":
-    case "ls":
-      return { output: handleLs(args, currentPath) };
-    case "next":
-      return handleNavPost("next");
-    case "npage":
-    case "pd":
-      return handlePage(true);
-    case "ppage":
-    case "pu":
-      return handlePage(false);
-    case "prev":
-      return handleNavPost("prev");
-    case "search":
-      if (!args) {
-        return { output: "Usage: search <keyword>" };
-      }
-      navigateToUrl(`/search?keyword=${encodeURIComponent(args)}`);
-      return {};
-    default:
-      return {
-        output: `bash: ${command}: command not found. Type 'help' for available commands.`,
-      };
+  const handler = commandRegistry.get(command.toLowerCase());
+
+  if (handler) {
+    return handler(args, currentPath);
   }
+
+  return {
+    output: `bash: ${command}: command not found. Type 'help' for available commands.`,
+  };
 }

@@ -89,9 +89,8 @@ export function getDirectoryContent(path: string): DirectoryEntry[] | null {
       return mapPostsToDirectoryEntries(window.haloData.currentPosts);
     }
 
-    const category = (window.haloData?.categories || []).find((item) => getTaxonomySlug(item) === slug);
-
-    return category ? [] : null;
+    // Not on this category page — return null to trigger navigation
+    return null;
   }
 
   if (path.startsWith("~/blog/tags/")) {
@@ -102,9 +101,8 @@ export function getDirectoryContent(path: string): DirectoryEntry[] | null {
       return mapPostsToDirectoryEntries(window.haloData.currentPosts);
     }
 
-    const tag = (window.haloData?.tags || []).find((item) => getTaxonomySlug(item) === slug);
-
-    return tag ? [] : null;
+    // Not on this tag page — return null to trigger navigation
+    return null;
   }
 
   return null;

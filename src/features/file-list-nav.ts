@@ -7,15 +7,23 @@ export function registerFileListNavComponent() {
     focusInHandler: null as ((event: FocusEvent) => void) | null,
     items: [] as HTMLElement[],
     keydownHandler: null as ((event: KeyboardEvent) => void) | null,
+    pjaxSendHandler: null as (() => void) | null,
     selectedIndex: -1,
 
-    destroy() {
-      if (this.keydownHandler) {
-        window.removeEventListener("keydown", this.keydownHandler);
-      }
+    bindListeners() {
+      this.keydownHandler = (event) => this.handleKeydown(event);
+      this.focusInHandler = (event) => this.handleFocusIn(event);
 
-      if (this.focusInHandler) {
-        window.removeEventListener("focusin", this.focusInHandler);
+      window.addEventListener("keydown", this.keydownHandler);
+      window.addEventListener("focusin", this.focusInHandler);
+    },
+
+    destroy() {
+      this.unbindListeners();
+
+      if (this.pjaxSendHandler) {
+        document.removeEventListener("pjax:send", this.pjaxSendHandler);
+        this.pjaxSendHandler = null;
       }
     },
 
@@ -85,11 +93,11 @@ export function registerFileListNavComponent() {
         this.selectedIndex = 0;
       }
 
-      this.keydownHandler = (event) => this.handleKeydown(event);
-      this.focusInHandler = (event) => this.handleFocusIn(event);
+      this.bindListeners();
 
-      window.addEventListener("keydown", this.keydownHandler);
-      window.addEventListener("focusin", this.focusInHandler);
+      // Clean up listeners on Pjax navigation to prevent leaks
+      this.pjaxSendHandler = () => this.unbindListeners();
+      document.addEventListener("pjax:send", this.pjaxSendHandler);
     },
 
     scrollToSelected() {
@@ -99,6 +107,18 @@ export function registerFileListNavComponent() {
       }
 
       currentItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    },
+
+    unbindListeners() {
+      if (this.keydownHandler) {
+        window.removeEventListener("keydown", this.keydownHandler);
+        this.keydownHandler = null;
+      }
+
+      if (this.focusInHandler) {
+        window.removeEventListener("focusin", this.focusInHandler);
+        this.focusInHandler = null;
+      }
     },
   }));
 }

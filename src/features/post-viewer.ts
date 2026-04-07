@@ -2,6 +2,18 @@ import Alpine from "alpinejs";
 
 export function registerPostViewerComponent() {
   Alpine.data("postViewer", () => ({
+    keydownHandler: null as ((event: KeyboardEvent) => void) | null,
+    pjaxSendHandler: null as (() => void) | null,
+
+    destroy() {
+      this.unbindListeners();
+
+      if (this.pjaxSendHandler) {
+        document.removeEventListener("pjax:send", this.pjaxSendHandler);
+        this.pjaxSendHandler = null;
+      }
+    },
+
     handleKeydown(event: KeyboardEvent) {
       const target = event.target as HTMLElement | null;
       if (!target) {
@@ -51,9 +63,20 @@ export function registerPostViewerComponent() {
     },
 
     init() {
-      // Reserved for future reader-only hooks.
+      this.keydownHandler = (event: KeyboardEvent) => this.handleKeydown(event);
+      window.addEventListener("keydown", this.keydownHandler);
+
+      this.pjaxSendHandler = () => this.unbindListeners();
+      document.addEventListener("pjax:send", this.pjaxSendHandler);
     },
 
     scrollAmount: 100,
+
+    unbindListeners() {
+      if (this.keydownHandler) {
+        window.removeEventListener("keydown", this.keydownHandler);
+        this.keydownHandler = null;
+      }
+    },
   }));
 }
