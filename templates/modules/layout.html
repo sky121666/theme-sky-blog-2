@@ -42,27 +42,21 @@
     <meta name="twitter:description"
       th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}" />
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
-    <style
-      th:with="
-        preset=${theme.config.appearance?.color_preset ?: 'classic_green'},
-        cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
-        cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
-        priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
-        bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))},
-        flickerOn=${theme.config.appearance?.enable_flicker != null ? theme.config.appearance.enable_flicker : true},
-        scanlineOn=${theme.config.appearance?.enable_scanline != null ? theme.config.appearance.enable_scanline : true}"
-      th:inline="text">
-      :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
-      [(${flickerOn ? '' : 'body { animation: none !important; }'})]
-      [(${scanlineOn ? '' : 'body::before { display: none !important; }'})]
-    </style>
+    <th:block th:replace="~{modules/theme-style :: themeStyle}" />
     <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
   </head>
 
-  <body class="h-screen overflow-hidden p-4 md:p-8">
+  <body
+    th:with="
+      hideHeader=${theme.config.layout?.hide_header != null ? theme.config.layout.hide_header : false},
+      compactMode=${theme.config.layout?.compact_mode != null ? theme.config.layout.compact_mode : false},
+      showScrollbar=${theme.config.layout?.show_scrollbar != null ? theme.config.layout.show_scrollbar : false}"
+    th:classappend="${compactMode ? 'p-0' : 'p-4 md:p-8'}"
+    class="h-screen overflow-hidden"
+  >
     <div class="mx-auto flex h-full max-w-4xl flex-col">
       <!-- Terminal Header -->
-      <header class="mb-4 flex-shrink-0 select-none">
+      <header th:unless="${hideHeader}" class="mb-4 flex-shrink-0 select-none">
         <div class="text-terminal-dim mb-2 text-xs">
           Last login: <span x-text="new Date().toDateString()"></span> on ttys001
         </div>
@@ -101,7 +95,7 @@
       </header>
 
       <!-- Main Content Area -->
-      <main id="main" class="scrollbar-hide relative flex-1 overflow-auto">
+      <main id="main" th:class="${showScrollbar ? 'scrollbar-terminal relative flex-1 overflow-auto' : 'scrollbar-hide relative flex-1 overflow-auto'}">
         <th:block th:replace="${content}" />
         <script id="halo-page-data" type="application/json" th:inline="javascript">
           {
@@ -196,8 +190,26 @@
         class="border-terminal-dim text-terminal-dim mt-2 flex flex-shrink-0 flex-col justify-between border-t border-dashed py-2 text-xs md:flex-row"
       >
         <div class="flex gap-4">
-          <span>[MODE: NORMAL]</span>
-          <span class="hidden md:inline">[ENCODING: UTF-8]</span>
+          <a href="/" class="hover:text-terminal-green transition-colors">[INDEX]</a>
+          <a th:with="allCats=${categoryFinder.listAll()},
+                       firstCat=${!allCats.isEmpty() ? allCats.get(0) : null},
+                       catPermalink=${firstCat != null and firstCat.status?.permalink != null ? firstCat.status.permalink : '/categories'},
+                       catClean=${catPermalink.endsWith('/') ? catPermalink.substring(0, catPermalink.length() - 1) : catPermalink},
+                       catSlug=${firstCat != null and firstCat.spec?.slug != null ? firstCat.spec.slug : ''},
+                       catUrl=${catSlug != '' and catClean.endsWith('/' + catSlug) ? catClean.substring(0, catClean.length() - catSlug.length() - 1) : '/categories'}"
+             th:href="${catUrl}"
+             class="hover:text-terminal-green transition-colors">[CATEGORY]</a>
+          <a th:with="allTags=${tagFinder.listAll()},
+                       firstTag=${!allTags.isEmpty() ? allTags.get(0) : null},
+                       tagPermalink=${firstTag != null and firstTag.status?.permalink != null ? firstTag.status.permalink : '/tags'},
+                       tagClean=${tagPermalink.endsWith('/') ? tagPermalink.substring(0, tagPermalink.length() - 1) : tagPermalink},
+                       tagSlug=${firstTag != null and firstTag.spec?.slug != null ? firstTag.spec.slug : ''},
+                       tagUrl=${tagSlug != '' and tagClean.endsWith('/' + tagSlug) ? tagClean.substring(0, tagClean.length() - tagSlug.length() - 1) : '/tags'}"
+             th:href="${tagUrl}"
+             class="hover:text-terminal-green transition-colors">[TAG]</a>
+          <a href="javascript:void(0)"
+             onclick="typeof SearchWidget!=='undefined'?SearchWidget.open():window.location.href='/search'"
+             class="hover:text-terminal-green transition-colors cursor-pointer">[SEARCH]</a>
         </div>
         <div class="flex flex-col text-right md:flex-row md:gap-4 md:text-left">
           <div th:if="${theme.config.footer.icp}">

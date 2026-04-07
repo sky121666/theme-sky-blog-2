@@ -94,6 +94,34 @@ spec:
               value: Small
             - label: Speed (速度)
               value: Speed
+    - group: layout
+      label: 布局设置
+      formSchema:
+        - $formkit: checkbox
+          name: hide_header
+          label: 隐藏顶部 Header
+          value: false
+          help: 隐藏 ASCII Art 标题栏和登录信息栏，获得更大内容区域
+        - $formkit: checkbox
+          name: compact_mode
+          label: 紧凑模式
+          value: false
+          help: 移除外层 padding，最大化内容显示区域
+        - $formkit: checkbox
+          name: show_scrollbar
+          label: 显示滚动条
+          value: false
+          help: 在内容区域显示终端风格滚动条（默认隐藏）
+        - $formkit: checkbox
+          name: hide_ls_simulation
+          label: 隐藏首页命令模拟行
+          value: false
+          help: 隐藏首页 "ls -la ./posts" 打字动画行
+        - $formkit: checkbox
+          name: hide_pinned_folders
+          label: 隐藏首页置顶目录
+          value: false
+          help: 隐藏首页 categories/、tags/、../ 三个置顶条目
     - group: footer
       label: 页脚设置
       formSchema:

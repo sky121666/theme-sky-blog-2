@@ -1,0 +1,218 @@
+/* ========================================
+   Base Terminal Styles
+   Variables, body, CRT effects, selection, cursor, scrollbar,
+   page transitions, keyframes, input caret
+   ======================================== */
+
+/* Google Fonts - Fira Code */
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --terminal-bg: var(--theme-color-bg, #0d0d0d);
+  --terminal-text: var(--theme-color-primary, #00ff00);
+  --terminal-dim: color-mix(in srgb, var(--terminal-text) 70%, transparent);
+  --terminal-glow: color-mix(in srgb, var(--terminal-text) 60%, transparent);
+  --scanline-color: color-mix(in srgb, var(--terminal-bg) 50%, transparent);
+}
+
+body {
+  background-color: var(--terminal-bg);
+  color: var(--terminal-text);
+  font-family: "Fira Code", "Courier New", monospace;
+  overflow-x: hidden;
+  min-height: 100vh;
+  /* CRT Flicker Animation */
+  animation: flicker 0.15s infinite;
+}
+
+/* CRT Overlay Effect */
+body::before {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%,
+      color-mix(in srgb, var(--terminal-bg) 25%, transparent) 50%),
+    linear-gradient(90deg,
+      rgba(255, 0, 0, 0.06),
+      color-mix(in srgb, var(--terminal-text) 2%, transparent),
+      rgba(0, 0, 255, 0.06));
+  z-index: 999;
+  background-size: 100% 2px, 3px 100%;
+  pointer-events: none;
+}
+
+/* Vignette Effect */
+body::after {
+  content: " ";
+  display: block;
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  right: 0;
+  background: radial-gradient(circle, color-mix(in srgb, var(--terminal-bg) 0%, transparent) 60%, color-mix(in srgb, var(--terminal-bg) 40%, transparent) 100%);
+  z-index: 999;
+  pointer-events: none;
+}
+
+/* Text Glow Effect */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+strong,
+.glow-text {
+  text-shadow: 0 0 4px var(--terminal-glow);
+}
+
+/* Selection Style */
+::selection {
+  background: var(--terminal-text);
+  color: var(--terminal-bg);
+}
+
+/* Scrollbar Customization */
+/* Hide Scrollbar (default) */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  background: transparent;
+}
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* Terminal-style Visible Scrollbar */
+.scrollbar-terminal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-terminal::-webkit-scrollbar-track {
+  background: color-mix(in srgb, var(--terminal-text) 5%, transparent);
+}
+
+.scrollbar-terminal::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--terminal-text) 30%, transparent);
+  border-radius: 0;
+}
+
+.scrollbar-terminal::-webkit-scrollbar-thumb:hover {
+  background: color-mix(in srgb, var(--terminal-text) 50%, transparent);
+  box-shadow: 0 0 4px var(--terminal-glow);
+}
+
+.scrollbar-terminal {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--terminal-text) 30%, transparent) transparent;
+}
+
+/* Page Transition Animations */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Main Content Transition Wrapper */
+#main {
+  transition: opacity 0.2s ease-in-out;
+  opacity: 1;
+}
+
+#main.loading {
+  opacity: 0.5;
+  filter: blur(2px);
+}
+
+/* Terminal Cursor */
+.cursor {
+  display: inline-block;
+  width: 10px;
+  height: 1.2em;
+  background-color: var(--terminal-text);
+  vertical-align: middle;
+  animation: cursor 1s infinite step-end;
+}
+
+/* CRT Flicker Keyframes */
+@keyframes flicker {
+  0% {
+    opacity: 0.97;
+  }
+
+  5% {
+    opacity: 0.95;
+  }
+
+  10% {
+    opacity: 0.9;
+  }
+
+  15% {
+    opacity: 0.95;
+  }
+
+  20% {
+    opacity: 0.99;
+  }
+
+  50% {
+    opacity: 0.95;
+  }
+
+  55% {
+    opacity: 0.9;
+  }
+
+  60% {
+    opacity: 0.95;
+  }
+
+  100% {
+    opacity: 0.99;
+  }
+}
+
+@keyframes cursor {
+
+  0%,
+  100% {
+    opacity: 0;
+  }
+
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Terminal Input Caret */
+.caret-terminal-green {
+  caret-color: var(--terminal-text);
+}
+
+/* Hide placeholder on focus */
+input::placeholder {
+  color: color-mix(in srgb, var(--terminal-text) 30%, transparent);
+}
+
+input:focus::placeholder {
+  color: transparent;
+}
+
+/* Fix text wrapping */
+.whitespace-nowrap {
+  white-space: nowrap;
+}
