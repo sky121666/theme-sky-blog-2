@@ -13,6 +13,20 @@
   --terminal-dim: color-mix(in srgb, var(--terminal-text) 70%, transparent);
   --terminal-glow: color-mix(in srgb, var(--terminal-text) 60%, transparent);
   --scanline-color: color-mix(in srgb, var(--terminal-bg) 50%, transparent);
+
+  /* Search Widget Plugin - Terminal Theme Override */
+  --halo-search-widget-base-font-family: "Fira Code", "Courier New", monospace;
+  --halo-search-widget-base-rounded: 0px;
+  --halo-search-widget-primary-color: var(--terminal-text);
+  --halo-search-widget-muted-color: color-mix(in srgb, var(--terminal-text) 60%, transparent);
+  --halo-search-widget-content-color: color-mix(in srgb, var(--terminal-text) 90%, #fff);
+  --halo-search-widget-base-bg-color: var(--terminal-bg);
+  --halo-search-widget-modal-bg-color: color-mix(in srgb, var(--terminal-bg) 95%, var(--terminal-text));
+  --halo-search-widget-modal-layer-color: rgba(0, 0, 0, 0.85);
+  --halo-search-widget-hit-bg-color: color-mix(in srgb, var(--terminal-text) 8%, var(--terminal-bg));
+  --halo-search-widget-divider-color: color-mix(in srgb, var(--terminal-text) 20%, transparent);
+  --halo-search-widget-kbd-border-color: color-mix(in srgb, var(--terminal-text) 30%, transparent);
+  --halo-search-widget-kbd-shadow: 0px 2px 0px 0px color-mix(in srgb, var(--terminal-text) 15%, transparent);
 }
 
 body {

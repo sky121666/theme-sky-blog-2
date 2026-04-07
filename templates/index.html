@@ -4,7 +4,7 @@
   <div class="px-2 md:px-0" x-data="fileListNav">
 
     <!-- Command Input Simulation -->
-    <div th:unless="${theme.config.layout?.hide_ls_simulation}" class="mb-6 flex items-center gap-2 text-terminal-green">
+    <div th:if="${theme.config.features?.show_ls_simulation != false}" class="mb-6 flex items-center gap-2 text-terminal-green">
       <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}">guest@<span
           th:text="${site.title}"></span>:~/blog$</span>
       <span class="text-terminal-dim" th:if="${#authentication.name != 'anonymousUser'}"
@@ -27,7 +27,7 @@
     <ul class="space-y-1 font-mono text-xs md:text-sm"
       th:with="allCategories=${categoryFinder.listAll()},allTags=${tagFinder.listAll()}">
       <!-- Categories Folder -->
-      <th:block th:unless="${theme.config.layout?.hide_pinned_folders}">
+      <th:block th:if="${theme.config.features?.show_pinned_folders != false}">
       <li data-nav-item :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 0 }"
         class="grid grid-cols-12 gap-2 text-terminal-green hover:bg-terminal-green hover:text-terminal-black transition-colors px-1 cursor-pointer"
         th:with="firstCat=${!allCategories.isEmpty() ? allCategories.get(0) : null},

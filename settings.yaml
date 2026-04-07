@@ -94,34 +94,44 @@ spec:
               value: Small
             - label: Speed (速度)
               value: Speed
-    - group: layout
-      label: 布局设置
+    - group: features
+      label: 功能开关
       formSchema:
         - $formkit: checkbox
-          name: hide_header
-          label: 隐藏顶部 Header
+          name: show_search
+          label: 显示搜索按钮
+          value: true
+          help: 在页脚显示 [SEARCH] 按钮（需安装搜索插件）
+        - $formkit: checkbox
+          name: show_login
+          label: 显示登录入口
+          value: true
+          help: 在顶部 Header 显示 [LOGIN] / [LOGOUT] 用户信息
+        - $formkit: checkbox
+          name: show_header
+          label: 显示顶部 Header
+          value: true
+          help: 显示 ASCII Art 标题栏和用户信息栏
+        - $formkit: checkbox
+          name: show_scrollbar
+          label: 显示滚动条
           value: false
-          help: 隐藏 ASCII Art 标题栏和登录信息栏，获得更大内容区域
+          help: 在内容区域显示终端风格滚动条
+        - $formkit: checkbox
+          name: show_ls_simulation
+          label: 显示首页命令模拟行
+          value: true
+          help: 首页显示 "ls -la ./posts" 打字动画行
+        - $formkit: checkbox
+          name: show_pinned_folders
+          label: 显示首页置顶目录
+          value: true
+          help: 首页显示 categories/、tags/、../ 三个置顶条目
         - $formkit: checkbox
           name: compact_mode
           label: 紧凑模式
           value: false
           help: 移除外层 padding，最大化内容显示区域
-        - $formkit: checkbox
-          name: show_scrollbar
-          label: 显示滚动条
-          value: false
-          help: 在内容区域显示终端风格滚动条（默认隐藏）
-        - $formkit: checkbox
-          name: hide_ls_simulation
-          label: 隐藏首页命令模拟行
-          value: false
-          help: 隐藏首页 "ls -la ./posts" 打字动画行
-        - $formkit: checkbox
-          name: hide_pinned_folders
-          label: 隐藏首页置顶目录
-          value: false
-          help: 隐藏首页 categories/、tags/、../ 三个置顶条目
     - group: footer
       label: 页脚设置
       formSchema:
@@ -138,3 +148,11 @@ spec:
           label: 自定义头部代码
           placeholder: 可用于添加统计代码等，将直接注入到 body 底部
           rows: 5
+    - group: advanced
+      label: 高级设置
+      formSchema:
+        - $formkit: checkbox
+          name: debug_mode
+          label: 开发者调试模式
+          value: false
+          help: 启用后在浏览器控制台输出主题调试日志（仅开发者使用）

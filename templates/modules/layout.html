@@ -1,5 +1,5 @@
 <!doctype html>
-<html th:lang="${#locale.toLanguageTag}" class="terminal-theme" th:fragment="html (content)">
+<html th:lang="${#locale.toLanguageTag}" class="terminal-theme color-scheme-dark" th:attr="data-debug=${theme.config.advanced?.debug_mode ? 'true' : null}" th:fragment="html (content)">
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -48,15 +48,14 @@
 
   <body
     th:with="
-      hideHeader=${theme.config.layout?.hide_header != null ? theme.config.layout.hide_header : false},
-      compactMode=${theme.config.layout?.compact_mode != null ? theme.config.layout.compact_mode : false},
-      showScrollbar=${theme.config.layout?.show_scrollbar != null ? theme.config.layout.show_scrollbar : false}"
-    th:classappend="${compactMode ? 'p-0' : 'p-4 md:p-8'}"
-    class="h-screen overflow-hidden"
+      showHeader=${theme.config.features?.show_header != null ? theme.config.features.show_header : true},
+      compactMode=${theme.config.features?.compact_mode != null ? theme.config.features.compact_mode : false},
+      showScrollbar=${theme.config.features?.show_scrollbar != null ? theme.config.features.show_scrollbar : false}"
+    th:class="${compactMode ? 'flex h-screen w-full flex-col overflow-hidden font-mono' : 'mx-auto flex h-screen w-full max-w-5xl flex-col overflow-hidden p-4 font-mono md:p-6'}"
   >
     <div class="mx-auto flex h-full max-w-4xl flex-col">
       <!-- Terminal Header -->
-      <header th:unless="${hideHeader}" class="mb-4 flex-shrink-0 select-none">
+      <header th:if="${showHeader}" class="mb-4 flex-shrink-0 select-none">
         <div class="text-terminal-dim mb-2 text-xs">
           Last login: <span x-text="new Date().toDateString()"></span> on ttys001
         </div>
@@ -72,7 +71,7 @@
 
         <div class="text-terminal-green mt-4 flex items-center gap-2">
           <!-- Login/User Info -->
-          <div class="ml-auto flex gap-4 text-xs">
+          <div th:if="${theme.config.features?.show_login != false}" class="ml-auto flex gap-4 text-xs">
             <a
               th:if="${#authentication.name == 'anonymousUser'}"
               href="/login"
@@ -207,7 +206,8 @@
                        tagUrl=${tagSlug != '' and tagClean.endsWith('/' + tagSlug) ? tagClean.substring(0, tagClean.length() - tagSlug.length() - 1) : '/tags'}"
              th:href="${tagUrl}"
              class="hover:text-terminal-green transition-colors">[TAG]</a>
-          <a href="javascript:void(0)"
+          <a th:if="${theme.config.features?.show_search != false}"
+             href="javascript:void(0)"
              onclick="typeof SearchWidget!=='undefined'?SearchWidget.open():window.location.href='/search'"
              class="hover:text-terminal-green transition-colors cursor-pointer">[SEARCH]</a>
         </div>

@@ -2,6 +2,7 @@ import Alpine from "alpinejs";
 import lozad from "lozad";
 import Pjax from "pjax";
 
+import { logError } from "./logger";
 import { setPjaxInstance } from "./navigation";
 import { syncHaloDataFromDocument, updateSeoMeta } from "./page-data";
 import { initTaskListInteraction } from "./task-list";
@@ -56,7 +57,7 @@ function bindGlobalEvents() {
   });
 
   document.addEventListener("pjax:error", () => {
-    console.error("[Theme] Pjax navigation failed.");
+    logError("Pjax navigation failed.");
   });
 }
 

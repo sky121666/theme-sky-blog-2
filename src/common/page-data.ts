@@ -57,6 +57,8 @@ function readPageDataScript() {
     return JSON.parse(content) as Partial<HaloPageDataPayload>;
   } catch (error) {
     console.error("[Theme] Failed to parse halo page data.", error);
+    // Note: This error is always logged regardless of debug mode
+    // because it indicates broken page data that affects core functionality
     return null;
   }
 }
