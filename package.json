@@ -9,7 +9,8 @@
     "dev": "vite build --watch",
     "lint": "eslint .",
     "prepare": "husky",
-    "prettier": "prettier --write './**/*.{ts,json,yaml,yml,html}'"
+    "prettier": "prettier --write './**/*.{ts,json,yaml,yml,html}'",
+    "verify:theme-updates": "node scripts/verify-theme-updates.mjs"
   },
   "lint-staged": {
     "*.{ts,json,yaml,yml,html}": [

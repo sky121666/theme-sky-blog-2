@@ -4,10 +4,8 @@
    page transitions, keyframes, input caret
    ======================================== */
 
-/* Google Fonts - Fira Code */
-@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;500;600;700&display=swap");
-
 :root {
+  --terminal-font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --terminal-bg: var(--theme-color-bg, #0d0d0d);
   --terminal-text: var(--theme-color-primary, #00ff00);
   --terminal-dim: color-mix(in srgb, var(--terminal-text) 70%, transparent);
@@ -15,7 +13,7 @@
   --scanline-color: color-mix(in srgb, var(--terminal-bg) 50%, transparent);
 
   /* Search Widget Plugin - Terminal Theme Override */
-  --halo-search-widget-base-font-family: "Fira Code", "Courier New", monospace;
+  --halo-search-widget-base-font-family: var(--terminal-font-family);
   --halo-search-widget-base-rounded: 0px;
   --halo-search-widget-primary-color: var(--terminal-text);
   --halo-search-widget-muted-color: color-mix(in srgb, var(--terminal-text) 60%, transparent);
@@ -32,7 +30,7 @@
 body {
   background-color: var(--terminal-bg);
   color: var(--terminal-text);
-  font-family: "Fira Code", "Courier New", monospace;
+  font-family: var(--terminal-font-family);
   overflow-x: hidden;
   min-height: 100vh;
   /* CRT Flicker Animation */
@@ -215,6 +213,22 @@ strong,
 /* Terminal Input Caret */
 .caret-terminal-green {
   caret-color: var(--terminal-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  body {
+    animation: none !important;
+  }
 }
 
 /* Hide placeholder on focus */

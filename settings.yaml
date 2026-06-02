@@ -161,8 +161,9 @@ spec:
         - $formkit: textarea
           id: custom_head
           name: custom_head
-          label: 自定义头部代码
+          label: 自定义底部代码
           placeholder: 可用于添加统计代码等，将直接注入到 body 底部
+          help: 仅粘贴可信管理员代码，将直接注入到 body 底部。
           rows: 5
     - group: advanced
       label: 高级设置

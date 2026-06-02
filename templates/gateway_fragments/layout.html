@@ -14,21 +14,7 @@
     <!-- Halo Basic Resources -->
     <th:block th:replace="~{gateway_fragments/common::basicStaticResources}"></th:block>
 
-    <style
-      th:with="
-        preset=${theme.config.appearance?.color_preset ?: 'classic_green'},
-        cPri=${theme.config.appearance?.custom_primary_color ?: '#00ff00'},
-        cBg=${theme.config.appearance?.custom_bg_color ?: '#0d0d0d'},
-        priColor=${preset == 'amber' ? '#ffb000' : (preset == 'phosphor_blue' ? '#00ffff' : (preset == 'cyberpunk' ? '#ff00cc' : (preset == 'alert_blood' ? '#ff2222' : (preset == 'custom' ? cPri : '#00ff00'))))},
-        bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))},
-        flickerOn=${theme.config.appearance?.enable_flicker != null ? theme.config.appearance.enable_flicker : true},
-        scanlineOn=${theme.config.appearance?.enable_scanline != null ? theme.config.appearance.enable_scanline : true}"
-      th:inline="text"
-    >
-      :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
-      [(${flickerOn ? '' : 'body { animation: none !important; }'})]
-      [(${scanlineOn ? '' : 'body::before { display: none !important; }'})]
-    </style>
+    <th:block th:replace="~{modules/theme-style :: themeStyle}" />
   </head>
 
   <body
