@@ -1,4 +1,11 @@
-import type { HaloCurrentRef, HaloData, HaloPageDataPayload, HaloPageType, HaloPostRecord, HaloTaxonomyRecord } from "./types";
+import type {
+  HaloCurrentRef,
+  HaloData,
+  HaloPageDataPayload,
+  HaloPageType,
+  HaloPostRecord,
+  HaloTaxonomyRecord,
+} from "./types";
 
 const PAGE_DATA_ID = "halo-page-data";
 const POSTS_API = "/apis/api.content.halo.run/v1alpha1/posts?sort=spec.publishTime%2Cdesc&size=50";

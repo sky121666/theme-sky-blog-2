@@ -4,16 +4,10 @@ import { getDirectoryContent, resolvePath } from "../common/virtual-fs";
 
 const LIST_COMMANDS = ["cd", "ls", "ll", "pd", "pu", "npage", "ppage", "back", "help", "clear", "search"];
 const POST_COMMANDS = ["cd", "next", "prev", "back", "help", "clear"];
-const NO_ARG_COMMANDS = new Set([
-  "help", "clear", "back", "next", "prev", "pd", "pu", "npage", "ppage", "ls", "ll",
-]);
+const NO_ARG_COMMANDS = new Set(["help", "clear", "back", "next", "prev", "pd", "pu", "npage", "ppage", "ls", "ll"]);
 const PATH_COMMANDS = new Set(["cd", "ls", "ll"]);
 
-export function getSuggestions(
-  input: string,
-  currentPath: string,
-  isPost: boolean,
-): string[] {
+export function getSuggestions(input: string, currentPath: string, isPost: boolean): string[] {
   const inputLower = input.toLowerCase();
 
   // Phase 1: complete command name
@@ -38,9 +32,7 @@ export function getSuggestions(
   const filePart = lastSlash >= 0 ? rawArgument.slice(lastSlash + 1) : rawArgument;
   const filePartLower = filePart.toLowerCase();
 
-  const lookupPath = directoryPart
-    ? resolvePath(directoryPart, currentPath)
-    : currentPath;
+  const lookupPath = directoryPart ? resolvePath(directoryPart, currentPath) : currentPath;
 
   const dirContent = getDirectoryContent(lookupPath);
   if (!dirContent) {

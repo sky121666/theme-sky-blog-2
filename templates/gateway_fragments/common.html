@@ -1,61 +1,61 @@
 <th:block th:fragment="basicStaticResources">
-    <th:block th:replace="~{gateway_fragments/common::basicStyleResources}"></th:block>
-    <th:block th:replace="~{gateway_fragments/common::basicScriptResources}"></th:block>
+  <th:block th:replace="~{gateway_fragments/common::basicStyleResources}"></th:block>
+  <th:block th:replace="~{gateway_fragments/common::basicScriptResources}"></th:block>
 </th:block>
 
 <th:block th:fragment="basicScriptResources">
-    <!-- RSA 密码加密 (Halo 2.23+ 官方架构：加密逻辑放在 common.html) -->
-    <th:block th:if="${not #strings.isEmpty(publicKey)} and ${fragmentTemplateName} == 'login_local'">
-        <script src="/webjars/jsencrypt/bin/jsencrypt.min.js" defer></script>
-        <script th:inline="javascript" type="text/javascript">
-            const publicKey = /*[[${publicKey}]]*/ "";
+  <!-- RSA 密码加密 (Halo 2.23+ 官方架构：加密逻辑放在 common.html) -->
+  <th:block th:if="${not #strings.isEmpty(publicKey)} and ${fragmentTemplateName} == 'login_local'">
+    <script src="/webjars/jsencrypt/bin/jsencrypt.min.js" defer></script>
+    <script th:inline="javascript" type="text/javascript">
+      const publicKey = /*[[${publicKey}]]*/ "";
 
-            function encryptPassword(password) {
-                const encrypt = new JSEncrypt();
-                encrypt.setPublicKey(publicKey);
-                return encrypt.encrypt(password);
+      function encryptPassword(password) {
+        const encrypt = new JSEncrypt();
+        encrypt.setPublicKey(publicKey);
+        return encrypt.encrypt(password);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const loginForm = document.getElementById("login-form");
+        if (loginForm) {
+          loginForm.addEventListener("submit", function (event) {
+            const plainPasswordInput = document.getElementById("plainPassword");
+            const passwordInput = document.getElementById("password");
+            if (plainPasswordInput && passwordInput) {
+              passwordInput.value = encryptPassword(plainPasswordInput.value);
             }
-
-            document.addEventListener("DOMContentLoaded", function () {
-                const loginForm = document.getElementById("login-form");
-                if (loginForm) {
-                    loginForm.addEventListener("submit", function (event) {
-                        const plainPasswordInput = document.getElementById("plainPassword");
-                        const passwordInput = document.getElementById("password");
-                        if (plainPasswordInput && passwordInput) {
-                            passwordInput.value = encryptPassword(plainPasswordInput.value);
-                        }
-                    });
-                }
-            });
-        </script>
-    </th:block>
-    <script th:inline="javascript">
-        // Hardcoded messages for JS
-        const i18nResources = {
-            sendVerificationCodeSuccess: "Verification code sent successfully.",
-            sendVerificationCodeFailed: "Failed to send verification code.",
-            sendVerificationCodeSending: "Sending...",
-            passwordConfirmationFailed: "Passwords do not match.",
-        };
+          });
+        }
+      });
     </script>
+  </th:block>
+  <script th:inline="javascript">
+    // Hardcoded messages for JS
+    const i18nResources = {
+      sendVerificationCodeSuccess: "Verification code sent successfully.",
+      sendVerificationCodeFailed: "Failed to send verification code.",
+      sendVerificationCodeSending: "Sending...",
+      passwordConfirmationFailed: "Passwords do not match.",
+    };
+  </script>
 
-    <script src="/js/main.js"></script>
+  <script src="/js/main.js"></script>
 
-    <!-- Altcha Captcha Scripts (Halo Pro) -->
-    <th:block th:if="${globalInfo != null and #strings.contains(globalInfo.toString(), 'captchaProvider')}">
-        <th:block th:if="${#strings.equalsIgnoreCase(globalInfo.captchaProvider, 'ALTCHA')}">
-            <script async defer src="/webjars/altcha/dist/altcha.i18n.js" type="module"></script>
-            <script src="/js/altcha-lib.iife.js"></script>
-            <script src="/js/altcha-utils.js"></script>
-            <!-- 弹窗位置强制内联修复（彻底解决 3D 变换引起的偏移） -->
-            <script>
-                (function fixAltchaPosition() {
-                    const styleId = 'altcha-global-fix';
-                    if (!document.getElementById(styleId)) {
-                        const style = document.createElement('style');
-                        style.id = styleId;
-                        style.textContent = `
+  <!-- Altcha Captcha Scripts (Halo Pro) -->
+  <th:block th:if="${globalInfo != null and #strings.contains(globalInfo.toString(), 'captchaProvider')}">
+    <th:block th:if="${#strings.equalsIgnoreCase(globalInfo.captchaProvider, 'ALTCHA')}">
+      <script async defer src="/webjars/altcha/dist/altcha.i18n.js" type="module"></script>
+      <script src="/js/altcha-lib.iife.js"></script>
+      <script src="/js/altcha-utils.js"></script>
+      <!-- 弹窗位置强制内联修复（彻底解决 3D 变换引起的偏移） -->
+      <script>
+        (function fixAltchaPosition() {
+          const styleId = "altcha-global-fix";
+          if (!document.getElementById(styleId)) {
+            const style = document.createElement("style");
+            style.id = styleId;
+            style.textContent = `
                             .altcha-submit-container { position: relative !important; z-index: 50; }
                             .altcha[data-floating], altcha-widget[floating] .altcha {
                                 position: absolute !important; top: 100% !important; bottom: auto !important;
@@ -68,159 +68,168 @@
                                 box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8) !important;
                             }
                         `;
-                        document.head.appendChild(style);
-                    }
-                    function applyFix() {
-                        const widget = document.querySelector('altcha-widget');
-                        if (!widget || !widget.hasAttribute('floating')) return;
-                        const form = widget.closest('form');
-                        if (form) {
-                            const submitBtn = form.querySelector('button[type="submit"]');
-                            if (submitBtn) {
-                                if (!submitBtn.id) submitBtn.id = 'altcha-anchor-' + Math.random().toString(36).substring(2, 9);
-                                widget.setAttribute('floatinganchor', '#' + submitBtn.id);
-                                const btnWrapper = submitBtn.closest('.form-item') || submitBtn.parentNode;
-                                if (btnWrapper && widget.parentNode !== btnWrapper) {
-                                    btnWrapper.classList.add('altcha-submit-container');
-                                    btnWrapper.appendChild(widget);
-                                }
-                            }
-                        }
-                    }
-                    function init() {
-                        const container = document.body || document.documentElement;
-                        const observer = new MutationObserver(function () {
-                            const widget = document.querySelector('altcha-widget');
-                            if (widget && widget.hasAttribute('floating')) {
-                                observer.disconnect();
-                                requestAnimationFrame(() => requestAnimationFrame(applyFix));
-                            }
-                        });
-                        observer.observe(container, { childList: true, subtree: true });
-                        setTimeout(applyFix, 100);
-                    }
-                    if (document.readyState === 'loading') {
-                        document.addEventListener('DOMContentLoaded', init);
-                    } else {
-                        init();
-                    }
-                })();
-            </script>
-        </th:block>
+            document.head.appendChild(style);
+          }
+          function applyFix() {
+            const widget = document.querySelector("altcha-widget");
+            if (!widget || !widget.hasAttribute("floating")) return;
+            const form = widget.closest("form");
+            if (form) {
+              const submitBtn = form.querySelector('button[type="submit"]');
+              if (submitBtn) {
+                if (!submitBtn.id) submitBtn.id = "altcha-anchor-" + Math.random().toString(36).substring(2, 9);
+                widget.setAttribute("floatinganchor", "#" + submitBtn.id);
+                const btnWrapper = submitBtn.closest(".form-item") || submitBtn.parentNode;
+                if (btnWrapper && widget.parentNode !== btnWrapper) {
+                  btnWrapper.classList.add("altcha-submit-container");
+                  btnWrapper.appendChild(widget);
+                }
+              }
+            }
+          }
+          function init() {
+            const container = document.body || document.documentElement;
+            const observer = new MutationObserver(function () {
+              const widget = document.querySelector("altcha-widget");
+              if (widget && widget.hasAttribute("floating")) {
+                observer.disconnect();
+                requestAnimationFrame(() => requestAnimationFrame(applyFix));
+              }
+            });
+            observer.observe(container, { childList: true, subtree: true });
+            setTimeout(applyFix, 100);
+          }
+          if (document.readyState === "loading") {
+            document.addEventListener("DOMContentLoaded", init);
+          } else {
+            init();
+          }
+        })();
+      </script>
     </th:block>
+  </th:block>
 </th:block>
 
 <th:block th:fragment="basicStyleResources">
-    <link rel="stylesheet" href="/webjars/normalize.css/8.0.1/normalize.css" />
-    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+  <link rel="stylesheet" href="/webjars/normalize.css/8.0.1/normalize.css" />
+  <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
 </th:block>
 
 <div th:remove="tag" th:fragment="languageSwitcher">
-    <!-- Removed Language Switcher as requested by user -->
+  <!-- Removed Language Switcher as requested by user -->
 </div>
 
 <div th:remove="tag" th:fragment="haloLogo">
-    <style>
-        .halo-logo {
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            margin-bottom: 2em;
-        }
+  <style>
+    .halo-logo {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      margin-bottom: 2em;
+    }
 
-        .halo-logo img {
-            width: 6em;
-        }
-    </style>
-    <div class="halo-logo">
-        <img src="/images/wordmark.svg" alt="Halo" />
-    </div>
+    .halo-logo img {
+      width: 6em;
+    }
+  </style>
+  <div class="halo-logo">
+    <img src="/images/wordmark.svg" alt="Halo" />
+  </div>
 </div>
 
 <div th:remove="tag" th:fragment="socialAuthProviders">
-    <th:block th:unless="${#lists.isEmpty(socialAuthProviders)}">
-        <div class="divider-wrapper my-6 flex items-center gap-2 text-terminal-dim text-xs font-mono">
-            <span class="h-px bg-terminal-green/20 flex-1"></span>
-            <span>Social Login</span>
-            <span class="h-px bg-terminal-green/20 flex-1"></span>
-        </div>
-        <ul class="pill-items flex gap-4 justify-center">
-            <li th:each="provider : ${socialAuthProviders}">
-                <form class="social-auth-provider-form"
-                    th:action="|/login/social/${provider.metadata.name}?remember-me=false|" method="post">
-                    <button type="submit"
-                        class="border border-terminal-dim p-2 hover:border-terminal-green hover:shadow-[0_0_10px_var(--terminal-glow)] transition-all block bg-transparent cursor-pointer">
-                        <img th:src="${provider.spec.logo}" th:alt="|${provider.spec.displayName}'s icon|"
-                            class="w-6 h-6 grayscale hover:grayscale-0" />
-                    </button>
-                </form>
-            </li>
-        </ul>
-    </th:block>
-    <script>
-        (function () {
-            const rememberMeCheckbox = document.getElementById("remember-me");
-            const socialAuthProviders = document.querySelectorAll(".social-auth-provider-form");
+  <th:block th:unless="${#lists.isEmpty(socialAuthProviders)}">
+    <div class="divider-wrapper text-terminal-dim my-6 flex items-center gap-2 font-mono text-xs">
+      <span class="bg-terminal-green/20 h-px flex-1"></span>
+      <span>Social Login</span>
+      <span class="bg-terminal-green/20 h-px flex-1"></span>
+    </div>
+    <ul class="pill-items flex justify-center gap-4">
+      <li th:each="provider : ${socialAuthProviders}">
+        <form
+          class="social-auth-provider-form"
+          th:action="|/login/social/${provider.metadata.name}?remember-me=false|"
+          method="post"
+        >
+          <button
+            type="submit"
+            class="border-terminal-dim hover:border-terminal-green block cursor-pointer border bg-transparent p-2 transition-all hover:shadow-[0_0_10px_var(--terminal-glow)]"
+          >
+            <img
+              th:src="${provider.spec.logo}"
+              th:alt="|${provider.spec.displayName}'s icon|"
+              class="h-6 w-6 grayscale hover:grayscale-0"
+            />
+          </button>
+        </form>
+      </li>
+    </ul>
+  </th:block>
+  <script>
+    (function () {
+      const rememberMeCheckbox = document.getElementById("remember-me");
+      const socialAuthProviders = document.querySelectorAll(".social-auth-provider-form");
 
-            if (rememberMeCheckbox) {
-                rememberMeCheckbox.addEventListener("change", function (e) {
-                    const rememberMe = e.target.checked;
+      if (rememberMeCheckbox) {
+        rememberMeCheckbox.addEventListener("change", function (e) {
+          const rememberMe = e.target.checked;
 
-                    socialAuthProviders.forEach((form) => {
-                        const url = new URL(form.action, window.location.origin);
-                        url.searchParams.set("remember-me", rememberMe ? "true" : "false");
-                        form.action = url.pathname + url.search;
-                    });
-                });
-            }
-        })();
-    </script>
+          socialAuthProviders.forEach((form) => {
+            const url = new URL(form.action, window.location.origin);
+            url.searchParams.set("remember-me", rememberMe ? "true" : "false");
+            form.action = url.pathname + url.search;
+          });
+        });
+      }
+    })();
+  </script>
 </div>
 
 <div th:remove="tag" th:fragment="passwordResetMethods">
-    <th:block th:unless="${#lists.isEmpty(otherMethods)}">
-        <div class="divider-wrapper">
-            <hr />
-            <span>Reset Password via</span>
-            <hr />
-        </div>
-        <ul class="pill-items">
-            <li th:each="method : ${otherMethods}">
-                <a th:href="${method.href}">
-                    <img th:src="${method.icon}" th:alt="|${method.name}'s icon|" />
-                    <span th:text="${method.name}"></span>
-                </a>
-            </li>
-        </ul>
-    </th:block>
+  <th:block th:unless="${#lists.isEmpty(otherMethods)}">
+    <div class="divider-wrapper">
+      <hr />
+      <span>Reset Password via</span>
+      <hr />
+    </div>
+    <ul class="pill-items">
+      <li th:each="method : ${otherMethods}">
+        <a th:href="${method.href}">
+          <img th:src="${method.icon}" th:alt="|${method.name}'s icon|" />
+          <span th:text="${method.name}"></span>
+        </a>
+      </li>
+    </ul>
+  </th:block>
 </div>
 
 <div th:remove="tag" th:fragment="signupNoticeContent">
-    <div th:if="${globalInfo.allowRegistration}" class="signup-notice-content text-terminal-dim text-xs">
-        <div>
-            <span>还没有账号？</span>
-            <a th:href="@{/signup}"
-                class="text-terminal-green hover:underline decoration-dashed transition-colors">立即注册</a>
-        </div>
+  <div th:if="${globalInfo.allowRegistration}" class="signup-notice-content text-terminal-dim text-xs">
+    <div>
+      <span>还没有账号？</span>
+      <a th:href="@{/signup}" class="text-terminal-green decoration-dashed transition-colors hover:underline"
+        >立即注册</a
+      >
     </div>
+  </div>
 </div>
 
 <div th:remove="tag" th:fragment="loginNoticeContent">
-    <div th:if="${globalInfo.allowRegistration}" class="login-notice-content text-terminal-dim text-xs">
-        <div>
-            <span>已有账号？</span>
-            <a th:href="@{/login}"
-                class="text-terminal-green hover:underline decoration-dashed transition-colors">立即登录</a>
-        </div>
+  <div th:if="${globalInfo.allowRegistration}" class="login-notice-content text-terminal-dim text-xs">
+    <div>
+      <span>已有账号？</span>
+      <a th:href="@{/login}" class="text-terminal-green decoration-dashed transition-colors hover:underline"
+        >立即登录</a
+      >
     </div>
+  </div>
 </div>
 
 <div th:remove="tag" th:fragment="returnToSiteContent">
-    <div
-        class="returntosite-content text-terminal-dim text-[10px] mt-4 opacity-50 hover:opacity-100 transition-opacity">
-        <a th:href="@{/}" class="flex items-center gap-1 justify-center">
-            <span>&larr;</span>
-            <span>返回首页</span>
-        </a>
-    </div>
+  <div class="returntosite-content text-terminal-dim mt-4 text-[10px] opacity-50 transition-opacity hover:opacity-100">
+    <a th:href="@{/}" class="flex items-center justify-center gap-1">
+      <span>&larr;</span>
+      <span>返回首页</span>
+    </a>
+  </div>
 </div>

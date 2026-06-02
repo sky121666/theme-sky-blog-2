@@ -1,0 +1,6 @@
+node_modules
+dist
+build
+.gradle
+templates/assets
+pnpm-lock.yaml

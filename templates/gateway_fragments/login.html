@@ -1,73 +1,96 @@
-<form th:fragment="form" class="auth-form-terminal halo-form" name="login-form" id="login-form"
-    th:action="${authProvider.spec.authenticationUrl}" th:method="${authProvider.spec.method}">
-    <!-- Error Messages (Terminal Style) -->
-    <div class="terminal-alert mb-6 p-3 border border-red-500 text-red-500 bg-red-500/10 font-mono text-sm" role="alert"
-        th:if="${param.error != null and param.error.size() > 0}" th:with="error = ${param.error[0]}">
-        <span class="mr-2 font-bold">[ERROR]</span>
-        <strong th:if="${error == 'invalid-credential'}">
-            Invalid username or password.
-        </strong>
-        <strong th:if="${error == 'rate-limit-exceeded'}">
-            Too many attempts, please try again later.
-        </strong>
-        <strong th:if="${error == 'account-disabled'}">
-            Account disabled.
-        </strong>
-    </div>
+<form
+  th:fragment="form"
+  class="auth-form-terminal halo-form"
+  name="login-form"
+  id="login-form"
+  th:action="${authProvider.spec.authenticationUrl}"
+  th:method="${authProvider.spec.method}"
+>
+  <!-- Error Messages (Terminal Style) -->
+  <div
+    class="terminal-alert mb-6 border border-red-500 bg-red-500/10 p-3 font-mono text-sm text-red-500"
+    role="alert"
+    th:if="${param.error != null and param.error.size() > 0}"
+    th:with="error = ${param.error[0]}"
+  >
+    <span class="mr-2 font-bold">[ERROR]</span>
+    <strong th:if="${error == 'invalid-credential'}"> Invalid username or password. </strong>
+    <strong th:if="${error == 'rate-limit-exceeded'}"> Too many attempts, please try again later. </strong>
+    <strong th:if="${error == 'account-disabled'}"> Account disabled. </strong>
+  </div>
 
-    <!-- Success Messages -->
-    <div class="terminal-alert mb-6 p-3 border border-terminal-green text-terminal-green bg-terminal-green/10 font-mono text-sm"
-        role="alert" th:if="${param.logout != null and param.logout.size() > 0}">
-        <span class="mr-2 font-bold">[INFO]</span>
-        <strong>Logged out successfully.</strong>
-    </div>
-    <div class="terminal-alert mb-6 p-3 border border-terminal-green text-terminal-green bg-terminal-green/10 font-mono text-sm"
-        role="alert" th:if="${param.signup != null and param.signup.size() > 0}">
-        <span class="mr-2 font-bold">[INFO]</span>
-        <strong>Registration successful.</strong>
-    </div>
+  <!-- Success Messages -->
+  <div
+    class="terminal-alert border-terminal-green text-terminal-green bg-terminal-green/10 mb-6 border p-3 font-mono text-sm"
+    role="alert"
+    th:if="${param.logout != null and param.logout.size() > 0}"
+  >
+    <span class="mr-2 font-bold">[INFO]</span>
+    <strong>Logged out successfully.</strong>
+  </div>
+  <div
+    class="terminal-alert border-terminal-green text-terminal-green bg-terminal-green/10 mb-6 border p-3 font-mono text-sm"
+    role="alert"
+    th:if="${param.signup != null and param.signup.size() > 0}"
+  >
+    <span class="mr-2 font-bold">[INFO]</span>
+    <strong>Registration successful.</strong>
+  </div>
 
-    <!-- Dynamic Form Fields Injection -->
-    <div
-        th:replace="~{__${#strings.startsWith(fragmentTemplateName, 'plugin:') ? fragmentTemplateName : 'gateway_fragments/' + fragmentTemplateName}__::form}">
-    </div>
+  <!-- Dynamic Form Fields Injection -->
+  <div
+    th:replace="~{__${#strings.startsWith(fragmentTemplateName, 'plugin:') ? fragmentTemplateName : 'gateway_fragments/' + fragmentTemplateName}__::form}"
+  ></div>
 
-    <!-- Remember Me -->
-    <div th:if="${authProvider.spec.rememberMeSupport}" class="form-item-compact my-6 w-full">
-        <input type="checkbox" id="remember-me" name="remember-me" value="true" th:checked="${rememberMe}"
-            class="terminal-checkbox" /><label for="remember-me">REMEMBER_ME</label>
-    </div>
+  <!-- Remember Me -->
+  <div th:if="${authProvider.spec.rememberMeSupport}" class="form-item-compact my-6 w-full">
+    <input
+      type="checkbox"
+      id="remember-me"
+      name="remember-me"
+      value="true"
+      th:checked="${rememberMe}"
+      class="terminal-checkbox"
+    /><label for="remember-me">REMEMBER_ME</label>
+  </div>
 
-    <!-- Altcha Captcha (Halo Pro 自动注入) -->
-    <div halo:captcha class="form-item-compact w-full mb-6"></div>
+  <!-- Altcha Captcha (Halo Pro 自动注入) -->
+  <div halo:captcha class="form-item-compact mb-6 w-full"></div>
 
-    <!-- Submit Button -->
-    <div class="form-item mt-8">
-        <button type="submit"
-            class="group relative w-full py-3 px-4 border-2 border-terminal-green text-terminal-green font-bold uppercase tracking-widest hover:bg-terminal-green hover:text-terminal-black transition-all overflow-hidden flex items-center justify-center">
-            <span class="relative z-10 flex items-center justify-center gap-2 font-mono">
-                <span>LOGIN</span>
-                <span class="group-hover:translate-x-1 transition-transform">-&gt;</span>
-            </span>
-        </button>
-    </div>
+  <!-- Submit Button -->
+  <div class="form-item mt-8">
+    <button
+      type="submit"
+      class="group border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black relative flex w-full items-center justify-center overflow-hidden border-2 px-4 py-3 font-bold tracking-widest uppercase transition-all"
+    >
+      <span class="relative z-10 flex items-center justify-center gap-2 font-mono">
+        <span>LOGIN</span>
+        <span class="transition-transform group-hover:translate-x-1">-&gt;</span>
+      </span>
+    </button>
+  </div>
 </form>
 
 <div th:remove="tag" th:fragment="formAuthProviders">
-    <th:block th:unless="${#lists.isEmpty(formAuthProviders)}">
-        <div class="divider-wrapper my-6 flex items-center gap-2 text-terminal-dim text-xs font-mono">
-            <span class="h-px bg-terminal-green/20 flex-1"></span>
-            <span>OTHER LOGIN METHODS</span>
-            <span class="h-px bg-terminal-green/20 flex-1"></span>
-        </div>
-        <ul class="pill-items flex gap-4 justify-center">
-            <li th:each="provider : ${formAuthProviders}">
-                <a th:href="'/login?method=' + ${provider.metadata.name}"
-                    class="border border-terminal-dim p-2 hover:border-terminal-green hover:shadow-[0_0_10px_var(--terminal-glow)] transition-all block">
-                    <img th:src="${provider.spec.logo}" th:alt="|${provider.spec.displayName}'s icon|"
-                        class="w-6 h-6 grayscale hover:grayscale-0" />
-                </a>
-            </li>
-        </ul>
-    </th:block>
+  <th:block th:unless="${#lists.isEmpty(formAuthProviders)}">
+    <div class="divider-wrapper text-terminal-dim my-6 flex items-center gap-2 font-mono text-xs">
+      <span class="bg-terminal-green/20 h-px flex-1"></span>
+      <span>OTHER LOGIN METHODS</span>
+      <span class="bg-terminal-green/20 h-px flex-1"></span>
+    </div>
+    <ul class="pill-items flex justify-center gap-4">
+      <li th:each="provider : ${formAuthProviders}">
+        <a
+          th:href="'/login?method=' + ${provider.metadata.name}"
+          class="border-terminal-dim hover:border-terminal-green block border p-2 transition-all hover:shadow-[0_0_10px_var(--terminal-glow)]"
+        >
+          <img
+            th:src="${provider.spec.logo}"
+            th:alt="|${provider.spec.displayName}'s icon|"
+            class="h-6 w-6 grayscale hover:grayscale-0"
+          />
+        </a>
+      </li>
+    </ul>
+  </th:block>
 </div>

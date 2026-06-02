@@ -12,7 +12,8 @@
       bgColor=${preset == 'amber' ? '#1a0f00' : (preset == 'phosphor_blue' ? '#000814' : (preset == 'cyberpunk' ? '#110022' : (preset == 'alert_blood' ? '#1c0505' : (preset == 'custom' ? cBg : '#0d0d0d'))))},
       flickerOn=${theme.config.appearance?.enable_flicker != null ? theme.config.appearance.enable_flicker : true},
       scanlineOn=${theme.config.appearance?.enable_scanline != null ? theme.config.appearance.enable_scanline : true}"
-    th:inline="text">
+    th:inline="text"
+  >
     :root { --theme-color-primary: [(${priColor})]; --theme-color-bg: [(${bgColor})]; }
     [(${flickerOn ? '' : 'body { animation: none !important; }'})]
     [(${scanlineOn ? '' : 'body::before { display: none !important; }'})]

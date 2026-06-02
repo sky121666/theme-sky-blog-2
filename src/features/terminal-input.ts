@@ -64,11 +64,7 @@ export function registerTerminalInputComponent() {
         await new Promise((resolve) => window.setTimeout(resolve, 50));
       }
 
-      const result: CommandResult = await dispatchCommand(
-        command,
-        args,
-        String(this.currentPath),
-      );
+      const result: CommandResult = await dispatchCommand(command, args, String(this.currentPath));
 
       this.applyResult(result);
       this.command = "";

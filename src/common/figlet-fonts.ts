@@ -65,4 +65,3 @@ export function registerFigletFonts(): Promise<void> {
 
   return fontsLoading;
 }
-

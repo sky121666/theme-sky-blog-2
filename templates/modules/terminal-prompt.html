@@ -4,13 +4,18 @@
   @param path - the terminal path to display (e.g. '~/blog', '~/blog/categories')
 -->
 <th:block th:fragment="prompt(path)">
-  <div class="mb-6 flex items-center gap-2 text-terminal-green">
-    <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}">guest@<span
-        th:text="${site.title}"></span>:<span th:text="${path}">~/blog</span>$</span>
-    <span class="text-terminal-dim" th:if="${#authentication.name != 'anonymousUser'}"
-      th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}">
-      <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:<span
-        th:text="${path}">~/blog</span>$
+  <div class="text-terminal-green mb-6 flex items-center gap-2">
+    <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}"
+      >guest@<span th:text="${site.title}"></span>:<span th:text="${path}">~/blog</span>$</span
+    >
+    <span
+      class="text-terminal-dim"
+      th:if="${#authentication.name != 'anonymousUser'}"
+      th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}"
+    >
+      <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:<span th:text="${path}"
+        >~/blog</span
+      >$
     </span>
   </div>
 </th:block>

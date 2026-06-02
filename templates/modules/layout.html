@@ -1,5 +1,10 @@
 <!doctype html>
-<html th:lang="${#locale.toLanguageTag}" class="terminal-theme color-scheme-dark" th:attr="data-debug=${theme.config.advanced?.debug_mode ? 'true' : null}" th:fragment="html (content)">
+<html
+  th:lang="${#locale.toLanguageTag}"
+  class="terminal-theme color-scheme-dark"
+  th:attr="data-debug=${theme.config.advanced?.debug_mode ? 'true' : null}"
+  th:fragment="html (content)"
+>
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -14,33 +19,40 @@
       }"
     ></title>
     <!-- SEO: Description -->
-    <meta name="description"
+    <meta
+      name="description"
       th:content="${
         post != null ? (post.status.excerpt ?: post.spec.title) :
         (category != null ? category.spec.displayName + ' - ' + site.title :
         (tag != null ? tag.spec.displayName + ' - ' + site.title :
         (site.subtitle ?: site.title)))
-      }" />
+      }"
+    />
     <!-- SEO: Canonical URL -->
-    <link rel="canonical"
-      th:href="${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.url))}" />
+    <link
+      rel="canonical"
+      th:href="${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.url))}"
+    />
     <!-- SEO: Open Graph -->
     <meta property="og:type" th:content="${post != null ? 'article' : 'website'}" />
-    <meta property="og:title"
-      th:content="${post != null ? post.spec.title : (category != null ? category.spec.displayName : (tag != null ? tag.spec.displayName : site.title))}" />
-    <meta property="og:description"
-      th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}" />
-    <meta property="og:url"
-      th:content="${post != null ? post.status.permalink : site.url}" />
+    <meta
+      property="og:title"
+      th:content="${post != null ? post.spec.title : (category != null ? category.spec.displayName : (tag != null ? tag.spec.displayName : site.title))}"
+    />
+    <meta
+      property="og:description"
+      th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}"
+    />
+    <meta property="og:url" th:content="${post != null ? post.status.permalink : site.url}" />
     <meta property="og:site_name" th:content="${site.title}" />
-    <meta property="og:image" th:if="${post != null and post.spec.cover != null}"
-      th:content="${post.spec.cover}" />
+    <meta property="og:image" th:if="${post != null and post.spec.cover != null}" th:content="${post.spec.cover}" />
     <!-- SEO: Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title"
-      th:content="${post != null ? post.spec.title : site.title}" />
-    <meta name="twitter:description"
-      th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}" />
+    <meta name="twitter:title" th:content="${post != null ? post.spec.title : site.title}" />
+    <meta
+      name="twitter:description"
+      th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}"
+    />
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
     <th:block th:replace="~{modules/theme-style :: themeStyle}" />
     <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
@@ -51,7 +63,8 @@
       showHeader=${theme.config.features?.show_header != null ? theme.config.features.show_header : true},
       compactMode=${theme.config.features?.compact_mode != null ? theme.config.features.compact_mode : false},
       showScrollbar=${theme.config.features?.show_scrollbar != null ? theme.config.features.show_scrollbar : false}"
-    th:class="${compactMode ? 'flex h-screen w-full flex-col overflow-hidden font-mono' : 'mx-auto flex h-screen w-full max-w-5xl flex-col overflow-hidden p-4 font-mono md:p-6'}"
+    class="flex h-screen w-full flex-col overflow-hidden font-mono"
+    th:classappend="${compactMode ? '' : ' mx-auto max-w-5xl p-4 md:p-6'}"
   >
     <div class="mx-auto flex h-full max-w-4xl flex-col">
       <!-- Terminal Header -->
@@ -94,7 +107,11 @@
       </header>
 
       <!-- Main Content Area -->
-      <main id="main" th:class="${showScrollbar ? 'scrollbar-terminal relative flex-1 overflow-auto' : 'scrollbar-hide relative flex-1 overflow-auto'}">
+      <main
+        id="main"
+        class="relative flex-1 overflow-auto"
+        th:classappend="${showScrollbar ? ' scrollbar-terminal' : ' scrollbar-hide'}"
+      >
         <th:block th:replace="${content}" />
         <script id="halo-page-data" type="application/json" th:inline="javascript">
           {
@@ -190,26 +207,39 @@
       >
         <div class="flex gap-4">
           <a href="/" class="hover:text-terminal-green transition-colors">[INDEX]</a>
-          <a th:with="allCats=${categoryFinder.listAll()},
+          <a
+            th:with="allCats=${categoryFinder.listAll()},
                        firstCat=${!allCats.isEmpty() ? allCats.get(0) : null},
                        catPermalink=${firstCat != null and firstCat.status?.permalink != null ? firstCat.status.permalink : '/categories'},
                        catClean=${catPermalink.endsWith('/') ? catPermalink.substring(0, catPermalink.length() - 1) : catPermalink},
                        catSlug=${firstCat != null and firstCat.spec?.slug != null ? firstCat.spec.slug : ''},
                        catUrl=${catSlug != '' and catClean.endsWith('/' + catSlug) ? catClean.substring(0, catClean.length() - catSlug.length() - 1) : '/categories'}"
-             th:href="${catUrl}"
-             class="hover:text-terminal-green transition-colors">[CATEGORY]</a>
-          <a th:with="allTags=${tagFinder.listAll()},
+            th:href="${catUrl}"
+            class="hover:text-terminal-green transition-colors"
+            >[CATEGORY]</a
+          >
+          <a
+            th:with="allTags=${tagFinder.listAll()},
                        firstTag=${!allTags.isEmpty() ? allTags.get(0) : null},
                        tagPermalink=${firstTag != null and firstTag.status?.permalink != null ? firstTag.status.permalink : '/tags'},
                        tagClean=${tagPermalink.endsWith('/') ? tagPermalink.substring(0, tagPermalink.length() - 1) : tagPermalink},
                        tagSlug=${firstTag != null and firstTag.spec?.slug != null ? firstTag.spec.slug : ''},
                        tagUrl=${tagSlug != '' and tagClean.endsWith('/' + tagSlug) ? tagClean.substring(0, tagClean.length() - tagSlug.length() - 1) : '/tags'}"
-             th:href="${tagUrl}"
-             class="hover:text-terminal-green transition-colors">[TAG]</a>
-          <a th:if="${theme.config.features?.show_search != false}"
-             href="javascript:void(0)"
-             onclick="typeof SearchWidget!=='undefined'?SearchWidget.open():window.location.href='/search'"
-             class="hover:text-terminal-green transition-colors cursor-pointer">[SEARCH]</a>
+            th:href="${tagUrl}"
+            class="hover:text-terminal-green transition-colors"
+            >[TAG]</a
+          >
+          <a
+            th:if="${theme.config.features?.show_search != false}"
+            href="javascript:void(0)"
+            onclick="
+              typeof SearchWidget !== 'undefined' && SearchWidget.open
+                ? SearchWidget.open()
+                : console.warn('Official Halo SearchWidget is not loaded')
+            "
+            class="hover:text-terminal-green cursor-pointer transition-colors"
+            >[SEARCH]</a
+          >
         </div>
         <div class="flex flex-col text-right md:flex-row md:gap-4 md:text-left">
           <div th:if="${theme.config.footer.icp}">

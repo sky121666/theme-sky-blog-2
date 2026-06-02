@@ -36,23 +36,27 @@ spec:
               value: custom
               render: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjMjIyMjIyIiAvPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTUiIGZpbGw9IiMxYTFhMWEiIHJ4PSI0IiAvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI3LjUiIHI9IjIuNSIgZmlsbD0iI2ZmNWY1NiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjcuNSIgcj0iMi41IiBmaWxsPSIjZmZiZDJlIiAvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iNy41IiByPSIyLjUiIGZpbGw9IiMyN2M5M2YiIC8+CiAgPHRleHQgeD0iNSIgeT0iMzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2ZmZmZmZiI+PiBscyAtbGE8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzg4ODg4OCI+ZHJ3eHIteHIteDwvdGV4dD4KICA8dGV4dCB4PSI1IiB5PSI1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjZmZmZmZmIj4/IF88L3RleHQ+Cjwvc3ZnPg==
         - $formkit: color
+          id: custom_primary_color
           name: custom_primary_color
           label: 自定义主色调 (Primary Text)
           value: "#00ff00"
           if: $get(color_preset_selector).value === 'custom'
           help: "仅当配色方案选为\u201c完全自定义\u201d时生效"
         - $formkit: color
+          id: custom_bg_color
           name: custom_bg_color
           label: 自定义背景色 (Background)
           value: "#0d0d0d"
           if: $get(color_preset_selector).value === 'custom'
           help: "仅当配色方案选为\u201c完全自定义\u201d时生效"
         - $formkit: checkbox
+          id: enable_scanline
           name: enable_scanline
           label: CRT 扫描线效果
           value: true
           help: 模拟老式 CRT 显示器的扫描线，关闭可提升低性能设备流畅度
         - $formkit: checkbox
+          id: enable_flicker
           name: enable_flicker
           label: CRT 闪烁动画
           value: true
@@ -61,11 +65,13 @@ spec:
       label: 基础设置
       formSchema:
         - $formkit: text
+          id: ascii_title_text
           name: ascii_title_text
           label: ASCII 艺术字文本
           placeholder: 例如：SkyBlog
           help: 输入要显示的文字，将自动生成 ASCII 艺术字
         - $formkit: select
+          id: ascii_font
           name: ascii_font
           label: ASCII 艺术字风格
           value: Standard
@@ -98,36 +104,43 @@ spec:
       label: 功能开关
       formSchema:
         - $formkit: checkbox
+          id: show_search
           name: show_search
           label: 显示搜索按钮
           value: true
           help: 在页脚显示 [SEARCH] 按钮（需安装搜索插件）
         - $formkit: checkbox
+          id: show_login
           name: show_login
           label: 显示登录入口
           value: true
           help: 在顶部 Header 显示 [LOGIN] / [LOGOUT] 用户信息
         - $formkit: checkbox
+          id: show_header
           name: show_header
           label: 显示顶部 Header
           value: true
           help: 显示 ASCII Art 标题栏和用户信息栏
         - $formkit: checkbox
+          id: show_scrollbar
           name: show_scrollbar
           label: 显示滚动条
           value: false
           help: 在内容区域显示终端风格滚动条
         - $formkit: checkbox
+          id: show_ls_simulation
           name: show_ls_simulation
           label: 显示首页命令模拟行
           value: true
           help: 首页显示 "ls -la ./posts" 打字动画行
         - $formkit: checkbox
+          id: show_pinned_folders
           name: show_pinned_folders
           label: 显示首页置顶目录
           value: true
           help: 首页显示 categories/、tags/、../ 三个置顶条目
         - $formkit: checkbox
+          id: compact_mode
           name: compact_mode
           label: 紧凑模式
           value: false
@@ -136,14 +149,17 @@ spec:
       label: 页脚设置
       formSchema:
         - $formkit: text
+          id: icp
           name: icp
           label: ICP 备案号
           placeholder: 例如：京ICP备00000000号
         - $formkit: text
+          id: police_icp
           name: police_icp
           label: 公安联网备案号
           placeholder: 例如：京公网安备00000000000000号
         - $formkit: textarea
+          id: custom_head
           name: custom_head
           label: 自定义头部代码
           placeholder: 可用于添加统计代码等，将直接注入到 body 底部
@@ -152,6 +168,7 @@ spec:
       label: 高级设置
       formSchema:
         - $formkit: checkbox
+          id: debug_mode
           name: debug_mode
           label: 开发者调试模式
           value: false

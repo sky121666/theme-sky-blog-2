@@ -12,16 +12,24 @@
     <div class="w-full max-w-2xl font-mono">
       <!-- Panic header for 5xx, Segfault for 4xx -->
       <div th:if="${error.status >= 500}" class="mb-6">
-        <pre class="text-terminal-green text-sm leading-snug md:text-base" style="text-shadow: 0 0 8px var(--terminal-glow)">
+        <pre
+          class="text-terminal-green text-sm leading-snug md:text-base"
+          style="text-shadow: 0 0 8px var(--terminal-glow)"
+        >
 ╔══════════════════════════════════════════════════╗
 ║           KERNEL PANIC - NOT SYNCING             ║
-╚══════════════════════════════════════════════════╝</pre>
+╚══════════════════════════════════════════════════╝</pre
+        >
       </div>
       <div th:if="${error.status < 500}" class="mb-6">
-        <pre class="text-terminal-green text-sm leading-snug md:text-base" style="text-shadow: 0 0 8px var(--terminal-glow)">
+        <pre
+          class="text-terminal-green text-sm leading-snug md:text-base"
+          style="text-shadow: 0 0 8px var(--terminal-glow)"
+        >
 ╔══════════════════════════════════════════════════╗
 ║          SEGMENTATION FAULT (core dumped)        ║
-╚══════════════════════════════════════════════════╝</pre>
+╚══════════════════════════════════════════════════╝</pre
+        >
       </div>
 
       <!-- Error details -->
@@ -32,7 +40,10 @@
         </p>
         <p>
           <span class="text-terminal-green/70">Signal:</span>
-          <span th:text="${error.status >= 500 ? 'SIGABRT' : (error.status == 404 ? 'SIGSEGV' : (error.status == 403 ? 'SIGKILL' : 'SIGTERM'))}">SIGSEGV</span>
+          <span
+            th:text="${error.status >= 500 ? 'SIGABRT' : (error.status == 404 ? 'SIGSEGV' : (error.status == 403 ? 'SIGKILL' : 'SIGTERM'))}"
+            >SIGSEGV</span
+          >
         </p>
         <p>
           <span class="text-terminal-green/70">Title:</span>
@@ -45,7 +56,9 @@
 
         <div class="border-terminal-green/30 my-4 border-t pt-4">
           <p class="text-terminal-green/70 mb-2">Stack trace:</p>
-          <pre class="text-terminal-green/50 text-xs leading-relaxed">  at PageHandler.resolve(<span th:text="${error.instance ?: '/unknown'}"></span>)
+          <pre
+            class="text-terminal-green/50 text-xs leading-relaxed"
+          >  at PageHandler.resolve(<span th:text="${error.instance ?: '/unknown'}"></span>)
   at Router.dispatch(kernel/router.c:421)
   at HttpServer.processRequest(net/http.c:892)
   at main(init/main.c:1)</pre>
@@ -54,10 +67,22 @@
         <div class="border-terminal-green/30 my-4 border-t pt-4">
           <p class="text-terminal-green/70 mb-3">Recovery options:</p>
           <div class="space-y-1">
-            <p>&gt; <a href="/" class="text-terminal-green underline decoration-dotted underline-offset-4 transition-all hover:brightness-125">cd /</a>
+            <p>
+              &gt;
+              <a
+                href="/"
+                class="text-terminal-green underline decoration-dotted underline-offset-4 transition-all hover:brightness-125"
+                >cd /</a
+              >
               <span class="text-terminal-green/50">&nbsp;&nbsp;# return to home</span>
             </p>
-            <p>&gt; <a href="javascript:history.back()" class="text-terminal-green underline decoration-dotted underline-offset-4 transition-all hover:brightness-125">back</a>
+            <p>
+              &gt;
+              <a
+                href="javascript:history.back()"
+                class="text-terminal-green underline decoration-dotted underline-offset-4 transition-all hover:brightness-125"
+                >back</a
+              >
               <span class="text-terminal-green/50">&nbsp;&nbsp;# go to previous page</span>
             </p>
           </div>

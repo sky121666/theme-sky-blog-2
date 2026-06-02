@@ -52,10 +52,7 @@ Navigation:
 
 // ── Command implementations ────────────────────────────────────────
 
-function handleCd(
-  path: string,
-  currentPath: string,
-): CommandResult {
+function handleCd(path: string, currentPath: string): CommandResult {
   if (!path || path === ".") {
     return {};
   }
@@ -77,9 +74,7 @@ function handleCd(
     return { output: `cd: no such file or directory: ${path}` };
   }
 
-  const fileEntry = content.find(
-    (item) => item.type === "file" && item.name === path.split("/").pop(),
-  );
+  const fileEntry = content.find((item) => item.type === "file" && item.name === path.split("/").pop());
   if (fileEntry?.permalink) {
     return { navigate: fileEntry.permalink };
   }
@@ -113,15 +108,11 @@ function handleLs(args: string, currentPath: string): string {
 }
 
 function handleNavPost(direction: "next" | "prev"): CommandResult {
-  const url =
-    direction === "next" ? window.haloData?.nextPost : window.haloData?.prevPost;
+  const url = direction === "next" ? window.haloData?.nextPost : window.haloData?.prevPost;
 
   if (!url) {
     return {
-      output:
-        direction === "next"
-          ? "No next article available."
-          : "No previous article available.",
+      output: direction === "next" ? "No next article available." : "No previous article available.",
     };
   }
 
@@ -140,9 +131,7 @@ function handlePage(next: boolean): CommandResult {
 
   if (!targetUrl) {
     return {
-      output: next
-        ? "Already at the last page."
-        : "Already at the first page.",
+      output: next ? "Already at the last page." : "Already at the first page.",
     };
   }
 
@@ -151,17 +140,15 @@ function handlePage(next: boolean): CommandResult {
 }
 
 function handleSearch(args: string): CommandResult {
-  if (!args) {
-    const sw = (window as unknown as Record<string, unknown>).SearchWidget;
-    if (typeof sw !== "undefined" && sw && typeof (sw as { open?: unknown }).open === "function") {
-      (sw as { open: () => void }).open();
-    } else {
-      navigateToUrl("/search");
-    }
-    return {};
+  const sw = (window as unknown as Record<string, unknown>).SearchWidget;
+  if (typeof sw !== "undefined" && sw && typeof (sw as { open?: unknown }).open === "function") {
+    (sw as { open: () => void }).open();
+    return args ? { output: `Search widget opened. Type keyword in the search box: ${args}` } : {};
   }
-  navigateToUrl(`/search?keyword=${encodeURIComponent(args)}`);
-  return {};
+
+  return {
+    output: "SearchWidget is not loaded. Please install and enable the official Halo search widget plugin.",
+  };
 }
 
 // ── Command registry (Map pattern) ─────────────────────────────────
@@ -169,7 +156,13 @@ function handleSearch(args: string): CommandResult {
 type CommandHandler = (args: string, currentPath: string) => CommandResult | Promise<CommandResult>;
 
 const commandRegistry = new Map<string, CommandHandler>([
-  ["back", () => { window.history.back(); return {}; }],
+  [
+    "back",
+    () => {
+      window.history.back();
+      return {};
+    },
+  ],
   ["cd", (args, path) => handleCd(args, path)],
   ["clear", () => ({})],
   ["help", () => ({ showHelp: true })],
@@ -186,11 +179,7 @@ const commandRegistry = new Map<string, CommandHandler>([
 
 // ── Command dispatcher ─────────────────────────────────────────────
 
-export async function dispatchCommand(
-  command: string,
-  args: string,
-  currentPath: string,
-): Promise<CommandResult> {
+export async function dispatchCommand(command: string, args: string, currentPath: string): Promise<CommandResult> {
   const handler = commandRegistry.get(command.toLowerCase());
 
   if (handler) {
