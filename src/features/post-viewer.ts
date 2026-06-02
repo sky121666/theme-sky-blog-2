@@ -1,9 +1,14 @@
 import Alpine from "alpinejs";
 
+import { getArticleToc, type ArticleTocItem } from "./article-tools";
+
 export function registerPostViewerComponent() {
   Alpine.data("postViewer", () => ({
     keydownHandler: null as ((event: KeyboardEvent) => void) | null,
     pjaxSendHandler: null as (() => void) | null,
+    readingProgress: 0,
+    scrollHandler: null as (() => void) | null,
+    tocItems: [] as ArticleTocItem[],
 
     destroy() {
       this.unbindListeners();
@@ -12,6 +17,10 @@ export function registerPostViewerComponent() {
         document.removeEventListener("pjax:send", this.pjaxSendHandler);
         this.pjaxSendHandler = null;
       }
+    },
+
+    get scrollBehavior(): ScrollBehavior {
+      return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
     },
 
     handleKeydown(event: KeyboardEvent) {
@@ -33,29 +42,29 @@ export function registerPostViewerComponent() {
         case "ArrowDown":
         case "j":
           event.preventDefault();
-          main.scrollBy({ behavior: "smooth", top: this.scrollAmount });
+          main.scrollBy({ behavior: this.scrollBehavior, top: this.scrollAmount });
           break;
         case "ArrowUp":
         case "k":
           event.preventDefault();
-          main.scrollBy({ behavior: "smooth", top: -this.scrollAmount });
+          main.scrollBy({ behavior: this.scrollBehavior, top: -this.scrollAmount });
           break;
         case " ":
         case "PageDown":
           event.preventDefault();
-          main.scrollBy({ behavior: "smooth", top: main.clientHeight * 0.8 });
+          main.scrollBy({ behavior: this.scrollBehavior, top: main.clientHeight * 0.8 });
           break;
         case "End":
           event.preventDefault();
-          main.scrollTo({ behavior: "smooth", top: main.scrollHeight });
+          main.scrollTo({ behavior: this.scrollBehavior, top: main.scrollHeight });
           break;
         case "Home":
           event.preventDefault();
-          main.scrollTo({ behavior: "smooth", top: 0 });
+          main.scrollTo({ behavior: this.scrollBehavior, top: 0 });
           break;
         case "PageUp":
           event.preventDefault();
-          main.scrollBy({ behavior: "smooth", top: -main.clientHeight * 0.8 });
+          main.scrollBy({ behavior: this.scrollBehavior, top: -main.clientHeight * 0.8 });
           break;
         default:
           break;
@@ -63,11 +72,29 @@ export function registerPostViewerComponent() {
     },
 
     init() {
+      this.refreshToc();
+      this.updateReadingProgress();
+
       this.keydownHandler = (event: KeyboardEvent) => this.handleKeydown(event);
       window.addEventListener("keydown", this.keydownHandler);
 
+      const main = document.getElementById("main");
+      this.scrollHandler = () => this.updateReadingProgress();
+      main?.addEventListener("scroll", this.scrollHandler, { passive: true });
+
       this.pjaxSendHandler = () => this.unbindListeners();
       document.addEventListener("pjax:send", this.pjaxSendHandler);
+    },
+
+    jumpToHeading(id: string) {
+      document.getElementById(id)?.scrollIntoView({
+        behavior: this.scrollBehavior,
+        block: "start",
+      });
+    },
+
+    refreshToc() {
+      this.tocItems = getArticleToc();
     },
 
     scrollAmount: 100,
@@ -77,6 +104,23 @@ export function registerPostViewerComponent() {
         window.removeEventListener("keydown", this.keydownHandler);
         this.keydownHandler = null;
       }
+
+      if (this.scrollHandler) {
+        document.getElementById("main")?.removeEventListener("scroll", this.scrollHandler);
+        this.scrollHandler = null;
+      }
+    },
+
+    updateReadingProgress() {
+      const main = document.getElementById("main");
+      if (!main) {
+        this.readingProgress = 0;
+        return;
+      }
+
+      const maxScroll = main.scrollHeight - main.clientHeight;
+      this.readingProgress =
+        maxScroll > 0 ? Math.min(100, Math.max(0, Math.round((main.scrollTop / maxScroll) * 100))) : 100;
     },
   }));
 }

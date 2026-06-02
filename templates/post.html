@@ -23,6 +23,17 @@
       </div>
 
       <article class="prose prose-invert max-w-none">
+        <!-- Reading Progress -->
+        <div class="border-terminal-dim text-terminal-dim mb-4 border border-dashed p-2 font-mono text-xs">
+          <div class="mb-1 flex items-center justify-between">
+            <span>READ_PROGRESS</span>
+            <span><span x-text="readingProgress"></span>%</span>
+          </div>
+          <div class="bg-terminal-green/10 h-1 overflow-hidden">
+            <div class="bg-terminal-green h-full transition-[width]" :style="`width: ${readingProgress}%`"></div>
+          </div>
+        </div>
+
         <!-- File Metadata Header -->
         <div
           class="border-terminal-green bg-terminal-green/20 relative mb-8 overflow-hidden border p-4 font-mono text-xs"
@@ -45,6 +56,29 @@
           </div>
         </div>
 
+        <!-- Article TOC -->
+        <nav
+          x-show="tocItems.length > 0"
+          class="border-terminal-dim text-terminal-dim mb-8 border border-dashed p-4 font-mono text-xs"
+          aria-label="Article table of contents"
+        >
+          <div class="text-terminal-green mb-2">[TOC]</div>
+          <ol class="space-y-1">
+            <template x-for="(item, index) in tocItems" :key="item.id">
+              <li :class="{ 'pl-4': item.level > 2 }">
+                <button
+                  type="button"
+                  class="hover:text-terminal-green cursor-pointer bg-transparent p-0 text-left font-mono text-inherit transition-colors"
+                  @click="jumpToHeading(item.id)"
+                >
+                  <span x-text="String(index + 1).padStart(2, '0')"></span>.
+                  <span x-text="item.text"></span>
+                </button>
+              </li>
+            </template>
+          </ol>
+        </nav>
+
         <!-- Post Content -->
         <div class="terminal-content">
           <h1
@@ -61,12 +95,13 @@
 
       <!-- Back Button -->
       <div class="mb-8">
-        <a
-          href="javascript:history.back()"
-          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black inline-block border px-4 py-1 transition-colors"
+        <button
+          type="button"
+          onclick="window.history.length > 1 ? window.history.back() : (window.location.href = '/')"
+          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black cursor-pointer border bg-transparent px-4 py-1 font-mono transition-colors"
         >
           cd ..
-        </a>
+        </button>
       </div>
     </div>
   </th:block>

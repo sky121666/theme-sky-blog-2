@@ -1,5 +1,12 @@
 import { navigateToUrl } from "../common/navigation";
 import {
+  copyArticleLink,
+  formatArticleToc,
+  scrollMainToBottom,
+  scrollMainToTop,
+  scrollToArticleHeading,
+} from "./article-tools";
+import {
   getCurrentUser,
   getDirectoryContent,
   getParentPath,
@@ -27,6 +34,8 @@ List Page Commands:
   back          - Browser back
   help          - Show this help
   clear         - Clear output
+  top           - Scroll to top
+  bottom        - Scroll to bottom
   search        - Open search
 
 Navigation:
@@ -41,6 +50,11 @@ Post Page Commands:
   next          - Next article
   prev          - Previous article
   back          - Browser back
+  toc           - Show article table of contents
+  jump <n>      - Jump to TOC item number
+  top           - Scroll to top
+  bottom        - Scroll to bottom
+  copy          - Copy article link
   help          - Show this help
   clear         - Clear output
 
@@ -151,6 +165,16 @@ function handleSearch(args: string): CommandResult {
   };
 }
 
+function handleJump(args: string): CommandResult {
+  const index = Number.parseInt(args, 10);
+  if (!Number.isFinite(index) || index < 1) {
+    return { output: "jump: usage: jump <number>" };
+  }
+
+  const output = scrollToArticleHeading(index);
+  return output ? { output } : {};
+}
+
 // ── Command registry (Map pattern) ─────────────────────────────────
 
 type CommandHandler = (args: string, currentPath: string) => CommandResult | Promise<CommandResult>;
@@ -165,7 +189,16 @@ const commandRegistry = new Map<string, CommandHandler>([
   ],
   ["cd", (args, path) => handleCd(args, path)],
   ["clear", () => ({})],
+  [
+    "bottom",
+    () => {
+      scrollMainToBottom();
+      return {};
+    },
+  ],
+  ["copy", async () => ({ output: await copyArticleLink() })],
   ["help", () => ({ showHelp: true })],
+  ["jump", (args) => handleJump(args)],
   ["ll", (args, path) => ({ output: handleLs(args, path) })],
   ["ls", (args, path) => ({ output: handleLs(args, path) })],
   ["next", () => handleNavPost("next")],
@@ -175,6 +208,14 @@ const commandRegistry = new Map<string, CommandHandler>([
   ["prev", () => handleNavPost("prev")],
   ["pu", () => handlePage(false)],
   ["search", (args) => handleSearch(args)],
+  ["toc", () => ({ output: formatArticleToc() })],
+  [
+    "top",
+    () => {
+      scrollMainToTop();
+      return {};
+    },
+  ],
 ]);
 
 // ── Command dispatcher ─────────────────────────────────────────────

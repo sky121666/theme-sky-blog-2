@@ -210,6 +210,30 @@ function setLinkHref(selector: string, href: string | null) {
   }
 }
 
+function upsertMetaContent(
+  selector: string,
+  attributeName: "name" | "property",
+  attributeValue: string,
+  content: string | null,
+) {
+  const el = document.querySelector<HTMLMetaElement>(selector);
+
+  if (!content) {
+    el?.remove();
+    return;
+  }
+
+  if (el) {
+    el.content = content;
+    return;
+  }
+
+  const meta = document.createElement("meta");
+  meta.setAttribute(attributeName, attributeValue);
+  meta.content = content;
+  document.head.appendChild(meta);
+}
+
 export function updateSeoMeta() {
   const element = document.getElementById(PAGE_DATA_ID);
   if (!(element instanceof HTMLScriptElement)) {
@@ -231,28 +255,15 @@ export function updateSeoMeta() {
     setMetaContent('meta[property="og:title"]', seo.title);
     setMetaContent('meta[property="og:description"]', seo.description);
     setMetaContent('meta[property="og:url"]', seo.canonical);
-    setMetaContent('meta[property="og:site_name"]', seo.title?.split(" - ").pop() ?? null);
-
-    // OG Image: update or remove
-    const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]');
-    if (seo.ogImage) {
-      if (ogImage) {
-        ogImage.content = seo.ogImage;
-      } else {
-        const meta = document.createElement("meta");
-        meta.setAttribute("property", "og:image");
-        meta.content = seo.ogImage;
-        document.head.appendChild(meta);
-      }
-    } else if (ogImage) {
-      ogImage.remove();
-    }
+    setMetaContent('meta[property="og:site_name"]', seo.siteTitle ?? seo.title?.split(" - ").pop() ?? null);
+    upsertMetaContent('meta[property="og:image"]', "property", "og:image", seo.ogImage ?? null);
 
     // OG Type
     setMetaContent('meta[property="og:type"]', data.pageType === "post" ? "article" : "website");
     // Twitter
     setMetaContent('meta[name="twitter:title"]', seo.title);
     setMetaContent('meta[name="twitter:description"]', seo.description);
+    upsertMetaContent('meta[name="twitter:image"]', "name", "twitter:image", seo.ogImage ?? null);
   } catch {
     // Silently ignore parse errors
   }

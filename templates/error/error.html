@@ -78,11 +78,13 @@
             </p>
             <p>
               &gt;
-              <a
-                href="javascript:history.back()"
-                class="text-terminal-green underline decoration-dotted underline-offset-4 transition-all hover:brightness-125"
-                >back</a
+              <button
+                type="button"
+                onclick="window.history.length > 1 ? window.history.back() : (window.location.href = '/')"
+                class="text-terminal-green cursor-pointer bg-transparent p-0 font-mono underline decoration-dotted underline-offset-4 transition-all hover:brightness-125"
               >
+                back
+              </button>
               <span class="text-terminal-green/50">&nbsp;&nbsp;# go to previous page</span>
             </p>
           </div>

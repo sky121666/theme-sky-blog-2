@@ -1,4 +1,16 @@
 import { readFileSync } from "node:fs";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
+
+function listHtmlFiles(directory) {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) {
+      return listHtmlFiles(path);
+    }
+    return entry.isFile() && entry.name.endsWith(".html") ? [path] : [];
+  });
+}
 
 const checks = [
   {
@@ -22,6 +34,28 @@ const checks = [
     test: (content) => content.includes('type="button"') && !content.includes('href="javascript:void(0)"'),
   },
   {
+    file: "templates/post.html",
+    message: "post template should not use javascript hrefs",
+    test: (content) => !content.includes('href="javascript:'),
+  },
+  {
+    file: "templates",
+    readFile: false,
+    message: "templates should not use javascript hrefs",
+    test: () => listHtmlFiles("templates").every((file) => !readFileSync(file, "utf8").includes('href="javascript:')),
+  },
+  {
+    file: "templates/post.html",
+    message: "post template should include terminal TOC and reading progress",
+    test: (content) => content.includes("[TOC]") && content.includes("READ_PROGRESS") && content.includes("tocItems"),
+  },
+  {
+    file: "src/features/commands.ts",
+    message: "terminal commands should expose article navigation helpers",
+    test: (content) =>
+      ["toc", "jump", "top", "bottom", "copy"].every((command) => new RegExp(`\\[\\s*"${command}"\\s*,`).test(content)),
+  },
+  {
     file: "settings.yaml",
     message: "custom code field should describe footer injection accurately",
     test: (content) =>
@@ -42,7 +76,7 @@ const checks = [
 let failed = false;
 
 for (const check of checks) {
-  const content = readFileSync(check.file, "utf8");
+  const content = check.readFile === false ? "" : readFileSync(check.file, "utf8");
   if (!check.test(content)) {
     failed = true;
     console.error(`FAIL ${check.file}: ${check.message}`);

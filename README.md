@@ -36,6 +36,11 @@
 | `next` | 跳转到下一篇文章 |
 | `prev` | 跳转到上一篇文章 |
 | `cd ..` | 返回文章列表 |
+| `toc` | 显示当前文章目录 |
+| `jump <n>` | 跳转到目录第 n 项 |
+| `top` | 滚动到顶部 |
+| `bottom` | 滚动到底部 |
+| `copy` | 复制当前文章链接 |
 | `back` | 浏览器后退 |
 | `help` | 显示当前页面可用命令 |
 | `clear` | 清空终端屏幕 |
@@ -117,11 +122,13 @@ pnpm build
 
 ```bash
 pnpm lint
+pnpm verify:theme-updates
 pnpm build
 pnpm audit --audit-level moderate
 ```
 
 > `pnpm audit` 主要检查本地构建与打包链路依赖；如上游工具链短期仍有传递依赖告警，应在发布说明中记录剩余风险。
+> `pnpm build` 当前可能输出 Node.js `[DEP0205] module.register()` 上游工具链警告；构建退出码为 0 时不阻塞发布。
 
 ## ✅ 功能验证指南 (Quick Start)
 
@@ -144,6 +151,8 @@ pnpm audit --audit-level moderate
 3. 按 `j` 或 `↓` 键 —— 页面应平滑向下滚动。
 4. 按 `Space` (空格) 键 —— 页面应向下翻页。
 5. 输入 `next` 并按 `Enter` —— 应跳转到下一篇文章。
+6. 如果文章含有二级或三级标题，页面应显示 `[TOC]` 目录和 `READ_PROGRESS` 阅读进度。
+7. 输入 `toc` 并按 `Enter` —— 应显示文章目录；输入 `jump 1` 应跳转到第一项。
 
 ### 4. 样式适配验证
 

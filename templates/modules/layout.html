@@ -45,13 +45,22 @@
     />
     <meta property="og:url" th:content="${post != null ? post.status.permalink : site.url}" />
     <meta property="og:site_name" th:content="${site.title}" />
-    <meta property="og:image" th:if="${post != null and post.spec.cover != null}" th:content="${post.spec.cover}" />
+    <meta
+      property="og:image"
+      th:if="${post != null and post.spec.cover != null and post.spec.cover != ''}"
+      th:content="${post.spec.cover}"
+    />
     <!-- SEO: Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" th:content="${post != null ? post.spec.title : site.title}" />
     <meta
       name="twitter:description"
       th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}"
+    />
+    <meta
+      name="twitter:image"
+      th:if="${post != null and post.spec.cover != null and post.spec.cover != ''}"
+      th:content="${post.spec.cover}"
     />
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
     <th:block th:replace="~{modules/theme-style :: themeStyle}" />
@@ -147,7 +156,8 @@
               "title": /*[[${post != null ? post.spec.title + ' - ' + site.title : (category != null ? category.spec.displayName + ' - ' + site.title : (tag != null ? '#' + tag.spec.displayName + ' - ' + site.title : site.title))}]]*/ null,
               "description": /*[[${post != null ? (post.status.excerpt ?: post.spec.title) : (site.subtitle ?: site.title)}]]*/ null,
               "canonical": /*[[${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.url))}]]*/ null,
-              "ogImage": /*[[${post != null and post.spec.cover != null ? post.spec.cover : null}]]*/ null
+              "ogImage": /*[[${post != null and post.spec.cover != null and post.spec.cover != '' ? post.spec.cover : null}]]*/ null,
+              "siteTitle": /*[[${site.title}]]*/ null
             }
           }
         </script>
