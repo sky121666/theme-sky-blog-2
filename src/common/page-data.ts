@@ -6,6 +6,7 @@ import type {
   HaloPostRecord,
   HaloTaxonomyRecord,
 } from "./types";
+import { logError } from "./logger";
 
 const PAGE_DATA_ID = "halo-page-data";
 const POSTS_API = "/apis/api.content.halo.run/v1alpha1/posts?sort=spec.publishTime%2Cdesc&size=50";
@@ -63,9 +64,7 @@ function readPageDataScript() {
   try {
     return JSON.parse(content) as Partial<HaloPageDataPayload>;
   } catch (error) {
-    console.error("[Theme] Failed to parse halo page data.", error);
-    // Note: This error is always logged regardless of debug mode
-    // because it indicates broken page data that affects core functionality
+    logError("Failed to parse halo page data.", error);
     return null;
   }
 }

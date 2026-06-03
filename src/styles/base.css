@@ -5,13 +5,16 @@
    ======================================== */
 
 :root {
-  --terminal-font-family: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --terminal-font-family:
+    "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   --terminal-bg: var(--theme-color-bg, #0d0d0d);
   --terminal-text: var(--theme-color-primary, #00ff00);
   --terminal-dim: color-mix(in srgb, var(--terminal-text) 70%, transparent);
   --terminal-glow: color-mix(in srgb, var(--terminal-text) 60%, transparent);
   --scanline-color: color-mix(in srgb, var(--terminal-bg) 50%, transparent);
+}
 
+html.terminal-theme.color-scheme-dark {
   /* Search Widget Plugin - Terminal Theme Override */
   --halo-search-widget-base-font-family: var(--terminal-font-family);
   --halo-search-widget-base-rounded: 0px;
@@ -25,6 +28,28 @@
   --halo-search-widget-divider-color: color-mix(in srgb, var(--terminal-text) 20%, transparent);
   --halo-search-widget-kbd-border-color: color-mix(in srgb, var(--terminal-text) 30%, transparent);
   --halo-search-widget-kbd-shadow: 0px 2px 0px 0px color-mix(in srgb, var(--terminal-text) 15%, transparent);
+
+  /* Comment Widget Plugin - Terminal Theme Override */
+  --halo-cw-base-font-family: var(--terminal-font-family);
+  --halo-cw-base-font-size: 14px;
+  --halo-cw-base-rounded: 0px;
+  --halo-cw-primary-1-color: var(--terminal-text);
+  --halo-cw-primary-2-color: color-mix(in srgb, var(--terminal-text) 82%, var(--terminal-bg));
+  --halo-cw-primary-3-color: color-mix(in srgb, var(--terminal-text) 16%, var(--terminal-bg));
+  --halo-cw-text-1-color: var(--terminal-text);
+  --halo-cw-text-2-color: color-mix(in srgb, var(--terminal-text) 82%, transparent);
+  --halo-cw-text-3-color: color-mix(in srgb, var(--terminal-text) 64%, transparent);
+  --halo-cw-muted-1-color: color-mix(in srgb, var(--terminal-text) 38%, var(--terminal-bg));
+  --halo-cw-muted-2-color: color-mix(in srgb, var(--terminal-text) 22%, var(--terminal-bg));
+  --halo-cw-muted-3-color: color-mix(in srgb, var(--terminal-text) 12%, var(--terminal-bg));
+  --halo-cw-avatar-rounded: 0px;
+  --halo-cw-avatar-size: 36px;
+  --halo-cw-emoji-picker-rgb-color: 0, 255, 0;
+  --halo-cw-emoji-picker-rgb-accent: 0, 255, 0;
+  --halo-cw-emoji-picker-rgb-background: 13, 13, 13;
+  --halo-cw-emoji-picker-rgb-input: 0, 0, 0;
+  --halo-cw-emoji-picker-color-border: color-mix(in srgb, var(--terminal-text) 20%, transparent);
+  --halo-cw-emoji-picker-color-border-over: color-mix(in srgb, var(--terminal-text) 45%, transparent);
 }
 
 body {
@@ -46,14 +71,18 @@ body::before {
   left: 0;
   bottom: 0;
   right: 0;
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%,
-      color-mix(in srgb, var(--terminal-bg) 25%, transparent) 50%),
-    linear-gradient(90deg,
+  background:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, color-mix(in srgb, var(--terminal-bg) 25%, transparent) 50%),
+    linear-gradient(
+      90deg,
       rgba(255, 0, 0, 0.06),
       color-mix(in srgb, var(--terminal-text) 2%, transparent),
-      rgba(0, 0, 255, 0.06));
+      rgba(0, 0, 255, 0.06)
+    );
   z-index: 999;
-  background-size: 100% 2px, 3px 100%;
+  background-size:
+    100% 2px,
+    3px 100%;
   pointer-events: none;
 }
 
@@ -66,7 +95,11 @@ body::after {
   left: 0;
   bottom: 0;
   right: 0;
-  background: radial-gradient(circle, color-mix(in srgb, var(--terminal-bg) 0%, transparent) 60%, color-mix(in srgb, var(--terminal-bg) 40%, transparent) 100%);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--terminal-bg) 0%, transparent) 60%,
+    color-mix(in srgb, var(--terminal-bg) 40%, transparent) 100%
+  );
   z-index: 999;
   pointer-events: none;
 }
@@ -199,7 +232,6 @@ strong,
 }
 
 @keyframes cursor {
-
   0%,
   100% {
     opacity: 0;
@@ -216,7 +248,6 @@ strong,
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {

@@ -98,8 +98,8 @@
 
 ### 环境要求
 
-- Node.js 18+
-- pnpm
+- Node.js 20.19+ 或 22.12+（CI 使用 Node.js 22；Vite 7 要求 `^20.19.0 || >=22.12.0`）
+- pnpm 10.x（项目通过 `packageManager` 固定 pnpm 10.6.5）
 - zip 命令行工具（用于从主题包中移除非主题运行文件）
 
 ### 安装依赖
@@ -118,17 +118,37 @@ pnpm dev
 pnpm build
 ```
 
+构建完成后会生成 `dist/theme-sky-blog-2-<version>.zip`。Halo 已安装主题的资源版本来自 Halo
+运行态主题元数据；如果页面仍引用旧的 `main.iife.js?v=<old-version>`，需要在 Halo 中重新上传/重载新主题包，
+仅重启容器不会刷新已安装主题版本。
+
 ### 发布前检查
 
 ```bash
 pnpm lint
 pnpm verify:theme-updates
 pnpm build
+pnpm verify:package
 pnpm audit --audit-level moderate
 ```
 
 > `pnpm audit` 主要检查本地构建与打包链路依赖；如上游工具链短期仍有传递依赖告警，应在发布说明中记录剩余风险。
 > `pnpm build` 当前可能输出 Node.js `[DEP0205] module.register()` 上游工具链警告；构建退出码为 0 时不阻塞发布。
+
+运行态资源版本可用以下只读检查确认：
+
+```bash
+pnpm check:runtime-version
+```
+
+如输出 `Runtime asset version mismatch`，说明 Halo 当前页面仍在引用旧版本资源，需要重新上传或重载
+`dist/theme-sky-blog-2-<version>.zip`。
+
+如果本机环境变量中已有 `HALO_PAT`、`FIVEEE_PAT` 或 `HALO_TOKEN`，可调用 Halo Console reload 接口并自动复查版本：
+
+```bash
+pnpm reload:theme
+```
 
 ## ✅ 功能验证指南 (Quick Start)
 
@@ -171,30 +191,36 @@ pnpm audit --audit-level moderate
 ```
 theme-sky-blog-2/
 ├── src/
-│   ├── main.ts          # Alpine.js 组件与终端逻辑核心
-│   └── styles/
-│       └── main.css     # 终端 CSS 样式与 Tailwind 扩展
+│   ├── main.ts          # 前端入口
+│   ├── common/          # Pjax、SEO 数据同步、任务列表、日志等共享运行时
+│   ├── features/        # 终端命令、文章工具、自动补全、打字机等交互功能
+│   ├── images/          # 主题静态图片源文件
+│   └── styles/          # base / content / auth / tailwind 分层样式
 ├── templates/
 │   ├── assets/          # 编译产出目录
 │   ├── modules/
 │   │   └── layout.html  # 全局布局 (包含 Pjax 容器与终端)
+│   ├── gateway_fragments/ # 登录、注册、密码重置等网关片段
 │   ├── index.html       # 首页模板
 │   ├── post.html        # 文章详情页
 │   ├── categories.html  # 分类列表页
 │   ├── category.html    # 分类详情页
 │   ├── tags.html        # 标签列表页
 │   └── tag.html         # 标签详情页
+├── scripts/             # 主题包清理与本地约束验证
+├── settings.yaml        # 主题设置项
 └── theme.yaml           # 主题元数据配置
 ```
 
-### 5. 组件适配说明
+### 6. 组件适配说明
 
 本主题目前仅适配了 Halo 的基础核心组件，保持极简体验：
 
 - ✅ **核心功能**：文章列表、文章详情、分类列表、标签列表。
 - ✅ **基础组件**：链接卡片。
 - ⚠️ **搜索入口**：提供 `[SEARCH]` 按钮和 `search` 命令，调用官方搜索组件 `SearchWidget.open()`；搜索能力依赖站点安装并启用搜索插件。
-- ❌ **组件适配**：目前**暂未适配**评论组件（因样式无法统一样式）、相册等第三方插件。
+- ⚠️ **评论入口**：文章页可通过主题设置开启 `[COMMENTS]` 区块，调用 Halo `<halo:comment>` 扩展点；评论能力依赖站点安装并启用官方评论组件 `PluginCommentWidget`。当前按 `PluginCommentWidget v3.1.2` 的 `script[data-pjax]` 初始化方式适配；主题自身要求 Halo `>=2.23.0`。
+- ❌ **组件适配**：目前**暂未适配**相册等第三方插件。
 
 ## 📝 开源协议
 

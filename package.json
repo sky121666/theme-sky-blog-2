@@ -1,19 +1,26 @@
 {
   "name": "theme-sky-blog-2",
   "type": "module",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "license": "MIT",
+  "engines": {
+    "node": "^20.19.0 || >=22.12.0",
+    "pnpm": ">=10.6.5 <11"
+  },
   "scripts": {
     "build": "tsc && vite build && theme-package && node scripts/prune-theme-package.mjs",
     "build-only": "tsc && vite build",
     "dev": "vite build --watch",
     "lint": "eslint .",
     "prepare": "husky",
-    "prettier": "prettier --write './**/*.{ts,mjs,json,yaml,yml,html}'",
+    "prettier": "prettier --write './**/*.{ts,js,cjs,mjs,css,json,yaml,yml,html}'",
+    "check:runtime-version": "node scripts/check-runtime-version.mjs",
+    "reload:theme": "node scripts/reload-theme.mjs",
+    "verify:package": "node scripts/verify-theme-package.mjs",
     "verify:theme-updates": "node scripts/verify-theme-updates.mjs"
   },
   "lint-staged": {
-    "*.{ts,json,yaml,yml,html}": [
+    "*.{ts,js,cjs,mjs,css,json,yaml,yml,html}": [
       "prettier --write"
     ]
   },
@@ -32,7 +39,7 @@
     "@tailwindcss/typography": "^0.5.19",
     "@types/alpinejs": "^3.13.11",
     "@types/figlet": "^1.7.0",
-    "@types/node": "^25.9.1",
+    "@types/node": "^22.19.19",
     "@typescript-eslint/eslint-plugin": "^8.60.1",
     "@typescript-eslint/parser": "^8.60.1",
     "eslint": "^9.39.4",

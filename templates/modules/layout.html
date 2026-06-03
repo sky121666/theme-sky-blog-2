@@ -242,11 +242,7 @@
           <button
             th:if="${theme.config.features?.show_search != false}"
             type="button"
-            onclick="
-              typeof SearchWidget !== 'undefined' && SearchWidget.open
-                ? SearchWidget.open()
-                : console.warn('Official Halo SearchWidget is not loaded')
-            "
+            data-terminal-action="search"
             class="hover:text-terminal-green cursor-pointer bg-transparent p-0 font-mono text-inherit transition-colors"
           >
             [SEARCH]

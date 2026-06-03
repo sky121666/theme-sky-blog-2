@@ -5,7 +5,7 @@
    ======================================== */
 
 .terminal-content {
-  font-family: "Fira Code", "Courier New", monospace;
+  font-family: var(--terminal-font-family);
   line-height: 1.8;
 }
 
@@ -165,7 +165,7 @@
   list-style: none;
 }
 
-.terminal-content ul>li::before {
+.terminal-content ul > li::before {
   content: "├── ";
   color: var(--terminal-dim);
   margin-left: -1.5rem;
@@ -173,7 +173,7 @@
   width: 1.5rem;
 }
 
-.terminal-content ul>li:last-child::before {
+.terminal-content ul > li:last-child::before {
   content: "└── ";
 }
 
@@ -182,11 +182,11 @@
   counter-reset: terminal-counter;
 }
 
-.terminal-content ol>li {
+.terminal-content ol > li {
   counter-increment: terminal-counter;
 }
 
-.terminal-content ol>li::before {
+.terminal-content ol > li::before {
   content: "[" counter(terminal-counter) "] ";
   color: var(--terminal-dim);
   margin-left: -2rem;
@@ -212,7 +212,7 @@
   content: none !important;
 }
 
-.terminal-content ul[data-type="taskList"] li>label {
+.terminal-content ul[data-type="taskList"] li > label {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
@@ -220,16 +220,16 @@
   cursor: pointer;
 }
 
-.terminal-content ul[data-type="taskList"] li[data-checked="false"]>label::before {
+.terminal-content ul[data-type="taskList"] li[data-checked="false"] > label::before {
   content: "[ ]";
   color: var(--terminal-dim);
-  font-family: "Fira Code", monospace;
+  font-family: var(--terminal-font-family);
 }
 
-.terminal-content ul[data-type="taskList"] li[data-checked="true"]>label::before {
+.terminal-content ul[data-type="taskList"] li[data-checked="true"] > label::before {
   content: "[x]";
   color: var(--terminal-text);
-  font-family: "Fira Code", monospace;
+  font-family: var(--terminal-font-family);
 }
 
 .terminal-content ul[data-type="taskList"] input[type="checkbox"] {
@@ -240,7 +240,7 @@
   display: none;
 }
 
-.terminal-content ul[data-type="taskList"] li>div {
+.terminal-content ul[data-type="taskList"] li > div {
   flex: 1;
 }
 
@@ -437,7 +437,7 @@
   margin: 0.5rem 0;
   background: color-mix(in srgb, var(--terminal-bg) 40%, transparent) !important;
   transition: all 0.2s;
-  font-family: "Fira Code", monospace;
+  font-family: var(--terminal-font-family);
 }
 
 .terminal-content hyperlink-card:hover,
@@ -504,7 +504,12 @@
   --halo-hyperlink-card-inline-title-color: var(--terminal-text);
   --halo-hyperlink-card-description-color: var(--terminal-dim);
   --halo-hyperlink-card-link-color: var(--terminal-text);
-  --halo-hyperlink-card-bg-gradient: linear-gradient(color-mix(in srgb, var(--terminal-bg) 40%, transparent), color-mix(in srgb, var(--terminal-bg) 40%, transparent)), linear-gradient(transparent, transparent);
+  --halo-hyperlink-card-bg-gradient:
+    linear-gradient(
+      color-mix(in srgb, var(--terminal-bg) 40%, transparent),
+      color-mix(in srgb, var(--terminal-bg) 40%, transparent)
+    ),
+    linear-gradient(transparent, transparent);
   --halo-hyperlink-card-border-color: color-mix(in srgb, var(--terminal-text) 50%, transparent);
   --halo-hyperlink-card-border-hover-color: var(--terminal-text);
   --halo-hyperlink-card-skeleton-color: color-mix(in srgb, var(--terminal-text) 30%, transparent);

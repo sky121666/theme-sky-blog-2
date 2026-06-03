@@ -93,11 +93,20 @@
       <!-- EOF Marker -->
       <div class="text-terminal-dim mt-12 mb-8 animate-pulse text-center">*** END OF FILE ***</div>
 
+      <!-- Comments -->
+      <section
+        th:if="${theme.config.features?.show_comments == true}"
+        class="terminal-comments border-terminal-dim mb-8 border border-dashed p-4"
+      >
+        <div class="text-terminal-green mb-4 font-mono text-xs">[COMMENTS]</div>
+        <halo:comment group="content.halo.run" kind="Post" th:attr="name=${post.metadata.name}"></halo:comment>
+      </section>
+
       <!-- Back Button -->
       <div class="mb-8">
         <button
           type="button"
-          onclick="window.history.length > 1 ? window.history.back() : (window.location.href = '/')"
+          data-terminal-action="back"
           class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black cursor-pointer border bg-transparent px-4 py-1 font-mono transition-colors"
         >
           cd ..

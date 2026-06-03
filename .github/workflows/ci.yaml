@@ -40,7 +40,4 @@ jobs:
         run: pnpm audit --audit-level moderate
 
       - name: Verify theme package contents
-        run: |
-          package="$(ls dist/theme-sky-blog-2-*.zip | tail -n 1)"
-          test -f "$package"
-          ! zipinfo -1 "$package" | grep -E '^(pnpm-lock.yaml|package.json|scripts/|node_modules/|\.git/)'
+        run: pnpm verify:package

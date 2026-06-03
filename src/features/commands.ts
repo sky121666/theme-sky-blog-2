@@ -55,6 +55,7 @@ Post Page Commands:
   top           - Scroll to top
   bottom        - Scroll to bottom
   copy          - Copy article link
+  search        - Open search
   help          - Show this help
   clear         - Clear output
 

@@ -4,3 +4,4 @@ build
 .gradle
 templates/assets
 pnpm-lock.yaml
+.playwright-mcp

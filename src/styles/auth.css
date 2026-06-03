@@ -11,7 +11,7 @@
   border-bottom: 2px solid var(--terminal-dim) !important;
   border-radius: 0 !important;
   color: var(--terminal-text) !important;
-  font-family: "Fira Code", monospace !important;
+  font-family: var(--terminal-font-family) !important;
   padding: 0.5rem 0 !important;
   width: 100% !important;
   outline: none !important;
@@ -29,7 +29,9 @@
   -webkit-box-shadow: 0 0 0 1000px var(--terminal-bg) inset !important;
   -webkit-text-fill-color: var(--terminal-text) !important;
   caret-color: var(--terminal-text) !important;
-  transition: background-color 5000s ease-in-out 0s, color 5000s ease-in-out 0s;
+  transition:
+    background-color 5000s ease-in-out 0s,
+    color 5000s ease-in-out 0s;
   background-color: transparent !important;
   color-scheme: dark;
 }
@@ -43,7 +45,7 @@
   background: transparent !important;
   border: 2px solid var(--terminal-text) !important;
   color: var(--terminal-text) !important;
-  font-family: "Fira Code", monospace !important;
+  font-family: var(--terminal-font-family) !important;
   text-transform: uppercase !important;
   font-weight: bold !important;
   padding: 0.75rem 2rem !important;
@@ -92,7 +94,7 @@
 altcha-widget {
   display: block;
   margin: 1.5rem 0;
-  font-family: "Fira Code", monospace !important;
+  font-family: var(--terminal-font-family) !important;
 }
 
 /* ALTCHA Custom Properties for Terminal Theme */
@@ -116,7 +118,7 @@ altcha-widget button {
   background: transparent !important;
   border: 1px solid var(--terminal-green) !important;
   color: var(--terminal-green) !important;
-  font-family: "Fira Code", monospace !important;
+  font-family: var(--terminal-font-family) !important;
   cursor: pointer !important;
   border-radius: 0 !important;
   transition: all 0.2s ease;
@@ -151,7 +153,7 @@ altcha-widget input[type="checkbox"]:checked::after {
   transform: translate(-50%, -50%);
   color: var(--terminal-bg);
   font-weight: bold;
-  font-family: "Fira Code", monospace;
+  font-family: var(--terminal-font-family);
 }
 
 /* Loading/Verifying state */
@@ -163,7 +165,7 @@ altcha-widget .altcha-main {
 
 altcha-widget .altcha-label {
   color: var(--terminal-text) !important;
-  font-family: "Fira Code", monospace !important;
+  font-family: var(--terminal-font-family) !important;
   font-size: 0.85rem !important;
 }
 
@@ -215,7 +217,7 @@ altcha-widget a:hover {
 }
 
 /* The Box (Outer Frame) */
-.terminal-checkbox+label {
+.terminal-checkbox + label {
   position: relative;
   display: inline-flex !important;
   align-items: center;
@@ -225,15 +227,15 @@ altcha-widget a:hover {
   padding-left: 1.8rem;
   font-size: 0.75rem;
   color: var(--terminal-dim);
-  font-family: "Fira Code", monospace;
+  font-family: var(--terminal-font-family);
   transition: color 0.2s ease;
 }
 
-.terminal-checkbox+label:hover {
+.terminal-checkbox + label:hover {
   color: var(--terminal-text);
 }
 
-.terminal-checkbox+label::before {
+.terminal-checkbox + label::before {
   content: "[ ]";
   position: absolute;
   left: 0;
@@ -241,25 +243,25 @@ altcha-widget a:hover {
   transform: translateY(-50%);
   font-size: 0.85rem;
   color: var(--terminal-dim);
-  font-family: "Fira Code", monospace;
+  font-family: var(--terminal-font-family);
   transition: all 0.2s ease;
   letter-spacing: -2px;
 }
 
 /* Hover State */
-.terminal-checkbox+label:hover::before {
+.terminal-checkbox + label:hover::before {
   color: var(--terminal-text);
   text-shadow: 0 0 6px color-mix(in srgb, var(--terminal-text) 50%, transparent);
 }
 
 /* Checked State */
-.terminal-checkbox:checked+label::before {
+.terminal-checkbox:checked + label::before {
   content: "[x]";
   color: var(--terminal-text);
   text-shadow: 0 0 8px color-mix(in srgb, var(--terminal-text) 60%, transparent);
 }
 
-.terminal-checkbox:checked+label {
+.terminal-checkbox:checked + label {
   color: var(--terminal-text);
 }
 

@@ -110,6 +110,12 @@ spec:
           value: true
           help: 在页脚显示 [SEARCH] 按钮（需安装搜索插件）
         - $formkit: checkbox
+          id: show_comments
+          name: show_comments
+          label: 显示评论组件
+          value: false
+          help: 在文章页显示 Halo 评论扩展点（需安装并启用官方评论组件 PluginCommentWidget）
+        - $formkit: checkbox
           id: show_login
           name: show_login
           label: 显示登录入口
@@ -158,13 +164,14 @@ spec:
           name: police_icp
           label: 公安联网备案号
           placeholder: 例如：京公网安备00000000000000号
-        - $formkit: textarea
+        - $formkit: code
           id: custom_head
           name: custom_head
           label: 自定义底部代码
           placeholder: 可用于添加统计代码等，将直接注入到 body 底部
           help: 仅粘贴可信管理员代码，将直接注入到 body 底部。
-          rows: 5
+          language: html
+          height: 180px
     - group: advanced
       label: 高级设置
       formSchema:

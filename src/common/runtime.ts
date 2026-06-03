@@ -6,6 +6,7 @@ import { logError } from "./logger";
 import { setPjaxInstance } from "./navigation";
 import { syncHaloDataFromDocument, updateSeoMeta } from "./page-data";
 import { initTaskListInteraction } from "./task-list";
+import { initUiActions } from "./ui-actions";
 
 let observer: ReturnType<typeof lozad> | null = null;
 
@@ -32,6 +33,19 @@ function createPjaxInstance() {
   setPjaxInstance(instance);
 }
 
+function replayPjaxScripts(root: HTMLElement) {
+  root.querySelectorAll<HTMLScriptElement>("script[data-pjax]").forEach((script) => {
+    const clone = document.createElement("script");
+
+    Array.from(script.attributes).forEach((attribute) => {
+      clone.setAttribute(attribute.name, attribute.value);
+    });
+    clone.textContent = script.textContent;
+
+    script.replaceWith(clone);
+  });
+}
+
 function bindGlobalEvents() {
   document.addEventListener("pjax:send", () => {
     const main = document.getElementById("main");
@@ -49,6 +63,8 @@ function bindGlobalEvents() {
     if (main) {
       main.classList.remove("loading");
       Alpine.initTree(main);
+      replayPjaxScripts(main);
+      initUiActions(main);
       observer?.observe();
       main.scrollTo({ top: 0 });
     }
@@ -71,4 +87,5 @@ export function bootstrapRuntime() {
   createPjaxInstance();
   bindGlobalEvents();
   initTaskListInteraction();
+  initUiActions();
 }

@@ -2,9 +2,39 @@ import { getDirectoryContent, resolvePath } from "../common/virtual-fs";
 
 // ── Auto-complete engine ───────────────────────────────────────────
 
-const LIST_COMMANDS = ["cd", "ls", "ll", "pd", "pu", "npage", "ppage", "back", "help", "clear", "search"];
-const POST_COMMANDS = ["cd", "next", "prev", "back", "help", "clear"];
-const NO_ARG_COMMANDS = new Set(["help", "clear", "back", "next", "prev", "pd", "pu", "npage", "ppage", "ls", "ll"]);
+const LIST_COMMANDS = [
+  "cd",
+  "ls",
+  "ll",
+  "pd",
+  "pu",
+  "npage",
+  "ppage",
+  "back",
+  "help",
+  "clear",
+  "top",
+  "bottom",
+  "search",
+];
+const POST_COMMANDS = ["cd", "next", "prev", "back", "toc", "jump", "top", "bottom", "copy", "help", "clear", "search"];
+const NO_ARG_COMMANDS = new Set([
+  "help",
+  "clear",
+  "back",
+  "next",
+  "prev",
+  "pd",
+  "pu",
+  "npage",
+  "ppage",
+  "ls",
+  "ll",
+  "top",
+  "bottom",
+  "toc",
+  "copy",
+]);
 const PATH_COMMANDS = new Set(["cd", "ls", "ll"]);
 
 export function getSuggestions(input: string, currentPath: string, isPost: boolean): string[] {

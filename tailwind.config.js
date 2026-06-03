@@ -14,7 +14,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        mono: ['"Fira Code"', '"Courier New"', "Courier", "monospace"],
+        mono: ["var(--terminal-font-family)"],
       },
       animation: {
         cursor: "cursor 1s infinite step-end",
