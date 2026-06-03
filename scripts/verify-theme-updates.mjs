@@ -190,7 +190,7 @@ const checks = [
     file: "theme.yaml",
     message: "theme and package versions should stay in sync for asset cache busting",
     test: (content) =>
-      content.includes('version: "1.2.1"') && readFileSync("package.json", "utf8").includes('"version": "1.2.1"'),
+      content.includes('version: "1.2.2"') && readFileSync("package.json", "utf8").includes('"version": "1.2.2"'),
   },
   {
     file: "package.json",
