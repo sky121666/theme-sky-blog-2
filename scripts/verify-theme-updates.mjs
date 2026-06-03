@@ -151,7 +151,8 @@ const checks = [
     test: (content) =>
       content.includes("Node.js 20.19+ 或 22.12+") &&
       content.includes("Vite 7 要求 `^20.19.0 || >=22.12.0`") &&
-      content.includes("pnpm 10.6.5"),
+      content.includes("pnpm 10.x") &&
+      content.includes("CI/CD 显式使用 pnpm 10"),
   },
   {
     file: "README.md",
@@ -183,14 +184,14 @@ const checks = [
     test: (content) =>
       content.includes('"node": "^20.19.0 || >=22.12.0"') &&
       content.includes('"pnpm": ">=10.6.5 <11"') &&
-      content.includes('"packageManager": "pnpm@10.6.5+') &&
+      !content.includes('"packageManager"') &&
       content.includes('"@types/node": "^22.19.19"'),
   },
   {
     file: "theme.yaml",
     message: "theme and package versions should stay in sync for asset cache busting",
     test: (content) =>
-      content.includes('version: "1.2.2"') && readFileSync("package.json", "utf8").includes('"version": "1.2.2"'),
+      content.includes('version: "1.2.3"') && readFileSync("package.json", "utf8").includes('"version": "1.2.3"'),
   },
   {
     file: "package.json",
