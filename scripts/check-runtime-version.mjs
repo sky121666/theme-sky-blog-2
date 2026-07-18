@@ -14,7 +14,7 @@ async function main() {
   const staleVersions = versions.filter((version) => version !== expectedVersion);
   if (staleVersions.length > 0) {
     throw new Error(
-      `Runtime asset version mismatch: expected ${expectedVersion}, got ${[...new Set(staleVersions)].join(", ")}. Re-upload or reload dist/${name}-${expectedVersion}.zip in Halo.`,
+      `Runtime asset version mismatch: expected ${expectedVersion}, got ${[...new Set(staleVersions)].join(", ")}. Run pnpm reload:theme or trigger Halo Console theme Reload.`,
     );
   }
 

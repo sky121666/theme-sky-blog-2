@@ -18,7 +18,7 @@ async function waitForRuntimeVersion(baseUrl, themeName, expectedVersion, timeou
   }
 
   throw new Error(
-    `Runtime asset version mismatch after reload: expected ${expectedVersion}, got ${[...new Set(lastVersions)].join(", ") || "none"}. Upload dist/${themeName}-${expectedVersion}.zip in Halo Console if reload is not enough.`,
+    `Runtime asset version mismatch after reload: expected ${expectedVersion}, got ${[...new Set(lastVersions)].join(", ") || "none"}. Confirm the live-mounted ${themeName} directory and trigger the Reload API again.`,
   );
 }
 
