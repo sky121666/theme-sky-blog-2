@@ -1,5 +1,4 @@
 /** @type {import('tailwindcss').Config} */
-const { addDynamicIconSelectors } = require("@iconify/tailwind");
 module.exports = {
   content: ["./templates/**/*.html", "./src/**/*.ts"],
   theme: {
@@ -99,6 +98,6 @@ module.exports = {
       }),
     },
   },
-  plugins: [require("@tailwindcss/typography"), addDynamicIconSelectors()],
+  plugins: [require("@tailwindcss/typography")],
   safelist: ["animate-cursor", "animate-flicker"],
 };

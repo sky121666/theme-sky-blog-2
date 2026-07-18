@@ -1,4 +1,5 @@
-export type HaloPageType = "index" | "categories" | "category" | "tags" | "tag" | "post" | "unknown";
+export type HaloPageType =
+  "archives" | "author" | "categories" | "category" | "index" | "page" | "post" | "tag" | "tags" | "unknown";
 
 export interface HaloMetadata {
   creationTimestamp?: string | null;
@@ -56,21 +57,29 @@ export interface HaloUrls {
 }
 
 export interface HaloPageDataPayload {
-  categories: HaloTaxonomyRecord[];
+  categories: HaloTaxonomyRecord[] | null;
+  currentAuthor?: HaloCurrentRef | null;
   currentCategory?: HaloCurrentRef | null;
+  currentPage?: HaloCurrentRef | null;
   currentPost?: HaloCurrentRef | null;
-  currentPosts: HaloPostRecord[];
+  currentPosts: unknown;
   currentTag?: HaloCurrentRef | null;
   nextPost?: string | null;
   pageType: HaloPageType;
   pagination?: HaloPagination;
   prevPost?: string | null;
-  tags: HaloTaxonomyRecord[];
+  tags: HaloTaxonomyRecord[] | null;
+  urls?: Partial<HaloUrls>;
   user: string;
 }
 
 export interface HaloData extends HaloPageDataPayload {
+  categories: HaloTaxonomyRecord[];
+  categoriesLoaded: boolean;
+  currentPosts: HaloPostRecord[];
   homePosts: HaloPostRecord[];
+  tags: HaloTaxonomyRecord[];
+  tagsLoaded: boolean;
   urls: HaloUrls;
 }
 

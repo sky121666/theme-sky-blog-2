@@ -12,56 +12,15 @@
     <title
       th:text="${
         post != null ? post.spec.title + ' - ' + site.title :
+        (singlePage != null ? singlePage.spec.title + ' - ' + site.title :
         (category != null ? category.spec.displayName + ' - ' + site.title :
         (tag != null ? '#' + tag.spec.displayName + ' - ' + site.title :
+        (author != null ? author.spec.displayName + ' - ' + site.title :
+        (archives != null ? 'Archives - ' + site.title :
         (categories != null ? 'Categories - ' + site.title :
-        (tags != null ? 'Tags - ' + site.title : site.title))))
+        (tags != null ? 'Tags - ' + site.title : site.title)))))))
       }"
     ></title>
-    <!-- SEO: Description -->
-    <meta
-      name="description"
-      th:content="${
-        post != null ? (post.status.excerpt ?: post.spec.title) :
-        (category != null ? category.spec.displayName + ' - ' + site.title :
-        (tag != null ? tag.spec.displayName + ' - ' + site.title :
-        (site.subtitle ?: site.title)))
-      }"
-    />
-    <!-- SEO: Canonical URL -->
-    <link
-      rel="canonical"
-      th:href="${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.url))}"
-    />
-    <!-- SEO: Open Graph -->
-    <meta property="og:type" th:content="${post != null ? 'article' : 'website'}" />
-    <meta
-      property="og:title"
-      th:content="${post != null ? post.spec.title : (category != null ? category.spec.displayName : (tag != null ? tag.spec.displayName : site.title))}"
-    />
-    <meta
-      property="og:description"
-      th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}"
-    />
-    <meta property="og:url" th:content="${post != null ? post.status.permalink : site.url}" />
-    <meta property="og:site_name" th:content="${site.title}" />
-    <meta
-      property="og:image"
-      th:if="${post != null and post.spec.cover != null and post.spec.cover != ''}"
-      th:content="${post.spec.cover}"
-    />
-    <!-- SEO: Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" th:content="${post != null ? post.spec.title : site.title}" />
-    <meta
-      name="twitter:description"
-      th:content="${post != null ? (post.status.excerpt ?: '') : (site.subtitle ?: '')}"
-    />
-    <meta
-      name="twitter:image"
-      th:if="${post != null and post.spec.cover != null and post.spec.cover != ''}"
-      th:content="${post.spec.cover}"
-    />
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
     <th:block th:replace="~{modules/theme-style :: themeStyle}" />
     <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
@@ -71,15 +30,26 @@
     th:with="
       showHeader=${theme.config.features?.show_header != null ? theme.config.features.show_header : true},
       compactMode=${theme.config.features?.compact_mode != null ? theme.config.features.compact_mode : false},
-      showScrollbar=${theme.config.features?.show_scrollbar != null ? theme.config.features.show_scrollbar : false}"
-    class="flex h-screen w-full flex-col overflow-hidden font-mono"
+      showScrollbar=${theme.config.features?.show_scrollbar != null ? theme.config.features.show_scrollbar : false},
+      readerMode=${post != null or singlePage != null},
+      currentUser=${#authentication.name != 'anonymousUser' ? contributorFinder.getContributor(#authentication.name) : null}"
+    class="terminal-viewport flex w-full flex-col overflow-hidden font-mono"
     th:classappend="${compactMode ? '' : ' mx-auto max-w-5xl p-4 md:p-6'}"
   >
-    <div class="mx-auto flex h-full max-w-4xl flex-col">
+    <div
+      x-data="{ readerMode: ['post', 'page'].includes(window.haloData?.pageType ?? '') }"
+      @theme:page-ready.document="readerMode = ['post', 'page'].includes($event.detail.pageType)"
+      class="mx-auto flex h-full w-full max-w-4xl min-w-0 flex-col"
+    >
       <!-- Terminal Header -->
-      <header th:if="${showHeader}" class="mb-4 flex-shrink-0 select-none">
+      <header
+        th:if="${showHeader}"
+        x-show="!readerMode"
+        th:style="${readerMode ? 'display: none' : null}"
+        class="mb-2 flex-shrink-0 select-none md:mb-4"
+      >
         <div class="text-terminal-dim mb-2 text-xs">
-          Last login: <span x-text="new Date().toDateString()"></span> on ttys001
+          Last login: <span th:text="${#dates.format(#dates.createNow(), 'EEE MMM dd yyyy')}"></span> on ttys001
         </div>
 
         <!-- Auto-generated ASCII Art from config or site title -->
@@ -91,40 +61,54 @@
           class="text-terminal-green hidden text-xs leading-none font-bold whitespace-pre opacity-80 md:block md:text-sm"
         ></pre>
 
-        <div class="text-terminal-green mt-4 flex items-center gap-2">
+        <div class="text-terminal-green mt-1 flex items-center gap-2 md:mt-4">
           <!-- Login/User Info -->
           <div th:if="${theme.config.features?.show_login != false}" class="ml-auto flex gap-4 text-xs">
             <a
               th:if="${#authentication.name == 'anonymousUser'}"
-              href="/login"
-              data-pjax="false"
-              class="text-terminal-dim hover:text-terminal-green"
+              th:href="@{/login}"
+              data-navigation="full"
+              class="text-terminal-dim hover:text-terminal-green inline-flex min-h-10 items-center md:min-h-0"
               >[LOGIN]</a
             >
-            <div
-              th:if="${#authentication.name != 'anonymousUser'}"
-              class="text-terminal-dim"
-              th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}"
-            >
+            <div th:if="${#authentication.name != 'anonymousUser'}" class="text-terminal-dim">
               <span class="mr-2"
-                >USER: <span th:text="${currentUser.displayName}" class="text-terminal-green"></span
+                >USER:
+                <span
+                  th:text="${currentUser != null ? currentUser.displayName : #authentication.name}"
+                  class="text-terminal-green"
+                ></span
               ></span>
-              <a href="/logout" data-pjax="false" class="hover:text-terminal-green">[LOGOUT]</a>
+              <a
+                th:href="@{/logout}"
+                data-navigation="full"
+                class="hover:text-terminal-green inline-flex min-h-10 items-center md:min-h-0"
+                >[LOGOUT]</a
+              >
             </div>
           </div>
         </div>
       </header>
 
+      <p id="navigation-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+
       <!-- Main Content Area -->
       <main
         id="main"
-        class="relative flex-1 overflow-auto"
-        th:classappend="${showScrollbar ? ' scrollbar-terminal' : ' scrollbar-hide'}"
+        tabindex="-1"
+        :tabindex="readerMode ? 0 : -1"
+        :aria-label="readerMode ? 'Article content' : 'Page content'"
+        th:data-show-scrollbar="${showScrollbar}"
+        class="relative min-w-0 flex-1 overflow-auto"
+        :class="{
+          'scrollbar-terminal': readerMode || $el.dataset.showScrollbar === 'true',
+          'scrollbar-hide': !readerMode && $el.dataset.showScrollbar !== 'true'
+        }"
       >
         <th:block th:replace="${content}" />
         <script id="halo-page-data" type="application/json" th:inline="javascript">
           {
-            "categories": /*[[${categoryFinder.listAll()}]]*/ null,
+            "categories": /*[[${categories != null ? categories : null}]]*/ null,
             "currentCategory": {
               "displayName": /*[[${category != null ? category.spec.displayName : null}]]*/ null,
               "permalink": /*[[${category != null ? category.status.permalink : null}]]*/ null,
@@ -135,30 +119,39 @@
               "slug": /*[[${post != null ? post.spec.slug : null}]]*/ null,
               "title": /*[[${post != null ? post.spec.title : null}]]*/ null
             },
-            "currentPosts": /*[[${posts?.items}]]*/ null,
+            "currentPage": {
+              "permalink": /*[[${singlePage != null ? singlePage.status.permalink : null}]]*/ null,
+              "slug": /*[[${singlePage != null ? singlePage.spec.slug : null}]]*/ null,
+              "title": /*[[${singlePage != null ? singlePage.spec.title : null}]]*/ null
+            },
+            "currentAuthor": {
+              "displayName": /*[[${author != null ? author.spec.displayName : null}]]*/ null,
+              "permalink": /*[[${author != null ? author.status.permalink : null}]]*/ null,
+              "slug": /*[[${author != null ? author.metadata.name : null}]]*/ null
+            },
+            "currentPosts": null,
             "currentTag": {
               "displayName": /*[[${tag != null ? tag.spec.displayName : null}]]*/ null,
               "permalink": /*[[${tag != null ? tag.status.permalink : null}]]*/ null,
               "slug": /*[[${tag != null ? tag.spec.slug : null}]]*/ null
             },
             "nextPost": /*[[${nextPost != null ? nextPost.status.permalink : null}]]*/ null,
-            "pageType": /*[[${post != null ? 'post' : (category != null ? 'category' : (tag != null ? 'tag' : (categories != null ? 'categories' : (tags != null ? 'tags' : 'index'))))}]]*/ "unknown",
+            "pageType": /*[[${post != null ? 'post' : (singlePage != null ? 'page' : (category != null ? 'category' : (tag != null ? 'tag' : (author != null ? 'author' : (archives != null ? 'archives' : (categories != null ? 'categories' : (tags != null ? 'tags' : 'index')))))))}]]*/ "unknown",
             "pagination": {
-              "hasPrev": /*[[${posts != null and posts.hasPrevious()}]]*/ false,
-              "hasNext": /*[[${posts != null and posts.hasNext()}]]*/ false,
-              "prevUrl": /*[[${posts != null and posts.hasPrevious() ? posts.prevUrl : null}]]*/ null,
-              "nextUrl": /*[[${posts != null and posts.hasNext() ? posts.nextUrl : null}]]*/ null
+              "hasPrev": /*[[${posts != null ? posts.hasPrevious() : (archives != null and archives.hasPrevious())}]]*/ false,
+              "hasNext": /*[[${posts != null ? posts.hasNext() : (archives != null and archives.hasNext())}]]*/ false,
+              "prevUrl": /*[[${posts != null and posts.hasPrevious() ? posts.prevUrl : (archives != null and archives.hasPrevious() ? archives.prevUrl : null)}]]*/ null,
+              "nextUrl": /*[[${posts != null and posts.hasNext() ? posts.nextUrl : (archives != null and archives.hasNext() ? archives.nextUrl : null)}]]*/ null
             },
             "prevPost": /*[[${prevPost != null ? prevPost.status.permalink : null}]]*/ null,
-            "tags": /*[[${tagFinder.listAll()}]]*/ null,
-            "user": /*[[${#authentication.name != 'anonymousUser' ? #authentication.name : 'guest'}]]*/ "guest",
-            "seo": {
-              "title": /*[[${post != null ? post.spec.title + ' - ' + site.title : (category != null ? category.spec.displayName + ' - ' + site.title : (tag != null ? '#' + tag.spec.displayName + ' - ' + site.title : site.title))}]]*/ null,
-              "description": /*[[${post != null ? (post.status.excerpt ?: post.spec.title) : (site.subtitle ?: site.title)}]]*/ null,
-              "canonical": /*[[${post != null ? post.status.permalink : (category != null ? category.status.permalink : (tag != null ? tag.status.permalink : site.url))}]]*/ null,
-              "ogImage": /*[[${post != null and post.spec.cover != null and post.spec.cover != '' ? post.spec.cover : null}]]*/ null,
-              "siteTitle": /*[[${site.title}]]*/ null
-            }
+            "tags": /*[[${tags != null ? tags : null}]]*/ null,
+            "urls": {
+              "home": /*[[@{/}]]*/ "/",
+              "categories": /*[[${site.routes.categoriesUri}]]*/ "/categories",
+              "tags": /*[[${site.routes.tagsUri}]]*/ "/tags",
+              "archives": /*[[${site.routes.archivesUri}]]*/ "/archives"
+            },
+            "user": /*[[${#authentication.name != 'anonymousUser' ? #authentication.name : 'guest'}]]*/ "guest"
           }
         </script>
       </main>
@@ -171,15 +164,11 @@
             <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name == 'anonymousUser'}"
               >guest@<span th:text="${site.title}"></span>:<span x-text="currentPath"></span>$</span
             >
-            <span
-              class="text-terminal-dim flex-shrink-0"
-              th:if="${#authentication.name != 'anonymousUser'}"
-              th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}"
-            >
-              <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:<span
-                x-text="currentPath"
+            <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name != 'anonymousUser'}">
+              <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
+                th:text="${site.title}"
               ></span
-              >$
+              >:<span x-text="currentPath"></span>$
             </span>
 
             <!-- Visual Command & Cursor -->
@@ -189,7 +178,9 @@
             </div>
           </div>
 
+          <label for="terminal-command-input" class="sr-only">Terminal command</label>
           <input
+            id="terminal-command-input"
             x-ref="cmdInput"
             x-model="command"
             @keydown="handleKeydown($event)"
@@ -197,6 +188,7 @@
             class="absolute inset-0 h-full w-full cursor-text opacity-0"
             autocomplete="off"
             spellcheck="false"
+            aria-describedby="terminal-command-help"
           />
         </div>
 
@@ -205,45 +197,50 @@
           x-show="output"
           x-text="output"
           class="text-terminal-dim mt-1 pl-4 font-mono text-xs whitespace-pre-wrap"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
         ></div>
 
         <!-- Help Output -->
-        <pre x-show="showHelp" x-text="helpText" class="text-terminal-dim mt-2 pl-4 text-xs whitespace-pre-wrap"></pre>
+        <pre
+          id="terminal-command-help"
+          x-show="showHelp"
+          x-text="helpText"
+          class="text-terminal-dim mt-2 pl-4 text-xs whitespace-pre-wrap"
+        ></pre>
       </div>
 
       <!-- Terminal Footer -->
       <footer
         class="border-terminal-dim text-terminal-dim mt-2 flex flex-shrink-0 flex-col justify-between border-t border-dashed py-2 text-xs md:flex-row"
       >
-        <div class="flex gap-4">
-          <a href="/" class="hover:text-terminal-green transition-colors">[INDEX]</a>
+        <div class="flex flex-wrap gap-x-4 gap-y-1">
           <a
-            th:with="allCats=${categoryFinder.listAll()},
-                       firstCat=${!allCats.isEmpty() ? allCats.get(0) : null},
-                       catPermalink=${firstCat != null and firstCat.status?.permalink != null ? firstCat.status.permalink : '/categories'},
-                       catClean=${catPermalink.endsWith('/') ? catPermalink.substring(0, catPermalink.length() - 1) : catPermalink},
-                       catSlug=${firstCat != null and firstCat.spec?.slug != null ? firstCat.spec.slug : ''},
-                       catUrl=${catSlug != '' and catClean.endsWith('/' + catSlug) ? catClean.substring(0, catClean.length() - catSlug.length() - 1) : '/categories'}"
-            th:href="${catUrl}"
-            class="hover:text-terminal-green transition-colors"
+            th:href="@{/}"
+            class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+            >[INDEX]</a
+          >
+          <a
+            th:href="@{${site.routes.categoriesUri}}"
+            class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
             >[CATEGORY]</a
           >
           <a
-            th:with="allTags=${tagFinder.listAll()},
-                       firstTag=${!allTags.isEmpty() ? allTags.get(0) : null},
-                       tagPermalink=${firstTag != null and firstTag.status?.permalink != null ? firstTag.status.permalink : '/tags'},
-                       tagClean=${tagPermalink.endsWith('/') ? tagPermalink.substring(0, tagPermalink.length() - 1) : tagPermalink},
-                       tagSlug=${firstTag != null and firstTag.spec?.slug != null ? firstTag.spec.slug : ''},
-                       tagUrl=${tagSlug != '' and tagClean.endsWith('/' + tagSlug) ? tagClean.substring(0, tagClean.length() - tagSlug.length() - 1) : '/tags'}"
-            th:href="${tagUrl}"
-            class="hover:text-terminal-green transition-colors"
+            th:href="@{${site.routes.tagsUri}}"
+            class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
             >[TAG]</a
           >
+          <a
+            th:href="@{${site.routes.archivesUri}}"
+            class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+            >[ARCHIVES]</a
+          >
           <button
-            th:if="${theme.config.features?.show_search != false}"
+            th:if="${theme.config.features?.show_search != false and pluginFinder.available('PluginSearchWidget')}"
             type="button"
             data-terminal-action="search"
-            class="hover:text-terminal-green cursor-pointer bg-transparent p-0 font-mono text-inherit transition-colors"
+            class="hover:text-terminal-green inline-flex min-h-10 cursor-pointer items-center bg-transparent p-0 font-mono text-inherit transition-colors md:min-h-0"
           >
             [SEARCH]
           </button>
@@ -254,7 +251,7 @@
               href="https://beian.miit.gov.cn/"
               target="_blank"
               rel="noopener noreferrer"
-              class="hover:text-terminal-green transition-colors"
+              class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
               th:text="${theme.config.footer.icp}"
             ></a>
           </div>
@@ -263,7 +260,7 @@
               href="http://www.beian.gov.cn/portal/registerSystemInfo"
               target="_blank"
               rel="noopener noreferrer"
-              class="hover:text-terminal-green transition-colors"
+              class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
             >
               <span th:text="${theme.config.footer.police_icp}"></span>
             </a>

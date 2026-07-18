@@ -1,20 +1,5 @@
 /// <reference types="vite/client" />
 
-declare module "pjax" {
-  export interface PjaxOptions {
-    analytics?: boolean;
-    cacheBust?: boolean;
-    elements?: string;
-    scrollRestoration?: boolean;
-    selectors?: string[];
-  }
-
-  export default class Pjax {
-    constructor(options?: PjaxOptions);
-    loadUrl(url: string, options?: Record<string, unknown>): void;
-  }
-}
-
 declare module "lozad" {
   export interface LozadObserver {
     observe: () => void;
