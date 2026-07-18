@@ -1,18 +1,207 @@
 name: CD
 
 on:
-  release:
-    types:
-      - published
+  push:
+    tags:
+      - "v*"
+
+permissions: {}
+
+concurrency:
+  group: cd-${{ github.repository }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  cd:
-    uses: halo-sigs/reusable-workflows/.github/workflows/theme-cd.yaml@v4
-    secrets:
-      halo-pat: ${{ secrets.HALO_PAT }}
+  build_and_verify:
+    name: Build and verify release artifact
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      package-name: ${{ steps.package.outputs.package-name }}
+      package-sha256: ${{ steps.package.outputs.package-sha256 }}
+      release-commit: ${{ steps.release-identity.outputs.release-commit }}
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          fetch-tags: true
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+        with:
+          version: 10.34.5
+          run_install: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify release tag and versions
+        run: pnpm check:release -- --tag "${{ github.ref_name }}" --expected-commit "${{ github.sha }}"
+
+      - name: Record verified release commit
+        id: release-identity
+        run: printf 'release-commit=%s\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Check
+        run: pnpm check
+
+      - name: Build release package
+        run: pnpm build
+
+      - name: Verify release package and record integrity
+        id: package
+        run: pnpm verify:package -- --strict-dist --write-integrity release-integrity --github-output
+
+      - name: Audit
+        run: pnpm audit --audit-level moderate
+
+      - name: Upload verified release artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: verified-theme-package
+          path: |
+            dist/${{ steps.package.outputs.package-name }}
+            release-integrity/SHA256SUMS
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  github-release:
+    needs: build_and_verify
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-    with:
-      app-id: app-1xzraibt
-      skip-appstore-release: false
-      node-version: 24
+    outputs:
+      release-id: ${{ steps.release.outputs.release-id }}
+    steps:
+      - name: Download verified release artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: verified-theme-package
+          path: release-artifact
+
+      - name: Verify downloaded artifact integrity
+        working-directory: release-artifact
+        run: sha256sum --check --strict release-integrity/SHA256SUMS
+
+      - name: Verify build output digest
+        working-directory: release-artifact
+        env:
+          PACKAGE_NAME: ${{ needs.build_and_verify.outputs.package-name }}
+          PACKAGE_SHA256: ${{ needs.build_and_verify.outputs.package-sha256 }}
+        run: echo "$PACKAGE_SHA256  dist/$PACKAGE_NAME" | sha256sum --check --strict -
+
+      - name: Prepare public release assets
+        working-directory: release-artifact
+        env:
+          PACKAGE_NAME: ${{ needs.build_and_verify.outputs.package-name }}
+          PACKAGE_SHA256: ${{ needs.build_and_verify.outputs.package-sha256 }}
+        run: |
+          cp "dist/$PACKAGE_NAME" "$PACKAGE_NAME"
+          printf '%s  %s\n' "$PACKAGE_SHA256" "$PACKAGE_NAME" > SHA256SUMS
+          sha256sum --check --strict SHA256SUMS
+
+      - name: Create or verify immutable GitHub release
+        id: release
+        env:
+          GH_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EXPECTED_COMMIT: ${{ needs.build_and_verify.outputs.release-commit }}
+          PACKAGE_NAME: ${{ needs.build_and_verify.outputs.package-name }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          verify_remote_tag_commit() {
+            REMOTE_TAG_COMMIT="$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)"
+            if [ "$REMOTE_TAG_COMMIT" != "$EXPECTED_COMMIT" ]; then
+              echo "Tag $RELEASE_TAG moved from verified commit $EXPECTED_COMMIT to $REMOTE_TAG_COMMIT; refusing release."
+              exit 1
+            fi
+          }
+
+          verify_remote_tag_commit
+
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            IS_DRAFT="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"
+          else
+            gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" --generate-notes
+            IS_DRAFT=true
+          fi
+
+          ASSETS=("$PACKAGE_NAME" SHA256SUMS)
+          MISSING_ASSETS=()
+          mkdir -p existing-release-assets
+          for ASSET in "${ASSETS[@]}"; do
+            if gh release download "$RELEASE_TAG" --pattern "$ASSET" --dir existing-release-assets 2>/dev/null; then
+              cmp --silent "release-artifact/$ASSET" "existing-release-assets/$ASSET" || {
+                echo "Release asset $ASSET already exists with different contents; refusing to overwrite it."
+                exit 1
+              }
+            else
+              MISSING_ASSETS+=("$ASSET")
+            fi
+          done
+
+          if [ "$IS_DRAFT" != "true" ] && [ "${#MISSING_ASSETS[@]}" -gt 0 ]; then
+            echo "Published release is missing assets; refusing to mutate a public release."
+            exit 1
+          fi
+
+          for ASSET in "${MISSING_ASSETS[@]}"; do
+            gh release upload "$RELEASE_TAG" "release-artifact/$ASSET"
+          done
+
+          verify_remote_tag_commit
+          if [ "$IS_DRAFT" = "true" ]; then
+            gh release edit "$RELEASE_TAG" --draft=false
+          fi
+
+          RELEASE_ID="$(gh api "repos/$GH_REPO/releases/tags/$RELEASE_TAG" --jq .id)"
+          if ! [[ "$RELEASE_ID" =~ ^[0-9]+$ ]]; then
+            echo "GitHub returned an invalid numeric release id: $RELEASE_ID"
+            exit 1
+          fi
+          printf 'release-id=%s\n' "$RELEASE_ID" >> "$GITHUB_OUTPUT"
+
+  appstore-release:
+    needs: [build_and_verify, github-release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Download verified release artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: verified-theme-package
+          path: release-artifact
+
+      - name: Verify downloaded artifact integrity
+        working-directory: release-artifact
+        run: sha256sum --check --strict release-integrity/SHA256SUMS
+
+      - name: Verify build output digest
+        working-directory: release-artifact
+        env:
+          PACKAGE_NAME: ${{ needs.build_and_verify.outputs.package-name }}
+          PACKAGE_SHA256: ${{ needs.build_and_verify.outputs.package-sha256 }}
+        run: echo "$PACKAGE_SHA256  dist/$PACKAGE_NAME" | sha256sum --check --strict -
+
+      - name: Release verified artifact to Halo App Store
+        uses: halo-sigs/app-store-release-action@0b0b351312114a42a544471c1ee0b78d3f635e51 # v4
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          app-id: app-1xzraibt
+          release-id: ${{ needs.github-release.outputs.release-id }}
+          assets-dir: release-artifact/dist
+          halo-pat: ${{ secrets.HALO_PAT }}
