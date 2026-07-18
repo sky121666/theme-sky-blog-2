@@ -7,10 +7,10 @@ metadata:
 spec:
   displayName: Sky Blog 2
   author:
-    name: Sky
+    name: sky
     website: "https://github.com/sky121666"
   description: 复古终端风格主题，支持全键盘操作与 Vim 快捷键
-  logo: "/themes/theme-sky-blog-2/assets/images/heihei.png"
+  logo: "/themes/theme-sky-blog-2/assets/images/theme-icon.png"
   homepage: "https://github.com/sky121666/theme-sky-blog-2"
   repo: "https://github.com/sky121666/theme-sky-blog-2"
   issues: "https://github.com/sky121666/theme-sky-blog-2/issues"

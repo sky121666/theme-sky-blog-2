@@ -36,6 +36,7 @@ spec:
               value: custom
               render: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgODAiIHdpZHRoPSIxMDAiIGhlaWdodD0iODAiPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iODAiIHJ4PSI0IiBmaWxsPSIjMjIyMjIyIiAvPgogIDxyZWN0IHdpZHRoPSIxMDAiIGhlaWdodD0iMTUiIGZpbGw9IiMxYTFhMWEiIHJ4PSI0IiAvPgogIDxjaXJjbGUgY3g9IjgiIGN5PSI3LjUiIHI9IjIuNSIgZmlsbD0iI2ZmNWY1NiIgLz4KICA8Y2lyY2xlIGN4PSIxNiIgY3k9IjcuNSIgcj0iMi41IiBmaWxsPSIjZmZiZDJlIiAvPgogIDxjaXJjbGUgY3g9IjI0IiBjeT0iNy41IiByPSIyLjUiIGZpbGw9IiMyN2M5M2YiIC8+CiAgPHRleHQgeD0iNSIgeT0iMzIiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iI2ZmZmZmZiI+PiBscyAtbGE8L3RleHQ+CiAgPHRleHQgeD0iNSIgeT0iNDQiIGZvbnQtZmFtaWx5PSJtb25vc3BhY2UiIGZvbnQtc2l6ZT0iOCIgZmlsbD0iIzg4ODg4OCI+ZHJ3eHIteHIteDwvdGV4dD4KICA8dGV4dCB4PSI1IiB5PSI1NiIgZm9udC1mYW1pbHk9Im1vbm9zcGFjZSIgZm9udC1zaXplPSI4IiBmaWxsPSIjZmZmZmZmIj4/IF88L3RleHQ+Cjwvc3ZnPg==
         - $formkit: color
+          key: custom-primary-color
           id: custom_primary_color
           name: custom_primary_color
           label: 自定义主色调 (Primary Text)
@@ -43,6 +44,7 @@ spec:
           if: $get(color_preset_selector).value === 'custom'
           help: "仅当配色方案选为\u201c完全自定义\u201d时生效"
         - $formkit: color
+          key: custom-background-color
           id: custom_bg_color
           name: custom_bg_color
           label: 自定义背景色 (Background)
@@ -59,8 +61,8 @@ spec:
           id: enable_flicker
           name: enable_flicker
           label: CRT 闪烁动画
-          value: true
-          help: 模拟显示器微弱闪烁，部分用户对闪烁敏感可关闭
+          value: false
+          help: 模拟显示器微弱闪烁，默认关闭；开启后仍会遵循系统“减少动态效果”设置
     - group: basic
       label: 基础设置
       formSchema:

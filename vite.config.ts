@@ -1,9 +1,11 @@
 import { defineConfig } from "vite";
 import { fileURLToPath } from "url";
+import { readFileSync } from "node:fs";
 import path from "path";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const figletFonts = JSON.parse(readFileSync(new URL("./figlet-fonts.json", import.meta.url), "utf8")) as string[];
 
 export default defineConfig({
   plugins: [
@@ -12,7 +14,13 @@ export default defineConfig({
         {
           src: "src/images/*",
           dest: "images",
+          rename: { stripBase: true },
         },
+        ...figletFonts.map((font) => ({
+          src: `node_modules/figlet/fonts/${font}.flf`,
+          dest: "fonts",
+          rename: { stripBase: true },
+        })),
       ],
     }),
   ],
