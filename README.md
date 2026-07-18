@@ -2,8 +2,6 @@
 
 > 🖥️ 一款为 Halo CMS 打造的复古终端风格主题，支持全键盘操作。
 
-![Terminal Theme](docs/demo.webp)
-
 ## ✨ 主要功能
 
 ### 🟢 沉浸式终端界面
