@@ -1,8 +1,7 @@
 <!doctype html>
 <html
   xmlns:th="https://www.thymeleaf.org"
-  th:with="pageType='logout'"
-  th:replace="~{gateway_fragments/layout :: layout(title = 'Confirm Logout - ' + ${site.title}, head = ~{::head}, body = ~{::body})}"
+  th:replace="~{gateway_fragments/layout :: layout(title = 'Confirm Logout - ' + ${site.title}, head = ~{::head}, body = ~{::body}, pageType = 'logout')}"
 >
   <head>
     <style>

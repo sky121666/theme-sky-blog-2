@@ -1,8 +1,7 @@
 <!doctype html>
 <html
   xmlns:th="https://www.thymeleaf.org"
-  th:with="pageType='signup'"
-  th:replace="~{gateway_fragments/layout :: layout(title = '注册 - ' + ${site.title}, head = ~{::head}, body = ~{::body})}"
+  th:replace="~{gateway_fragments/layout :: layout(title = '注册 - ' + ${site.title}, head = ~{::head}, body = ~{::body}, pageType = 'signup')}"
 >
   <th:block th:fragment="head">
     <style>

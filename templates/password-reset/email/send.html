@@ -1,8 +1,7 @@
 <!doctype html>
 <html
   xmlns:th="https://www.thymeleaf.org"
-  th:with="pageType='reset'"
-  th:replace="~{gateway_fragments/layout:: layout(title = |#{title} - ${site.title}|, head = null, body = ~{::body})}"
+  th:replace="~{gateway_fragments/layout:: layout(title = |#{title} - ${site.title}|, head = null, body = ~{::body}, pageType = 'reset')}"
 >
   <th:block th:fragment="body">
     <div class="terminal-login-wrapper w-full">

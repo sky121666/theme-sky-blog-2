@@ -3,7 +3,7 @@
   class="auth-form-terminal halo-form"
   name="login-form"
   id="login-form"
-  th:action="${authProvider.spec.authenticationUrl}"
+  th:action="@{${authProvider.spec.authenticationUrl}}"
   th:method="${authProvider.spec.method}"
 >
   <!-- Error Messages (Terminal Style) -->
@@ -17,6 +17,11 @@
     <strong th:if="${error == 'invalid-credential'}"> Invalid username or password. </strong>
     <strong th:if="${error == 'rate-limit-exceeded'}"> Too many attempts, please try again later. </strong>
     <strong th:if="${error == 'account-disabled'}"> Account disabled. </strong>
+    <strong
+      th:unless="${error == 'invalid-credential' or error == 'rate-limit-exceeded' or error == 'account-disabled'}"
+    >
+      Login failed. Please try again.
+    </strong>
   </div>
 
   <!-- Success Messages -->
@@ -81,7 +86,7 @@
     <ul class="pill-items flex justify-center gap-4">
       <li th:each="provider : ${formAuthProviders}">
         <a
-          th:href="'/login?method=' + ${provider.metadata.name}"
+          th:href="@{/login(method=${provider.metadata.name})}"
           class="border-terminal-dim hover:border-terminal-green block border p-2 transition-all hover:shadow-[0_0_10px_var(--terminal-glow)]"
         >
           <img

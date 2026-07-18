@@ -40,6 +40,14 @@
     <span class="mr-2 font-bold">[ERROR]</span>
     <strong>该用户名为保留用户名，不可使用</strong>
   </div>
+  <div
+    class="terminal-alert mb-4 border border-red-500 bg-red-500/10 p-3 font-mono text-sm text-red-500"
+    role="alert"
+    th:if="${error != null and error != '' and error != 'invalid-email-code' and error != 'rate-limit-exceeded' and error != 'duplicate-username' and error != 'restricted-username'}"
+  >
+    <span class="mr-2 font-bold">[ERROR]</span>
+    <strong>注册失败，请检查输入后重试</strong>
+  </div>
 
   <!-- 用户名 + 昵称 (两列) -->
   <div class="signup-row">
@@ -64,9 +72,12 @@
         minlength="4"
         maxlength="63"
         placeholder="4-63 个字符"
+        th:attr="aria-invalid=${#fields.hasErrors('username') ? 'true' : null},aria-describedby=${#fields.hasErrors('username') ? 'username-error' : null}"
       />
       <p
+        id="username-error"
         class="mt-1 font-mono text-xs text-red-500"
+        role="alert"
         th:if="${#fields.hasErrors('username')}"
         th:errors="*{username}"
       ></p>
@@ -89,9 +100,12 @@
         autocapitalize="off"
         required
         placeholder="显示名称"
+        th:attr="aria-invalid=${#fields.hasErrors('displayName') ? 'true' : null},aria-describedby=${#fields.hasErrors('displayName') ? 'display-name-error' : null}"
       />
       <p
+        id="display-name-error"
         class="mt-1 font-mono text-xs text-red-500"
+        role="alert"
         th:if="${#fields.hasErrors('displayName')}"
         th:errors="*{displayName}"
       ></p>
@@ -117,8 +131,15 @@
       autocapitalize="off"
       required
       placeholder="user@example.com"
+      th:attr="aria-invalid=${#fields.hasErrors('email') ? 'true' : null},aria-describedby=${#fields.hasErrors('email') ? 'email-error' : null}"
     />
-    <p class="mt-1 font-mono text-xs text-red-500" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
+    <p
+      id="email-error"
+      class="mt-1 font-mono text-xs text-red-500"
+      role="alert"
+      th:if="${#fields.hasErrors('email')}"
+      th:errors="*{email}"
+    ></p>
   </div>
 
   <!-- 邮箱验证码 (仅当需要验证邮箱时显示) -->
@@ -138,11 +159,14 @@
         name="emailCode"
         required
         placeholder="6位数字"
+        th:attr="aria-invalid=${#fields.hasErrors('emailCode') ? 'true' : null},aria-describedby=${#fields.hasErrors('emailCode') ? 'email-code-error' : null}"
       />
       <button id="emailCodeSendButton" type="button" class="send-code-btn">发送验证码</button>
     </div>
     <p
+      id="email-code-error"
       class="mt-1 font-mono text-xs text-red-500"
+      role="alert"
       th:if="${#fields.hasErrors('emailCode')}"
       th:errors="*{emailCode}"
     ></p>
@@ -170,27 +194,41 @@
           autocorrect="off"
           autocapitalize="off"
           placeholder="至少5个字符"
+          th:attr="aria-invalid=${#fields.hasErrors('password') ? 'true' : null},aria-describedby=${#fields.hasErrors('password') ? 'password-error' : null}"
         />
-        <div
-          class="form-input-stack-icon toggle-password-btn text-terminal-dim hover:text-terminal-green absolute right-0 cursor-pointer transition-colors"
+        <button
+          type="button"
+          class="password-toggle-button form-input-stack-icon toggle-password-btn text-terminal-dim hover:text-terminal-green absolute right-0 cursor-pointer transition-colors"
           data-target="password"
+          aria-controls="password"
+          aria-label="显示密码"
+          aria-pressed="false"
         >
-          <svg class="password-hidden-icon" style="display: none" viewBox="0 0 24 24" width="1.2em" height="1.2em">
+          <svg
+            class="password-hidden-icon"
+            style="display: none"
+            viewBox="0 0 24 24"
+            width="1.2em"
+            height="1.2em"
+            aria-hidden="true"
+          >
             <path
               fill="currentColor"
               d="M12 3c5.392 0 9.878 3.88 10.819 9c-.94 5.12-5.427 9-10.819 9c-5.392 0-9.878-3.88-10.818-9C2.122 6.88 6.608 3 12 3Zm0 16a9.005 9.005 0 0 0 8.778-7a9.005 9.005 0 0 0-17.555 0A9.005 9.005 0 0 0 12 19Zm0-2.5a4.5 4.5 0 1 1 0-9a4.5 4.5 0 0 1 0 9Zm0-2a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z"
             ></path>
           </svg>
-          <svg class="password-display-icon" viewBox="0 0 24 24" width="1.2em" height="1.2em">
+          <svg class="password-display-icon" viewBox="0 0 24 24" width="1.2em" height="1.2em" aria-hidden="true">
             <path
               fill="currentColor"
               d="M17.883 19.297A10.949 10.949 0 0 1 12 21c-5.392 0-9.878-3.88-10.818-9A10.982 10.982 0 0 1 4.52 5.935L1.394 2.808l1.414-1.414l19.799 19.798l-1.414 1.415l-3.31-3.31ZM5.936 7.35A8.965 8.965 0 0 0 3.223 12a9.005 9.005 0 0 0 13.201 5.838l-2.028-2.028A4.5 4.5 0 0 1 8.19 9.604L5.936 7.35Zm6.978 6.978l-3.242-3.241a2.5 2.5 0 0 0 3.241 3.241Zm7.893 2.265l-1.431-1.431A8.935 8.935 0 0 0 20.778 12A9.005 9.005 0 0 0 9.552 5.338L7.974 3.76C9.221 3.27 10.58 3 12 3c5.392 0 9.878 3.88 10.819 9a10.947 10.947 0 0 1-2.012 4.593Zm-9.084-9.084a4.5 4.5 0 0 1 4.769 4.769l-4.77-4.77Z"
             ></path>
           </svg>
-        </div>
+        </button>
       </div>
       <p
+        id="password-error"
         class="mt-1 font-mono text-xs text-red-500"
+        role="alert"
         th:if="${#fields.hasErrors('password')}"
         th:errors="*{password}"
       ></p>
@@ -215,27 +253,41 @@
           autocorrect="off"
           autocapitalize="off"
           placeholder="再次输入密码"
+          th:attr="aria-invalid=${#fields.hasErrors('confirmPassword') ? 'true' : null},aria-describedby=${#fields.hasErrors('confirmPassword') ? 'confirm-password-error' : null}"
         />
-        <div
-          class="form-input-stack-icon toggle-password-btn text-terminal-dim hover:text-terminal-green absolute right-0 cursor-pointer transition-colors"
+        <button
+          type="button"
+          class="password-toggle-button form-input-stack-icon toggle-password-btn text-terminal-dim hover:text-terminal-green absolute right-0 cursor-pointer transition-colors"
           data-target="confirmPassword"
+          aria-controls="confirmPassword"
+          aria-label="显示密码"
+          aria-pressed="false"
         >
-          <svg class="password-hidden-icon" style="display: none" viewBox="0 0 24 24" width="1.2em" height="1.2em">
+          <svg
+            class="password-hidden-icon"
+            style="display: none"
+            viewBox="0 0 24 24"
+            width="1.2em"
+            height="1.2em"
+            aria-hidden="true"
+          >
             <path
               fill="currentColor"
               d="M12 3c5.392 0 9.878 3.88 10.819 9c-.94 5.12-5.427 9-10.819 9c-5.392 0-9.878-3.88-10.818-9C2.122 6.88 6.608 3 12 3Zm0 16a9.005 9.005 0 0 0 8.778-7a9.005 9.005 0 0 0-17.555 0A9.005 9.005 0 0 0 12 19Zm0-2.5a4.5 4.5 0 1 1 0-9a4.5 4.5 0 0 1 0 9Zm0-2a2.5 2.5 0 1 0 0-5a2.5 2.5 0 0 0 0 5Z"
             ></path>
           </svg>
-          <svg class="password-display-icon" viewBox="0 0 24 24" width="1.2em" height="1.2em">
+          <svg class="password-display-icon" viewBox="0 0 24 24" width="1.2em" height="1.2em" aria-hidden="true">
             <path
               fill="currentColor"
               d="M17.883 19.297A10.949 10.949 0 0 1 12 21c-5.392 0-9.878-3.88-10.818-9A10.982 10.982 0 0 1 4.52 5.935L1.394 2.808l1.414-1.414l19.799 19.798l-1.414 1.415l-3.31-3.31ZM5.936 7.35A8.965 8.965 0 0 0 3.223 12a9.005 9.005 0 0 0 13.201 5.838l-2.028-2.028A4.5 4.5 0 0 1 8.19 9.604L5.936 7.35Zm6.978 6.978l-3.242-3.241a2.5 2.5 0 0 0 3.241 3.241Zm7.893 2.265l-1.431-1.431A8.935 8.935 0 0 0 20.778 12A9.005 9.005 0 0 0 9.552 5.338L7.974 3.76C9.221 3.27 10.58 3 12 3c5.392 0 9.878 3.88 10.819 9a10.947 10.947 0 0 1-2.012 4.593Zm-9.084-9.084a4.5 4.5 0 0 1 4.769 4.769l-4.77-4.77Z"
             ></path>
           </svg>
-        </div>
+        </button>
       </div>
       <p
+        id="confirm-password-error"
         class="mt-1 font-mono text-xs text-red-500"
+        role="alert"
         th:if="${#fields.hasErrors('confirmPassword')}"
         th:errors="*{confirmPassword}"
       ></p>
@@ -305,10 +357,14 @@
             input.type = "text";
             hiddenIcon.style.display = "block";
             displayIcon.style.display = "none";
+            this.setAttribute("aria-pressed", "true");
+            this.setAttribute("aria-label", "隐藏密码");
           } else {
             input.type = "password";
             hiddenIcon.style.display = "none";
             displayIcon.style.display = "block";
+            this.setAttribute("aria-pressed", "false");
+            this.setAttribute("aria-label", "显示密码");
           }
         });
       });
@@ -324,8 +380,39 @@
         const headerName = /*[[${_csrf.headerName}]]*/ "";
         const token = /*[[${_csrf.token}]]*/ "";
 
+        function readFailureMessage(payload) {
+            if (!payload || typeof payload !== "object") {
+                return "";
+            }
+
+            if (Array.isArray(payload.errors) && payload.errors.length > 0) {
+                const firstError = payload.errors[0];
+                if (typeof firstError === "string") {
+                    return firstError;
+                }
+                if (firstError && typeof firstError === "object") {
+                    return firstError.message || firstError.detail || firstError.reason || "";
+                }
+            }
+
+            return payload.detail || payload.message || payload.title || "";
+        }
+
+        async function throwRequestFailure(response) {
+            let payload = null;
+            try {
+                payload = await response.json();
+            } catch {
+                // A non-JSON error body is valid; use the stable status fallback.
+            }
+
+            const message = readFailureMessage(payload);
+            throw new Error(message || `发送失败（HTTP ${response.status}），请稍后重试`);
+        }
+
         async function sendRequest() {
-            const email = document.getElementById("email").value;
+            const emailInput = document.getElementById("email");
+            const email = emailInput ? emailInput.value.trim() : "";
             if (!email) {
                 throw new Error("请先输入邮箱地址");
             }
@@ -336,7 +423,8 @@
             /*[/]*/
             const altchaPayload = altchaEnabled ? await requestAltchaChallengeResult() : '';
 
-            const response = await fetch("/signup/send-email-code", {
+            const sendEmailCodeUrl = /*[[@{/signup/send-email-code}]]*/ "/signup/send-email-code";
+            const response = await fetch(sendEmailCodeUrl, {
                 method: "POST",
                 body: JSON.stringify({ email: email }),
                 headers: {
@@ -347,18 +435,7 @@
             });
 
             if (!response.ok) {
-                try {
-                    const json = await response.json();
-                    if (json.errors && json.errors.length) {
-                        throw new Error(json.errors[0]);
-                    }
-                    if (json.detail) {
-                        throw new Error(json.detail);
-                    }
-                } catch (e) {
-                    if (e.message) throw e;
-                    throw new Error("发送失败，请稍后重试");
-                }
+                await throwRequestFailure(response);
             }
             return response;
         }

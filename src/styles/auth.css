@@ -63,6 +63,31 @@
   box-shadow: 0 0 15px var(--terminal-glow) !important;
 }
 
+.auth-form-terminal button:focus-visible,
+.auth-form-terminal a:focus-visible,
+.auth-form-terminal input:focus-visible {
+  outline: 2px solid var(--terminal-text) !important;
+  outline-offset: 3px;
+}
+
+.auth-form-terminal .password-toggle-button,
+.auth-form-terminal .password-toggle-button:hover {
+  width: auto !important;
+  min-width: 2rem;
+  height: 2rem;
+  margin: 0 !important;
+  padding: 0.25rem !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--terminal-dim) !important;
+  box-shadow: none !important;
+}
+
+.auth-form-terminal .password-toggle-button:hover,
+.auth-form-terminal .password-toggle-button:focus-visible {
+  color: var(--terminal-text) !important;
+}
+
 .auth-form-terminal label {
   color: var(--terminal-dim) !important;
   font-size: 0.8rem !important;
@@ -91,21 +116,21 @@
 /* ========================================
    ALTCHA Security Verification Widget
    ======================================== */
-altcha-widget {
+.auth-form-terminal altcha-widget {
   display: block;
   margin: 1.5rem 0;
   font-family: var(--terminal-font-family) !important;
 }
 
 /* ALTCHA Custom Properties for Terminal Theme */
-altcha-widget {
+.auth-form-terminal altcha-widget {
   --altcha-color-base: transparent;
   --altcha-color-border: var(--terminal-dim);
   --altcha-color-border-focus: var(--terminal-text);
   --altcha-color-text: var(--terminal-text);
   --altcha-color-text-secondary: var(--terminal-dim);
   --altcha-color-background: transparent;
-  --altcha-color-active: var(--terminal-green);
+  --altcha-color-active: var(--terminal-text);
   --altcha-color-error: #ff5555;
   --altcha-color-footer-bg: transparent;
   --altcha-border-radius: 0;
@@ -114,23 +139,26 @@ altcha-widget {
 }
 
 /* Override button inside ALTCHA */
-altcha-widget button {
+.auth-form-terminal altcha-widget button {
   background: transparent !important;
-  border: 1px solid var(--terminal-green) !important;
-  color: var(--terminal-green) !important;
+  border: 1px solid var(--terminal-text) !important;
+  color: var(--terminal-text) !important;
   font-family: var(--terminal-font-family) !important;
   cursor: pointer !important;
   border-radius: 0 !important;
   transition: all 0.2s ease;
+  width: auto !important;
+  margin-top: 0 !important;
+  padding: 0.5rem !important;
 }
 
-altcha-widget button:hover {
-  background: var(--terminal-green) !important;
+.auth-form-terminal altcha-widget button:hover {
+  background: var(--terminal-text) !important;
   color: var(--terminal-bg) !important;
 }
 
 /* Checkbox styling for ALTCHA */
-altcha-widget input[type="checkbox"] {
+.auth-form-terminal altcha-widget input[type="checkbox"] {
   appearance: none;
   width: 1.25rem;
   height: 1.25rem;
@@ -140,12 +168,12 @@ altcha-widget input[type="checkbox"] {
   position: relative;
 }
 
-altcha-widget input[type="checkbox"]:checked {
+.auth-form-terminal altcha-widget input[type="checkbox"]:checked {
   border-color: var(--terminal-text);
   background: var(--terminal-text);
 }
 
-altcha-widget input[type="checkbox"]:checked::after {
+.auth-form-terminal altcha-widget input[type="checkbox"]:checked::after {
   content: "x";
   position: absolute;
   top: 50%;
@@ -157,41 +185,47 @@ altcha-widget input[type="checkbox"]:checked::after {
 }
 
 /* Loading/Verifying state */
-altcha-widget .altcha-main {
+.auth-form-terminal altcha-widget .altcha-main {
   border: 1px solid var(--terminal-dim) !important;
   background: color-mix(in srgb, var(--terminal-text) 2%, transparent) !important;
   padding: 0.75rem !important;
 }
 
-altcha-widget .altcha-label {
+.auth-form-terminal altcha-widget .altcha-label {
   color: var(--terminal-text) !important;
   font-family: var(--terminal-font-family) !important;
   font-size: 0.85rem !important;
 }
 
-altcha-widget .altcha-checkbox {
+.auth-form-terminal altcha-widget .altcha-checkbox {
   border-color: var(--terminal-dim) !important;
 }
 
-altcha-widget .altcha-checkbox:checked {
+.auth-form-terminal altcha-widget .altcha-checkbox:checked {
   background-color: var(--terminal-text) !important;
   border-color: var(--terminal-text) !important;
 }
 
 /* Footer text */
-altcha-widget .altcha-footer {
+.auth-form-terminal altcha-widget .altcha-footer {
   color: var(--terminal-dim) !important;
   font-size: 0.65rem !important;
   opacity: 0.7;
 }
 
-altcha-widget a {
+.auth-form-terminal altcha-widget a {
   color: var(--terminal-dim) !important;
   text-decoration: underline dashed !important;
 }
 
-altcha-widget a:hover {
+.auth-form-terminal altcha-widget a:hover {
   color: var(--terminal-text) !important;
+}
+
+.auth-form-terminal .social-auth-provider-form button {
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0.5rem !important;
 }
 
 /* ========================================
@@ -207,17 +241,20 @@ altcha-widget a:hover {
 /* ========================================
    Terminal Checkbox (Custom Appearance)
    ======================================== */
-/* HIDE the actual input completely, but keep it accessible-ish */
-.terminal-checkbox {
+/* Visually hide the native input while preserving keyboard focus. */
+.auth-form-terminal .terminal-checkbox {
   opacity: 0;
   position: absolute;
-  width: 0;
-  height: 0;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
   pointer-events: none;
 }
 
 /* The Box (Outer Frame) */
-.terminal-checkbox + label {
+.auth-form-terminal .terminal-checkbox + label {
   position: relative;
   display: inline-flex !important;
   align-items: center;
@@ -231,11 +268,11 @@ altcha-widget a:hover {
   transition: color 0.2s ease;
 }
 
-.terminal-checkbox + label:hover {
+.auth-form-terminal .terminal-checkbox + label:hover {
   color: var(--terminal-text);
 }
 
-.terminal-checkbox + label::before {
+.auth-form-terminal .terminal-checkbox + label::before {
   content: "[ ]";
   position: absolute;
   left: 0;
@@ -249,33 +286,38 @@ altcha-widget a:hover {
 }
 
 /* Hover State */
-.terminal-checkbox + label:hover::before {
+.auth-form-terminal .terminal-checkbox + label:hover::before {
   color: var(--terminal-text);
   text-shadow: 0 0 6px color-mix(in srgb, var(--terminal-text) 50%, transparent);
 }
 
 /* Checked State */
-.terminal-checkbox:checked + label::before {
+.auth-form-terminal .terminal-checkbox:checked + label::before {
   content: "[x]";
   color: var(--terminal-text);
   text-shadow: 0 0 8px color-mix(in srgb, var(--terminal-text) 60%, transparent);
 }
 
-.terminal-checkbox:checked + label {
+.auth-form-terminal .terminal-checkbox:checked + label {
   color: var(--terminal-text);
+}
+
+.auth-form-terminal .terminal-checkbox:focus-visible + label::before {
+  outline: 2px solid var(--terminal-text);
+  outline-offset: 3px;
 }
 
 /* ========================================
    Fixes for Browser Native Controls
    ======================================== */
 /* Hide Chrome/Safari password reveal eye (if any) */
-input::-webkit-password-toggle-visibility {
+.auth-form-terminal input::-webkit-password-toggle-visibility {
   appearance: none;
   display: none;
 }
 
 /* Ensure no native styling on inputs */
-input {
+.auth-form-terminal input {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
@@ -284,13 +326,13 @@ input {
 /* ========================================
    Password Toggle Icon Positioning
    ======================================== */
-.form-input-stack {
+.auth-form-terminal .form-input-stack {
   position: relative;
   display: flex;
   align-items: center;
 }
 
-.form-input-stack-icon {
+.auth-form-terminal .form-input-stack-icon {
   position: absolute;
   right: 0;
   top: 50%;
@@ -302,26 +344,26 @@ input {
   z-index: 10;
 }
 
-.form-input-stack-icon svg {
+.auth-form-terminal .form-input-stack-icon svg {
   display: block;
 }
 
 /* Ensure input has right padding for icon */
-.form-input-stack input {
+.auth-form-terminal .form-input-stack input {
   padding-right: 2.5rem !important;
 }
 
 /* ========================================
    Form Label Group
    ======================================== */
-.form-label-group {
+.auth-form-terminal .form-label-group {
   display: flex !important;
   justify-content: space-between !important;
   align-items: center !important;
   width: 100%;
 }
 
-.form-item-extra-link {
+.auth-form-terminal .form-item-extra-link {
   font-size: 0.75rem;
   color: var(--terminal-dim);
   text-decoration: none;
@@ -329,8 +371,35 @@ input {
   transition: color 0.2s;
 }
 
-.form-item-extra-link:hover {
-  color: var(--terminal-green);
+.auth-form-terminal .form-item-extra-link:hover {
+  color: var(--terminal-text);
   text-decoration: underline;
   text-decoration-style: dashed;
+}
+
+.auth-form-terminal,
+.auth-form-terminal .form-item,
+.auth-form-terminal .form-input-stack,
+.auth-form-terminal .signup-email-code-row,
+.auth-form-terminal .signup-email-code-row input {
+  min-width: 0;
+}
+
+@media (max-width: 420px) {
+  .terminal-form-box {
+    margin-block: 0.5rem;
+  }
+
+  .auth-form-terminal .signup-email-code-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .auth-form-terminal .signup-email-code-row .send-code-btn {
+    width: 100% !important;
+  }
+
+  .auth-form-terminal button:not(.password-toggle-button) {
+    padding-inline: 1rem !important;
+  }
 }

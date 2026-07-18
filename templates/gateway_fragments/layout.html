@@ -1,10 +1,10 @@
 <!doctype html>
-<html th:lang="${#locale.toLanguageTag}" th:fragment="layout (title,head,body)">
+<html th:lang="${#locale.toLanguageTag}" th:fragment="layout (title,head,body,pageType)">
   <head>
     <!-- Basic Metas -->
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title th:text="${title}"></title>
 
     <th:block th:if="${head != null}">
@@ -20,29 +20,6 @@
   <body
     class="bg-terminal-black text-terminal-green relative flex min-h-screen flex-col items-center justify-center overflow-y-auto bg-[length:4px_4px] p-4 font-mono"
   >
-    <!-- CRT Overlay Config -->
-    <div
-      th:if="${theme.config.appearance?.enable_scanline != false}"
-      class="pointer-events-none fixed inset-0 z-50 bg-[length:100%_4px,3px_100%]"
-      style="
-        background:
-          linear-gradient(rgba(18, 16, 16, 0) 50%, color-mix(in srgb, var(--terminal-bg) 25%, transparent) 50%),
-          linear-gradient(
-            90deg,
-            rgba(255, 0, 0, 0.06),
-            color-mix(in srgb, var(--terminal-text) 2%, transparent),
-            rgba(0, 0, 255, 0.06)
-          );
-        background-size:
-          100% 4px,
-          3px 100%;
-      "
-    ></div>
-    <div
-      th:if="${theme.config.appearance?.enable_flicker != false}"
-      class="bg-terminal-black/10 animate-flicker pointer-events-none fixed inset-0 z-40"
-    ></div>
-
     <!-- Main Terminal Window -->
     <div
       class="border-terminal-green bg-terminal-black relative z-10 w-full max-w-md border-2 shadow-[0_0_30px_var(--terminal-glow)] backdrop-blur-sm transition-all duration-300"
@@ -59,7 +36,7 @@
       </div>
 
       <!-- Content Area -->
-      <div class="p-8">
+      <main class="p-5 sm:p-8">
         <style>
           .ascii-art {
             display: none;
@@ -75,7 +52,15 @@
             }
 
             .mobile-header {
-              display: none;
+              position: absolute;
+              width: 1px;
+              height: 1px;
+              padding: 0;
+              margin: -1px;
+              overflow: hidden;
+              clip: rect(0, 0, 0, 0);
+              white-space: nowrap;
+              border: 0;
             }
           }
         </style>
@@ -83,6 +68,7 @@
         <!-- Ascii Header -->
         <pre
           th:if="${pageType == null or pageType == 'login'}"
+          aria-hidden="true"
           class="ascii-art text-terminal-green mb-8 text-center text-[0.6rem] leading-[0.6rem] font-bold whitespace-pre opacity-80 select-none md:text-xs md:leading-none"
         >
   _                 _       
@@ -93,10 +79,10 @@
  |______\___/ \__, |_|_| |_|
                __/ |        
               |___/         
-            </pre
-        >
+            </pre>
         <pre
           th:if="${pageType == 'signup'}"
+          aria-hidden="true"
           class="ascii-art text-terminal-green mb-8 text-center text-[0.6rem] leading-[0.6rem] font-bold whitespace-pre opacity-80 select-none md:text-xs md:leading-none"
         >
   _____ _                   
@@ -107,10 +93,10 @@
 |_____/|_|\__, |_| |_|\__,_| .__/ 
            __/ |           | |    
           |___/            |_|    
-            </pre
-        >
+            </pre>
         <pre
           th:if="${pageType == 'reset'}"
+          aria-hidden="true"
           class="ascii-art text-terminal-green mb-8 text-center text-[0.6rem] leading-[0.6rem] font-bold whitespace-pre opacity-80 select-none md:text-xs md:leading-none"
         >
  _____                _   
@@ -119,10 +105,10 @@
 |  _  // _ \/ __|/ _ \ __|
 | | \ \  __/\__ \  __/ |_ 
 |_|  \_\___||___/\___|\__|
-            </pre
-        >
+            </pre>
         <pre
           th:if="${pageType == 'logout'}"
+          aria-hidden="true"
           class="ascii-art text-terminal-green mb-8 text-center text-[0.6rem] leading-[0.6rem] font-bold whitespace-pre opacity-80 select-none md:text-xs md:leading-none"
         >
   _                                  _   
@@ -133,32 +119,31 @@
  |______\___/ \__, |\___/ \__,_|___/ \__|
                __/ |                     
               |___/                      
-            </pre
-        >
-        <div
+            </pre>
+        <h1
           th:if="${pageType == null or pageType == 'login'}"
           class="mobile-header text-terminal-green border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-center font-mono text-2xl font-bold tracking-widest"
         >
           LOGIN
-        </div>
-        <div
+        </h1>
+        <h1
           th:if="${pageType == 'signup'}"
           class="mobile-header text-terminal-green border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-center font-mono text-2xl font-bold tracking-widest"
         >
           SIGNUP
-        </div>
-        <div
+        </h1>
+        <h1
           th:if="${pageType == 'reset'}"
           class="mobile-header text-terminal-green border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-center font-mono text-2xl font-bold tracking-widest"
         >
           RESET
-        </div>
-        <div
+        </h1>
+        <h1
           th:if="${pageType == 'logout'}"
           class="mobile-header text-terminal-green border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-center font-mono text-2xl font-bold tracking-widest"
         >
           LOGOUT
-        </div>
+        </h1>
 
         <!-- Warning Text -->
         <div class="border-terminal-green/30 mb-8 border-b border-dashed pb-6 text-center">
@@ -171,7 +156,7 @@
         <div class="auth-form-terminal">
           <th:block th:replace="${body}" />
         </div>
-      </div>
+      </main>
 
       <!-- StatusBar -->
       <div

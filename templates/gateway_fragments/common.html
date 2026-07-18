@@ -6,7 +6,7 @@
 <th:block th:fragment="basicScriptResources">
   <!-- RSA 密码加密 (Halo 2.23+ 官方架构：加密逻辑放在 common.html) -->
   <th:block th:if="${not #strings.isEmpty(publicKey)} and ${fragmentTemplateName} == 'login_local'">
-    <script src="/webjars/jsencrypt/bin/jsencrypt.min.js" defer></script>
+    <script th:src="@{/webjars/jsencrypt/bin/jsencrypt.min.js}" defer></script>
     <script th:inline="javascript" type="text/javascript">
       const publicKey = /*[[${publicKey}]]*/ "";
 
@@ -40,14 +40,14 @@
     };
   </script>
 
-  <script src="/js/main.js"></script>
+  <script th:src="@{/js/main.js}"></script>
 
   <!-- Altcha Captcha Scripts (Halo Pro) -->
   <th:block th:if="${globalInfo != null and #strings.contains(globalInfo.toString(), 'captchaProvider')}">
     <th:block th:if="${#strings.equalsIgnoreCase(globalInfo.captchaProvider, 'ALTCHA')}">
-      <script async defer src="/webjars/altcha/dist/altcha.i18n.js" type="module"></script>
-      <script src="/js/altcha-lib.iife.js"></script>
-      <script src="/js/altcha-utils.js"></script>
+      <script async defer th:src="@{/webjars/altcha/dist/altcha.i18n.js}" type="module"></script>
+      <script th:src="@{/js/altcha-lib.iife.js}"></script>
+      <script th:src="@{/js/altcha-utils.js}"></script>
       <!-- 弹窗位置强制内联修复（彻底解决 3D 变换引起的偏移） -->
       <script>
         (function fixAltchaPosition() {
@@ -111,7 +111,7 @@
 </th:block>
 
 <th:block th:fragment="basicStyleResources">
-  <link rel="stylesheet" href="/webjars/normalize.css/8.0.1/normalize.css" />
+  <link rel="stylesheet" th:href="@{/webjars/normalize.css/8.0.1/normalize.css}" />
   <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
 </th:block>
 
@@ -133,7 +133,7 @@
     }
   </style>
   <div class="halo-logo">
-    <img src="/images/wordmark.svg" alt="Halo" />
+    <img th:src="@{/images/wordmark.svg}" alt="Halo" />
   </div>
 </div>
 
@@ -148,9 +148,10 @@
       <li th:each="provider : ${socialAuthProviders}">
         <form
           class="social-auth-provider-form"
-          th:action="|/login/social/${provider.metadata.name}?remember-me=false|"
+          th:action="@{/login/social/{provider}(provider=${provider.metadata.name})}"
           method="post"
         >
+          <input type="hidden" name="remember-me" value="false" />
           <button
             type="submit"
             class="border-terminal-dim hover:border-terminal-green block cursor-pointer border bg-transparent p-2 transition-all hover:shadow-[0_0_10px_var(--terminal-glow)]"
@@ -175,9 +176,10 @@
           const rememberMe = e.target.checked;
 
           socialAuthProviders.forEach((form) => {
-            const url = new URL(form.action, window.location.origin);
-            url.searchParams.set("remember-me", rememberMe ? "true" : "false");
-            form.action = url.pathname + url.search;
+            const rememberMeInput = form.querySelector('input[name="remember-me"]');
+            if (rememberMeInput) {
+              rememberMeInput.value = rememberMe ? "true" : "false";
+            }
           });
         });
       }
@@ -194,7 +196,7 @@
     </div>
     <ul class="pill-items">
       <li th:each="method : ${otherMethods}">
-        <a th:href="${method.href}">
+        <a th:href="@{${method.href}}">
           <img th:src="${method.icon}" th:alt="|${method.name}'s icon|" />
           <span th:text="${method.name}"></span>
         </a>
