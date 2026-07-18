@@ -22,6 +22,11 @@ function getSafePathSegment(value: string | null | undefined) {
   return (value || "unknown").replaceAll("/", "-");
 }
 
+function appendRouteSegment(root: string, segment: string) {
+  const normalizedRoot = root.endsWith("/") ? root.slice(0, -1) : root;
+  return `${normalizedRoot}/${encodeURIComponent(segment)}`;
+}
+
 export function getRefSlug(ref: HaloCurrentRef | null | undefined) {
   return getSafePathSegment(ref?.slug || ref?.title || ref?.displayName || "unknown");
 }
@@ -42,24 +47,35 @@ export function mapPostsToDirectoryEntries(posts: HaloPostRecord[]): DirectoryEn
   }));
 }
 
-export function getDirectoryContent(path: string): DirectoryEntry[] | null {
+export function getDirectoryContent(path: string): DirectoryEntry[] | null | undefined {
   if (path === "~/blog") {
     return [
       {
-        count: window.haloData?.categories.length || 0,
+        ...(window.haloData?.categoriesLoaded ? { count: window.haloData.categories.length } : {}),
         name: "categories",
         type: "dir",
       },
       {
-        count: window.haloData?.tags.length || 0,
+        ...(window.haloData?.tagsLoaded ? { count: window.haloData.tags.length } : {}),
         name: "tags",
+        type: "dir",
+      },
+      {
+        name: "archives",
         type: "dir",
       },
       ...mapPostsToDirectoryEntries(window.haloData?.homePosts || []),
     ];
   }
 
+  if (path === "~/blog/archives") {
+    return window.haloData?.pageType === "archives" ? mapPostsToDirectoryEntries(window.haloData.currentPosts) : null;
+  }
+
   if (path === "~/blog/categories") {
+    if (!window.haloData?.categoriesLoaded) {
+      return undefined;
+    }
     return (window.haloData?.categories || []).map((category) => ({
       count: category.postCount || 0,
       date: category.metadata?.creationTimestamp || null,
@@ -71,6 +87,9 @@ export function getDirectoryContent(path: string): DirectoryEntry[] | null {
   }
 
   if (path === "~/blog/tags") {
+    if (!window.haloData?.tagsLoaded) {
+      return undefined;
+    }
     return (window.haloData?.tags || []).map((tag) => ({
       count: tag.postCount || 0,
       date: tag.metadata?.creationTimestamp || null,
@@ -102,6 +121,17 @@ export function getDirectoryContent(path: string): DirectoryEntry[] | null {
     }
 
     // Not on this tag page — return null to trigger navigation
+    return null;
+  }
+
+  if (path.startsWith("~/blog/authors/")) {
+    const slug = path.slice("~/blog/authors/".length);
+    const currentAuthorSlug = getRefSlug(window.haloData?.currentAuthor);
+
+    if (window.haloData?.pageType === "author" && currentAuthorSlug === slug) {
+      return mapPostsToDirectoryEntries(window.haloData.currentPosts);
+    }
+
     return null;
   }
 
@@ -179,18 +209,53 @@ export function virtualPathToUrl(path: string): string | null {
     return window.haloData?.urls.tags || "/tags";
   }
 
+  if (path === "~/blog/archives") {
+    return window.haloData?.urls.archives || "/archives";
+  }
+
   if (path.startsWith("~/blog/categories/")) {
     const slug = path.slice("~/blog/categories/".length);
     const category = (window.haloData?.categories || []).find((item) => getTaxonomySlug(item) === slug);
 
-    return category?.status?.permalink || null;
+    return category?.status?.permalink || appendRouteSegment(window.haloData?.urls.categories || "/categories", slug);
   }
 
   if (path.startsWith("~/blog/tags/")) {
     const slug = path.slice("~/blog/tags/".length);
     const tag = (window.haloData?.tags || []).find((item) => getTaxonomySlug(item) === slug);
 
-    return tag?.status?.permalink || null;
+    return tag?.status?.permalink || appendRouteSegment(window.haloData?.urls.tags || "/tags", slug);
+  }
+
+  if (path.startsWith("~/blog/authors/")) {
+    const currentAuthor = window.haloData?.currentAuthor;
+    const slug = path.slice("~/blog/authors/".length);
+    return getRefSlug(currentAuthor) === slug ? currentAuthor?.permalink || null : null;
+  }
+
+  if (path.startsWith("~/blog/pages/")) {
+    const currentPage = window.haloData?.currentPage ?? window.haloData?.currentPost;
+    const slug = path.slice("~/blog/pages/".length);
+    return getRefSlug(currentPage) === slug ? currentPage?.permalink || null : null;
+  }
+
+  if (path.startsWith("~/blog/")) {
+    const segment = path.slice("~/blog/".length);
+    if (!segment || segment.includes("/")) {
+      return null;
+    }
+
+    const currentPost = window.haloData?.currentPost;
+    if (getRefSlug(currentPost) === segment && currentPost?.permalink) {
+      return currentPost.permalink;
+    }
+
+    const posts = [...(window.haloData?.homePosts || []), ...(window.haloData?.currentPosts || [])];
+    const post = posts.find(
+      (item) => getSafePathSegment(getPostSlug(item)) === segment || getSafePathSegment(getPostName(item)) === segment,
+    );
+
+    return post?.status?.permalink || null;
   }
 
   return null;
@@ -198,12 +263,22 @@ export function virtualPathToUrl(path: string): string | null {
 
 export function syncPathWithUrl(): string {
   switch (window.haloData?.pageType) {
+    case "archives":
+      return "~/blog/archives";
+    case "author":
+      return window.haloData.currentAuthor
+        ? `~/blog/authors/${getRefSlug(window.haloData.currentAuthor)}`
+        : "~/blog/authors";
     case "categories":
       return "~/blog/categories";
     case "category":
       return `~/blog/categories/${getRefSlug(window.haloData.currentCategory)}`;
     case "post":
       return `~/blog/${getRefSlug(window.haloData.currentPost)}`;
+    case "page": {
+      const currentPage = window.haloData.currentPage ?? window.haloData.currentPost;
+      return currentPage ? `~/blog/pages/${getRefSlug(currentPage)}` : "~/blog/pages";
+    }
     case "tag":
       return `~/blog/tags/${getRefSlug(window.haloData.currentTag)}`;
     case "tags":

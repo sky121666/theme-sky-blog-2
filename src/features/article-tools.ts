@@ -1,3 +1,5 @@
+import { getPreferredScrollBehavior } from "../common/motion";
+
 export interface ArticleTocItem {
   id: string;
   level: number;
@@ -12,7 +14,7 @@ function getMainScrollContainer() {
 }
 
 function getScrollBehavior(): ScrollBehavior {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+  return getPreferredScrollBehavior();
 }
 
 function slugifyHeading(text: string, index: number) {

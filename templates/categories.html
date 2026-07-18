@@ -2,64 +2,82 @@
 <html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
   <th:block th:fragment="content">
     <div class="px-2 md:px-0" x-data="fileListNav">
+      <h1 class="sr-only" th:text="|Categories - ${site.title}|">Categories</h1>
       <!-- Command Input Simulation -->
-      <div class="text-terminal-green mb-6 flex items-center gap-2">
-        <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}"
+      <div class="text-terminal-green mb-3 flex min-w-0 items-center gap-2 md:mb-6">
+        <span class="text-terminal-dim min-w-0 truncate" th:if="${#authentication.name == 'anonymousUser'}"
           >guest@<span th:text="${site.title}"></span>:~/blog$</span
         >
-        <span
-          class="text-terminal-dim"
-          th:if="${#authentication.name != 'anonymousUser'}"
-          th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}"
-        >
-          <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:~/blog$
+        <span class="text-terminal-dim min-w-0 truncate" th:if="${#authentication.name != 'anonymousUser'}">
+          <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
+            th:text="${site.title}"
+          ></span
+          >:~/blog$
         </span>
-        <span class="typing-effect" x-data="typewriter('ls -la ./categories', 50)" x-text="display"></span>
+        <span
+          class="typing-effect flex-shrink-0 whitespace-nowrap"
+          x-data="typewriter('ls -la ./categories', 50)"
+          x-text="display"
+        ></span>
       </div>
 
       <!-- File List Header -->
       <div
-        class="border-terminal-dim text-terminal-green mb-2 grid grid-cols-12 gap-2 border-b pb-1 text-xs font-bold opacity-80 md:text-sm"
+        class="border-terminal-dim text-terminal-green mb-1 flex items-center justify-between border-b pb-1 text-xs font-bold opacity-80 md:mb-2 md:grid md:grid-cols-12 md:gap-2 md:text-sm"
       >
-        <div class="col-span-3 md:col-span-2">PERMISSIONS</div>
-        <div class="col-span-3 md:col-span-2">POSTS</div>
-        <div class="col-span-6 md:col-span-8">NAME</div>
+        <div class="md:hidden">NAME</div>
+        <div class="md:hidden">META</div>
+        <div class="hidden md:col-span-2 md:block">PERMISSIONS</div>
+        <div class="hidden md:col-span-2 md:block">POSTS</div>
+        <div class="hidden md:col-span-8 md:block">NAME</div>
       </div>
 
       <!-- File List -->
-      <ul class="space-y-1 font-mono text-xs md:text-sm">
+      <ul class="font-mono text-xs md:space-y-1 md:text-sm">
         <!-- Parent Directory Link -->
         <li
           data-nav-item
-          :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === 0 }"
-          class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black grid cursor-pointer grid-cols-12 gap-2 px-1 transition-colors"
+          :class="{ '!bg-terminal-green !text-terminal-black': isSelected($el) }"
+          class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black grid min-h-10 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 px-1 transition-colors md:min-h-0 md:grid-cols-12 md:gap-2 md:py-0"
         >
-          <div class="col-span-3 md:col-span-2">drwxr-xr-x</div>
+          <div class="hidden whitespace-nowrap md:col-span-2 md:col-start-1 md:row-start-1 md:block">drwxr-xr-x</div>
           <div
-            class="text-terminal-dim col-span-3 md:col-span-2"
-            :class="{ '!text-terminal-black': selectedIndex === 0 }"
+            class="text-terminal-dim col-start-2 row-start-1 justify-self-end whitespace-nowrap md:col-span-2 md:col-start-3 md:justify-self-auto"
+            :class="{ '!text-terminal-black': isSelected($el.closest('[data-nav-item]')) }"
           >
             ...
           </div>
-          <div class="col-span-6 md:col-span-8">
-            <a href="/" class="block w-full text-inherit">../</a>
+          <div class="col-start-1 row-start-1 min-w-0 md:col-span-8 md:col-start-5">
+            <a
+              th:href="@{/}"
+              class="flex min-h-10 min-w-0 items-center py-1 break-words text-inherit md:block md:min-h-0 md:truncate md:py-0"
+              >../</a
+            >
           </div>
         </li>
 
         <!-- Categories Loop -->
         <li
-          th:each="category,iterStat : ${categories}"
+          th:each="category : ${categories}"
           data-nav-item
-          th:data-index="${iterStat.count}"
-          :class="{ '!bg-terminal-green !text-terminal-black': selectedIndex === $el.dataset.index * 1 }"
-          class="group text-terminal-green hover:bg-terminal-green hover:text-terminal-black grid cursor-pointer grid-cols-12 gap-2 px-1 transition-colors"
+          :class="{ '!bg-terminal-green !text-terminal-black': isSelected($el) }"
+          class="group text-terminal-green hover:bg-terminal-green hover:text-terminal-black grid min-h-10 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 px-1 transition-colors md:min-h-0 md:grid-cols-12 md:gap-2 md:py-0"
         >
-          <div class="col-span-3 font-mono opacity-70 group-hover:opacity-100 md:col-span-2">drwxr-xr-x</div>
-          <div class="col-span-3 opacity-70 group-hover:opacity-100 md:col-span-2" th:text="${category.postCount}">
-            0
+          <div
+            class="hidden font-mono whitespace-nowrap opacity-70 group-hover:opacity-100 md:col-span-2 md:col-start-1 md:row-start-1 md:block"
+          >
+            drwxr-xr-x
           </div>
-          <div class="col-span-6 truncate md:col-span-8">
-            <a th:href="${category.status.permalink}" class="block w-full text-inherit">
+          <div
+            class="col-start-2 row-start-1 justify-self-end whitespace-nowrap opacity-70 group-hover:opacity-100 md:col-span-2 md:col-start-3 md:justify-self-auto"
+          >
+            <span th:text="${category.postCount}">0</span><span class="md:hidden"> posts</span>
+          </div>
+          <div class="col-start-1 row-start-1 min-w-0 md:col-span-8 md:col-start-5">
+            <a
+              th:href="@{${category.status.permalink}}"
+              class="flex min-h-10 min-w-0 items-center py-1 break-words text-inherit md:block md:min-h-0 md:truncate md:py-0"
+            >
               <span th:text="${category.spec.displayName}"></span>/
             </a>
           </div>
@@ -67,7 +85,7 @@
       </ul>
 
       <!-- Total Files Footer -->
-      <div class="text-terminal-dim mt-4 text-xs">
+      <div class="text-terminal-dim mt-2 text-xs md:mt-4">
         <span th:text="${#lists.size(categories)}">0</span> directories found.
       </div>
     </div>

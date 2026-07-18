@@ -5,8 +5,17 @@
    ======================================== */
 
 .terminal-content {
+  min-width: 0;
+  max-width: 100%;
   font-family: var(--terminal-font-family);
   line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+
+.terminal-content :where(p, li, blockquote, a, th, td, code:not(pre code)) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Headings with Terminal Decorators */
@@ -104,6 +113,11 @@
 /* Code Blocks */
 .terminal-content pre,
 .terminal-content shiki-code {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
   background: color-mix(in srgb, var(--terminal-bg) 50%, transparent) !important;
   border: 1px solid var(--terminal-dim);
   border-radius: 0;
@@ -233,11 +247,29 @@
 }
 
 .terminal-content ul[data-type="taskList"] input[type="checkbox"] {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  overflow: hidden;
+  opacity: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .terminal-content ul[data-type="taskList"] label span {
-  display: none;
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.terminal-content ul[data-type="taskList"] li > label:has(input[type="checkbox"]:focus-visible)::before {
+  outline: 2px solid var(--terminal-text);
+  outline-offset: 3px;
 }
 
 .terminal-content ul[data-type="taskList"] li > div {
@@ -246,10 +278,14 @@
 
 /* Tables */
 .terminal-content table {
+  display: block;
   width: 100%;
+  max-width: 100%;
   border-collapse: collapse;
   margin: 1rem 0;
   font-size: 0.9rem;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
 }
 
 .terminal-content table th,
@@ -336,6 +372,12 @@
   display: block;
   border: none;
   outline: none;
+}
+
+.terminal-content video:focus-visible,
+.terminal-content audio:focus-visible {
+  outline: 2px solid var(--terminal-text);
+  outline-offset: 3px;
 }
 
 .terminal-content audio {

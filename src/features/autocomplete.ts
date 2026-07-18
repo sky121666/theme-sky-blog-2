@@ -72,11 +72,12 @@ export function getSuggestions(input: string, currentPath: string, isPost: boole
   const candidates: string[] = [];
 
   dirContent.forEach((item) => {
-    if (!item.name.toLowerCase().startsWith(filePartLower)) {
+    const pathSegment = item.slug || item.name;
+    if (!pathSegment.toLowerCase().startsWith(filePartLower)) {
       return;
     }
     const suffix = item.type === "dir" ? "/" : "";
-    candidates.push(`${command} ${directoryPart}${item.name}${suffix}`);
+    candidates.push(`${command} ${directoryPart}${pathSegment}${suffix}`);
   });
 
   // Special completions

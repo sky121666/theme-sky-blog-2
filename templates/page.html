@@ -1,0 +1,51 @@
+<!doctype html>
+<html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
+  <th:block th:fragment="content">
+    <div class="min-w-0 px-2 md:px-0">
+      <div class="text-terminal-green mb-6 flex min-w-0 items-center gap-2">
+        <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name == 'anonymousUser'}"
+          >guest@<span th:text="${site.title}"></span>:~/blog/pages/<span th:text="${singlePage.spec.slug}"></span
+          >$</span
+        >
+        <span class="text-terminal-dim min-w-0" th:if="${#authentication.name != 'anonymousUser'}">
+          <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
+            th:text="${site.title}"
+          ></span
+          >:~/blog/pages/<span th:text="${singlePage.spec.slug}"></span>$
+        </span>
+        <span class="typing-effect truncate" x-data="typewriter('cat page.md', 30)" x-text="display"></span>
+      </div>
+
+      <article class="prose prose-invert max-w-none min-w-0">
+        <div class="terminal-content max-w-full min-w-0">
+          <h1
+            th:text="${singlePage.spec.title}"
+            class="border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-3xl break-words"
+          ></h1>
+          <th:block th:utext="${singlePage.content.content}"></th:block>
+        </div>
+      </article>
+
+      <section
+        th:if="${theme.config.features?.show_comments == true and haloCommentEnabled}"
+        data-navigation-exit="full"
+        class="terminal-comments border-terminal-dim my-8 border border-dashed p-4"
+      >
+        <h2 class="text-terminal-green mb-4 font-mono text-xs">[COMMENTS]</h2>
+        <halo:comment
+          group="content.halo.run"
+          kind="SinglePage"
+          th:attr="name=${singlePage.metadata.name}"
+        ></halo:comment>
+      </section>
+
+      <div class="mb-8">
+        <a
+          th:href="@{/}"
+          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black inline-block border px-4 py-1 font-mono transition-colors"
+          >cd /</a
+        >
+      </div>
+    </div>
+  </th:block>
+</html>

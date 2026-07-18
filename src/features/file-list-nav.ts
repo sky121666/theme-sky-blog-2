@@ -1,50 +1,63 @@
-import Alpine from "alpinejs";
+import Alpine from "../common/alpine";
 
-import { navigateToUrl } from "../common/navigation";
+import { isInteractiveEventTarget, shouldIgnoreGlobalKeyboardEvent } from "../common/keyboard";
+import { getPreferredScrollBehavior } from "../common/motion";
+import { NAVIGATION_COMPLETE_EVENT, NAVIGATION_START_EVENT, navigateToUrl } from "../common/navigation";
 
 export function registerFileListNavComponent() {
   Alpine.data("fileListNav", () => ({
     focusInHandler: null as ((event: FocusEvent) => void) | null,
     items: [] as HTMLElement[],
     keydownHandler: null as ((event: KeyboardEvent) => void) | null,
-    pjaxSendHandler: null as (() => void) | null,
+    navigationCompleteHandler: null as (() => void) | null,
+    navigationStartHandler: null as (() => void) | null,
     selectedIndex: -1,
 
     bindListeners() {
-      this.keydownHandler = (event) => this.handleKeydown(event);
-      this.focusInHandler = (event) => this.handleFocusIn(event);
+      if (!this.keydownHandler) {
+        this.keydownHandler = (event) => this.handleKeydown(event);
+        window.addEventListener("keydown", this.keydownHandler);
+      }
 
-      window.addEventListener("keydown", this.keydownHandler);
-      window.addEventListener("focusin", this.focusInHandler);
+      if (!this.focusInHandler) {
+        this.focusInHandler = (event) => this.handleFocusIn(event);
+        window.addEventListener("focusin", this.focusInHandler);
+      }
     },
 
     destroy() {
       this.unbindListeners();
 
-      if (this.pjaxSendHandler) {
-        document.removeEventListener("pjax:send", this.pjaxSendHandler);
-        this.pjaxSendHandler = null;
+      if (this.navigationStartHandler) {
+        document.removeEventListener(NAVIGATION_START_EVENT, this.navigationStartHandler);
+        this.navigationStartHandler = null;
+      }
+
+      if (this.navigationCompleteHandler) {
+        document.removeEventListener(NAVIGATION_COMPLETE_EVENT, this.navigationCompleteHandler);
+        this.navigationCompleteHandler = null;
       }
     },
 
     handleFocusIn(event: FocusEvent) {
-      const target = event.target as HTMLElement | null;
-      if (!target) {
+      const target = event.target;
+      const focusedItem = target instanceof Element ? target.closest<HTMLElement>("[data-nav-item]") : null;
+      const focusedIndex = focusedItem ? this.items.indexOf(focusedItem) : -1;
+      if (focusedIndex >= 0) {
+        this.selectedIndex = focusedIndex;
         return;
       }
 
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+      if (isInteractiveEventTarget(event)) {
         this.selectedIndex = -1;
       }
     },
 
     handleKeydown(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null;
-      if (!target) {
-        return;
-      }
-
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+      const eventTarget = event.target;
+      const targetIsCurrentListItem =
+        eventTarget instanceof Element && this.$el.contains(eventTarget) && eventTarget.closest("[data-nav-item]");
+      if (shouldIgnoreGlobalKeyboardEvent(event) && !targetIsCurrentListItem) {
         return;
       }
 
@@ -61,7 +74,10 @@ export function registerFileListNavComponent() {
 
       if (event.key === "ArrowUp") {
         event.preventDefault();
-        this.selectedIndex = (this.selectedIndex - 1 + this.items.length) % this.items.length;
+        this.selectedIndex =
+          this.selectedIndex < 0
+            ? this.items.length - 1
+            : (this.selectedIndex - 1 + this.items.length) % this.items.length;
         this.scrollToSelected();
         return;
       }
@@ -95,9 +111,15 @@ export function registerFileListNavComponent() {
 
       this.bindListeners();
 
-      // Clean up listeners on Pjax navigation to prevent leaks
-      this.pjaxSendHandler = () => this.unbindListeners();
-      document.addEventListener("pjax:send", this.pjaxSendHandler);
+      // Clean up global listeners while the current page subtree is being replaced.
+      this.navigationStartHandler = () => this.unbindListeners();
+      this.navigationCompleteHandler = () => this.bindListeners();
+      document.addEventListener(NAVIGATION_START_EVENT, this.navigationStartHandler);
+      document.addEventListener(NAVIGATION_COMPLETE_EVENT, this.navigationCompleteHandler);
+    },
+
+    isSelected(item: HTMLElement) {
+      return this.selectedIndex === this.items.indexOf(item);
     },
 
     scrollToSelected() {
@@ -106,7 +128,12 @@ export function registerFileListNavComponent() {
         return;
       }
 
-      currentItem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      const focusTarget =
+        currentItem instanceof HTMLAnchorElement
+          ? currentItem
+          : currentItem.querySelector<HTMLElement>('a[href], button, [tabindex]:not([tabindex="-1"])');
+      focusTarget?.focus({ preventScroll: true });
+      currentItem.scrollIntoView({ behavior: getPreferredScrollBehavior(), block: "nearest" });
     },
 
     unbindListeners() {

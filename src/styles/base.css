@@ -44,10 +44,10 @@ html.terminal-theme.color-scheme-dark {
   --halo-cw-muted-3-color: color-mix(in srgb, var(--terminal-text) 12%, var(--terminal-bg));
   --halo-cw-avatar-rounded: 0px;
   --halo-cw-avatar-size: 36px;
-  --halo-cw-emoji-picker-rgb-color: 0, 255, 0;
-  --halo-cw-emoji-picker-rgb-accent: 0, 255, 0;
-  --halo-cw-emoji-picker-rgb-background: 13, 13, 13;
-  --halo-cw-emoji-picker-rgb-input: 0, 0, 0;
+  --halo-cw-emoji-picker-rgb-color: from var(--terminal-text) r g b;
+  --halo-cw-emoji-picker-rgb-accent: from var(--terminal-text) r g b;
+  --halo-cw-emoji-picker-rgb-background: from var(--terminal-bg) r g b;
+  --halo-cw-emoji-picker-rgb-input: from var(--terminal-bg) r g b;
   --halo-cw-emoji-picker-color-border: color-mix(in srgb, var(--terminal-text) 20%, transparent);
   --halo-cw-emoji-picker-color-border-over: color-mix(in srgb, var(--terminal-text) 45%, transparent);
 }
@@ -58,8 +58,15 @@ body {
   font-family: var(--terminal-font-family);
   overflow-x: hidden;
   min-height: 100vh;
-  /* CRT Flicker Animation */
-  animation: flicker 0.15s infinite;
+  min-height: 100svh;
+  /* CRT Flicker Animation: intentionally subtle; disabled by default in settings. */
+  animation: flicker 8s step-end infinite;
+}
+
+/* Follow the visual viewport when mobile browser chrome or a soft keyboard changes height. */
+.terminal-viewport {
+  height: 100vh;
+  height: 100dvh;
 }
 
 /* CRT Overlay Effect */
@@ -194,40 +201,19 @@ strong,
 
 /* CRT Flicker Keyframes */
 @keyframes flicker {
-  0% {
-    opacity: 0.97;
+  0%,
+  48%,
+  52%,
+  100% {
+    opacity: 1;
   }
 
-  5% {
-    opacity: 0.95;
-  }
-
-  10% {
-    opacity: 0.9;
-  }
-
-  15% {
-    opacity: 0.95;
-  }
-
-  20% {
+  49% {
     opacity: 0.99;
   }
 
   50% {
-    opacity: 0.95;
-  }
-
-  55% {
-    opacity: 0.9;
-  }
-
-  60% {
-    opacity: 0.95;
-  }
-
-  100% {
-    opacity: 0.99;
+    opacity: 0.985;
   }
 }
 
@@ -258,6 +244,14 @@ strong,
   }
 
   body {
+    animation: none !important;
+  }
+
+  .animate-flicker,
+  .animate-scanline,
+  .animate-pulse,
+  .animate-blink,
+  .animate-cursor {
     animation: none !important;
   }
 }

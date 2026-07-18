@@ -8,14 +8,11 @@
     <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}"
       >guest@<span th:text="${site.title}"></span>:<span th:text="${path}">~/blog</span>$</span
     >
-    <span
-      class="text-terminal-dim"
-      th:if="${#authentication.name != 'anonymousUser'}"
-      th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}"
-    >
-      <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:<span th:text="${path}"
-        >~/blog</span
-      >$
+    <span class="text-terminal-dim" th:if="${#authentication.name != 'anonymousUser'}">
+      <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
+        th:text="${site.title}"
+      ></span
+      >:<span th:text="${path}">~/blog</span>$
     </span>
   </div>
 </th:block>

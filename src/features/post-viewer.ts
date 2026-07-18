@@ -1,35 +1,40 @@
-import Alpine from "alpinejs";
+import Alpine from "../common/alpine";
 
+import { shouldIgnoreGlobalKeyboardEvent } from "../common/keyboard";
+import { getPreferredScrollBehavior } from "../common/motion";
+import { NAVIGATION_COMPLETE_EVENT, NAVIGATION_START_EVENT } from "../common/navigation";
 import { getArticleToc, type ArticleTocItem } from "./article-tools";
 
 export function registerPostViewerComponent() {
   Alpine.data("postViewer", () => ({
     keydownHandler: null as ((event: KeyboardEvent) => void) | null,
-    pjaxSendHandler: null as (() => void) | null,
+    navigationCompleteHandler: null as (() => void) | null,
+    navigationStartHandler: null as (() => void) | null,
     readingProgress: 0,
+    scrollFrameId: null as number | null,
     scrollHandler: null as (() => void) | null,
     tocItems: [] as ArticleTocItem[],
 
     destroy() {
       this.unbindListeners();
 
-      if (this.pjaxSendHandler) {
-        document.removeEventListener("pjax:send", this.pjaxSendHandler);
-        this.pjaxSendHandler = null;
+      if (this.navigationStartHandler) {
+        document.removeEventListener(NAVIGATION_START_EVENT, this.navigationStartHandler);
+        this.navigationStartHandler = null;
+      }
+
+      if (this.navigationCompleteHandler) {
+        document.removeEventListener(NAVIGATION_COMPLETE_EVENT, this.navigationCompleteHandler);
+        this.navigationCompleteHandler = null;
       }
     },
 
     get scrollBehavior(): ScrollBehavior {
-      return window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+      return getPreferredScrollBehavior();
     },
 
     handleKeydown(event: KeyboardEvent) {
-      const target = event.target as HTMLElement | null;
-      if (!target) {
-        return;
-      }
-
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+      if (shouldIgnoreGlobalKeyboardEvent(event)) {
         return;
       }
 
@@ -49,10 +54,16 @@ export function registerPostViewerComponent() {
           event.preventDefault();
           main.scrollBy({ behavior: this.scrollBehavior, top: -this.scrollAmount });
           break;
-        case " ":
         case "PageDown":
           event.preventDefault();
           main.scrollBy({ behavior: this.scrollBehavior, top: main.clientHeight * 0.8 });
+          break;
+        case " ":
+          event.preventDefault();
+          main.scrollBy({
+            behavior: this.scrollBehavior,
+            top: (event.shiftKey ? -1 : 1) * main.clientHeight * 0.8,
+          });
           break;
         case "End":
           event.preventDefault();
@@ -74,16 +85,33 @@ export function registerPostViewerComponent() {
     init() {
       this.refreshToc();
       this.updateReadingProgress();
+      this.bindListeners();
 
-      this.keydownHandler = (event: KeyboardEvent) => this.handleKeydown(event);
-      window.addEventListener("keydown", this.keydownHandler);
+      this.navigationStartHandler = () => this.unbindListeners();
+      this.navigationCompleteHandler = () => this.bindListeners();
+      document.addEventListener(NAVIGATION_START_EVENT, this.navigationStartHandler);
+      document.addEventListener(NAVIGATION_COMPLETE_EVENT, this.navigationCompleteHandler);
+    },
 
-      const main = document.getElementById("main");
-      this.scrollHandler = () => this.updateReadingProgress();
-      main?.addEventListener("scroll", this.scrollHandler, { passive: true });
+    bindListeners() {
+      if (!this.keydownHandler) {
+        this.keydownHandler = (event: KeyboardEvent) => this.handleKeydown(event);
+        window.addEventListener("keydown", this.keydownHandler);
+      }
 
-      this.pjaxSendHandler = () => this.unbindListeners();
-      document.addEventListener("pjax:send", this.pjaxSendHandler);
+      if (!this.scrollHandler) {
+        this.scrollHandler = () => {
+          if (this.scrollFrameId !== null) {
+            return;
+          }
+
+          this.scrollFrameId = window.requestAnimationFrame(() => {
+            this.scrollFrameId = null;
+            this.updateReadingProgress();
+          });
+        };
+        document.getElementById("main")?.addEventListener("scroll", this.scrollHandler, { passive: true });
+      }
     },
 
     jumpToHeading(id: string) {
@@ -108,6 +136,11 @@ export function registerPostViewerComponent() {
       if (this.scrollHandler) {
         document.getElementById("main")?.removeEventListener("scroll", this.scrollHandler);
         this.scrollHandler = null;
+      }
+
+      if (this.scrollFrameId !== null) {
+        window.cancelAnimationFrame(this.scrollFrameId);
+        this.scrollFrameId = null;
       }
     },
 

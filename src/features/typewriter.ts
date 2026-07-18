@@ -1,4 +1,6 @@
-import Alpine from "alpinejs";
+import Alpine from "../common/alpine";
+
+import { prefersReducedMotion } from "../common/motion";
 
 interface TypewriterState {
   _timerId: number | null;
@@ -9,36 +11,39 @@ interface TypewriterState {
 }
 
 export function registerTypewriterComponent() {
-  Alpine.data(
-    "typewriter",
-    (text: string = "", speed: number = 50): TypewriterState => ({
-      _timerId: null,
-      destroy() {
+  Alpine.data("typewriter", (text: string = "", speed: number = 50): TypewriterState => ({
+    _timerId: null,
+    destroy() {
+      if (this._timerId !== null) {
+        window.clearInterval(this._timerId);
+        this._timerId = null;
+      }
+    },
+    display: "",
+    init() {
+      this.destroy();
+      if (prefersReducedMotion()) {
+        this.display = this.text;
+        return;
+      }
+
+      let index = 0;
+      this.display = "";
+      const typedSpeed = Number.isFinite(speed) ? Math.max(1, speed) : 50;
+
+      this._timerId = window.setInterval(() => {
+        if (index < this.text.length) {
+          this.display += this.text.charAt(index);
+          index += 1;
+          return;
+        }
+
         if (this._timerId !== null) {
           window.clearInterval(this._timerId);
           this._timerId = null;
         }
-      },
-      display: "",
-      init() {
-        let index = 0;
-        this.display = "";
-        const typedSpeed = typeof speed === "number" ? speed : 50;
-
-        this._timerId = window.setInterval(() => {
-          if (index < this.text.length) {
-            this.display += this.text.charAt(index);
-            index += 1;
-            return;
-          }
-
-          if (this._timerId !== null) {
-            window.clearInterval(this._timerId);
-            this._timerId = null;
-          }
-        }, typedSpeed);
-      },
-      text,
-    }),
-  );
+      }, typedSpeed);
+    },
+    text,
+  }));
 }

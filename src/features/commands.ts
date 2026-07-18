@@ -1,4 +1,3 @@
-import { navigateToUrl } from "../common/navigation";
 import {
   copyArticleLink,
   formatArticleToc,
@@ -13,6 +12,8 @@ import {
   resolvePath,
   virtualPathToUrl,
 } from "../common/virtual-fs";
+import { ensureHomePostsLoaded } from "../common/page-data";
+import { openSearchWidget } from "../common/ui-actions";
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -67,7 +68,7 @@ Navigation:
 
 // ── Command implementations ────────────────────────────────────────
 
-function handleCd(path: string, currentPath: string): CommandResult {
+async function handleCd(path: string, currentPath: string): Promise<CommandResult> {
   if (!path || path === ".") {
     return {};
   }
@@ -79,29 +80,44 @@ function handleCd(path: string, currentPath: string): CommandResult {
   }
 
   const targetPath = resolvePath(path, currentPath);
+  let url = virtualPathToUrl(targetPath);
+
+  const directRootEntry = targetPath.startsWith("~/blog/") && !targetPath.slice("~/blog/".length).includes("/");
+  const builtInDirectory = ["~/blog/archives", "~/blog/categories", "~/blog/tags"].includes(targetPath);
+  if (!url && directRootEntry && !builtInDirectory && window.haloData?.pageType !== "index") {
+    await ensureHomePostsLoaded();
+    url = virtualPathToUrl(targetPath);
+  }
+
+  if (url) {
+    return { navigate: url };
+  }
+
   const content = getDirectoryContent(targetPath);
 
+  if (content === undefined) {
+    return { output: `cd: '${targetPath}' is not loaded on this page` };
+  }
+
   if (!content) {
-    const url = virtualPathToUrl(targetPath);
-    if (url) {
-      return { navigate: url };
-    }
     return { output: `cd: no such file or directory: ${path}` };
   }
 
-  const fileEntry = content.find((item) => item.type === "file" && item.name === path.split("/").pop());
-  if (fileEntry?.permalink) {
-    return { navigate: fileEntry.permalink };
-  }
-
-  // content is already verified non-null from L70 check
-  const url = virtualPathToUrl(targetPath);
-  return url ? { navigate: url } : { newPath: targetPath };
+  return { newPath: targetPath };
 }
 
-function handleLs(args: string, currentPath: string): string {
+async function handleLs(args: string, currentPath: string): Promise<string> {
   const targetPath = args ? resolvePath(args, currentPath) : currentPath;
+
+  if (targetPath === "~/blog" && window.haloData?.pageType !== "index") {
+    await ensureHomePostsLoaded();
+  }
+
   const content = getDirectoryContent(targetPath);
+
+  if (content === undefined) {
+    return `ls: '${targetPath}' is not loaded on this page; use 'cd ${targetPath}' to open it`;
+  }
 
   if (!content) {
     return `ls: cannot access '${targetPath}': No such file or directory`;
@@ -131,8 +147,7 @@ function handleNavPost(direction: "next" | "prev"): CommandResult {
     };
   }
 
-  navigateToUrl(url);
-  return {};
+  return { navigate: url };
 }
 
 function handlePage(next: boolean): CommandResult {
@@ -150,14 +165,11 @@ function handlePage(next: boolean): CommandResult {
     };
   }
 
-  navigateToUrl(targetUrl);
-  return {};
+  return { navigate: targetUrl };
 }
 
 function handleSearch(args: string): CommandResult {
-  const sw = (window as unknown as Record<string, unknown>).SearchWidget;
-  if (typeof sw !== "undefined" && sw && typeof (sw as { open?: unknown }).open === "function") {
-    (sw as { open: () => void }).open();
+  if (openSearchWidget()) {
     return args ? { output: `Search widget opened. Type keyword in the search box: ${args}` } : {};
   }
 
@@ -200,8 +212,8 @@ const commandRegistry = new Map<string, CommandHandler>([
   ["copy", async () => ({ output: await copyArticleLink() })],
   ["help", () => ({ showHelp: true })],
   ["jump", (args) => handleJump(args)],
-  ["ll", (args, path) => ({ output: handleLs(args, path) })],
-  ["ls", (args, path) => ({ output: handleLs(args, path) })],
+  ["ll", async (args, path) => ({ output: await handleLs(args, path) })],
+  ["ls", async (args, path) => ({ output: await handleLs(args, path) })],
   ["next", () => handleNavPost("next")],
   ["npage", () => handlePage(true)],
   ["pd", () => handlePage(true)],

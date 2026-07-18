@@ -1,28 +1,34 @@
 <!doctype html>
 <html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
   <th:block th:fragment="content">
-    <div class="px-2 md:px-0" x-data="postViewer">
+    <div class="min-w-0 px-2 md:px-0" x-data="postViewer">
       <!-- Command Input Simulation -->
-      <div class="text-terminal-green mb-6 flex items-center gap-2">
-        <span class="text-terminal-dim" th:if="${#authentication.name == 'anonymousUser'}"
+      <div
+        class="text-terminal-green mb-3 flex min-w-0 flex-col items-start gap-1 md:mb-4 md:flex-row md:items-center md:gap-2"
+      >
+        <span class="text-terminal-dim min-w-0 break-all" th:if="${#authentication.name == 'anonymousUser'}"
           >guest@<span th:text="${site.title}"></span>:~/blog$</span
         >
-        <span
-          class="text-terminal-dim"
-          th:if="${#authentication.name != 'anonymousUser'}"
-          th:with="currentUser = ${contributorFinder.getContributor(#authentication.name)}"
-        >
-          <span th:text="${currentUser.name}"></span>@<span th:text="${site.title}"></span>:~/blog$
+        <span class="text-terminal-dim min-w-0 break-all" th:if="${#authentication.name != 'anonymousUser'}">
+          <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
+            th:text="${site.title}"
+          ></span
+          >:~/blog$
         </span>
         <span
-          class="typing-effect"
+          class="typing-effect min-w-0 break-words"
           x-data="typewriter('cat ' + $el.getAttribute('data-filename'), 30)"
           th:data-filename="'&quot;' + ${post.spec.title} + '.md&quot;'"
           x-text="display"
         ></span>
       </div>
 
-      <article class="prose prose-invert max-w-none">
+      <article class="prose prose-invert max-w-none min-w-0">
+        <h1
+          th:text="${post.spec.title}"
+          class="border-terminal-green mb-4 border-b-2 border-dashed pb-4 text-3xl break-words md:mb-6"
+        ></h1>
+
         <!-- Reading Progress -->
         <div class="border-terminal-dim text-terminal-dim mb-4 border border-dashed p-2 font-mono text-xs">
           <div class="mb-1 flex items-center justify-between">
@@ -36,56 +42,61 @@
 
         <!-- File Metadata Header -->
         <div
-          class="border-terminal-green bg-terminal-green/20 relative mb-8 overflow-hidden border p-4 font-mono text-xs"
+          class="border-terminal-green bg-terminal-green/20 relative mb-4 overflow-hidden border p-3 font-mono text-xs md:mb-6 md:p-4"
         >
           <div class="bg-terminal-green animate-scanline absolute top-0 left-0 h-1 w-full opacity-20"></div>
-          <div class="grid grid-cols-2 gap-y-2">
+          <div class="grid grid-cols-1 gap-2 break-words sm:grid-cols-2">
             <div><span class="text-terminal-dim">File:</span> <span th:text="${post.spec.title} + '.md'"></span></div>
             <div>
-              <span class="text-terminal-dim">Size:</span>
-              <span th:text="${#strings.length(post.content.content)} + ' bytes'"></span>
+              <span class="text-terminal-dim">Characters:</span>
+              <span th:text="${#strings.length(post.content.content)}"></span>
             </div>
             <div th:with="author = ${contributorFinder.getContributor(post.spec.owner)}">
               <span class="text-terminal-dim">Author:</span>
               <span th:text="${author != null ? author.displayName : post.spec.owner}"></span>
             </div>
             <div>
-              <span class="text-terminal-dim">Created:</span>
-              <span th:text="${#dates.format(post.spec.publishTime, 'yyyy-MM-dd HH:mm:ss')}"></span>
+              <span class="text-terminal-dim">Published:</span>
+              <time
+                th:datetime="${post.spec.publishTime}"
+                th:text="${#dates.format(post.spec.publishTime, 'yyyy-MM-dd HH:mm:ss')}"
+              ></time>
             </div>
           </div>
         </div>
 
         <!-- Article TOC -->
-        <nav
+        <details
           x-show="tocItems.length > 0"
-          class="border-terminal-dim text-terminal-dim mb-8 border border-dashed p-4 font-mono text-xs"
-          aria-label="Article table of contents"
+          x-init="$el.open = window.matchMedia('(min-width: 768px)').matches"
+          class="border-terminal-dim text-terminal-dim mb-4 border border-dashed px-4 font-mono text-xs md:mb-6"
         >
-          <div class="text-terminal-green mb-2">[TOC]</div>
-          <ol class="space-y-1">
-            <template x-for="(item, index) in tocItems" :key="item.id">
-              <li :class="{ 'pl-4': item.level > 2 }">
-                <button
-                  type="button"
-                  class="hover:text-terminal-green cursor-pointer bg-transparent p-0 text-left font-mono text-inherit transition-colors"
-                  @click="jumpToHeading(item.id)"
-                >
-                  <span x-text="String(index + 1).padStart(2, '0')"></span>.
-                  <span x-text="item.text"></span>
-                </button>
-              </li>
-            </template>
-          </ol>
-        </nav>
+          <summary
+            class="text-terminal-green hover:text-terminal-green inline-flex min-h-10 cursor-pointer items-center py-2 md:min-h-0"
+            aria-label="Article table of contents"
+          >
+            [TOC]
+          </summary>
+          <nav aria-label="Article table of contents">
+            <ol class="space-y-1 pb-3">
+              <template x-for="(item, index) in tocItems" :key="item.id">
+                <li :class="{ 'pl-4': item.level > 2 }">
+                  <button
+                    type="button"
+                    class="hover:text-terminal-green inline-flex min-h-10 cursor-pointer items-center bg-transparent p-0 text-left font-mono text-inherit transition-colors md:min-h-0"
+                    @click="jumpToHeading(item.id)"
+                  >
+                    <span x-text="String(index + 1).padStart(2, '0')"></span>.
+                    <span x-text="item.text"></span>
+                  </button>
+                </li>
+              </template>
+            </ol>
+          </nav>
+        </details>
 
         <!-- Post Content -->
-        <div class="terminal-content">
-          <h1
-            th:text="${post.spec.title}"
-            class="border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-3xl"
-          ></h1>
-
+        <div class="terminal-content max-w-full min-w-0">
           <th:block th:utext="${post.content.content}"> </th:block>
         </div>
       </article>
@@ -95,22 +106,22 @@
 
       <!-- Comments -->
       <section
-        th:if="${theme.config.features?.show_comments == true}"
+        th:if="${theme.config.features?.show_comments == true and haloCommentEnabled}"
+        data-navigation-exit="full"
         class="terminal-comments border-terminal-dim mb-8 border border-dashed p-4"
       >
-        <div class="text-terminal-green mb-4 font-mono text-xs">[COMMENTS]</div>
+        <h2 class="text-terminal-green mb-4 font-mono text-xs">[COMMENTS]</h2>
         <halo:comment group="content.halo.run" kind="Post" th:attr="name=${post.metadata.name}"></halo:comment>
       </section>
 
       <!-- Back Button -->
       <div class="mb-8">
-        <button
-          type="button"
-          data-terminal-action="back"
-          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black cursor-pointer border bg-transparent px-4 py-1 font-mono transition-colors"
+        <a
+          th:href="@{/}"
+          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black inline-block border px-4 py-1 font-mono transition-colors"
         >
           cd ..
-        </button>
+        </a>
       </div>
     </div>
   </th:block>
