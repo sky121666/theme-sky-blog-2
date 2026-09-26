@@ -27,7 +27,15 @@
         th:if="${#lists.isEmpty(archives.items)}"
         class="text-terminal-dim border-terminal-dim border border-dashed p-3 md:p-4"
       >
-        No archived posts found.
+        <span th:if="${archives.total == 0}">No archived posts found.</span>
+        <span th:if="${archives.total > 0}" data-empty-page>
+          No archives on this page.
+          <a
+            th:href="@{${site.routes.archivesUri}}"
+            class="text-terminal-green underline decoration-dotted underline-offset-4"
+            >Return to the first page</a
+          >.
+        </span>
       </div>
 
       <section th:each="archive : ${archives.items}" class="mb-4 md:mb-8">
@@ -69,7 +77,7 @@
       </section>
 
       <nav
-        th:if="${archives.hasPrevious() || archives.hasNext()}"
+        th:if="${!#lists.isEmpty(archives.items) and (archives.hasPrevious() or archives.hasNext())}"
         class="mt-4 flex flex-wrap gap-4 text-sm md:mt-8"
         aria-label="Archives pagination"
       >

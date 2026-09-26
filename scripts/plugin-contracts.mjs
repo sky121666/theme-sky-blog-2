@@ -417,8 +417,8 @@ function validateVersionAndEvidenceContract(files, issues) {
   if (!parseMinimumRange(versionContext.context.shikiHaloRequires ?? "")) {
     addIssue(issues, "version-context", "shikiHaloRequires 必须是 >=x.y.z");
   }
-  if (versionContext.context.themeHaloRequires !== themeRequires) {
-    addIssue(issues, "version-context", "themeHaloRequires 必须动态匹配 theme.yaml spec.requires");
+  if (!parseMinimumRange(versionContext.context.themeHaloRequires ?? "")) {
+    addIssue(issues, "version-context", "历史 themeHaloRequires 必须是 >=x.y.z");
   }
 
   if (!parseMinimumRange(themeRequires)) {
@@ -427,8 +427,10 @@ function validateVersionAndEvidenceContract(files, issues) {
   if (!parseSemver(themeVersion)) {
     addIssue(issues, "theme-version", `theme.yaml spec.version 必须是 x.y.z，当前为 ${themeVersion || "空"}`);
   }
-  if (!satisfiesMinimum(versionContext.context.runtimeHaloVersion ?? "", themeRequires)) {
-    addIssue(issues, "halo-version", "当前 Halo 运行版本不满足主题核心最低版本");
+  if (
+    !satisfiesMinimum(versionContext.context.runtimeHaloVersion ?? "", versionContext.context.themeHaloRequires ?? "")
+  ) {
+    addIssue(issues, "halo-version", "历史 Halo 运行版本不满足当时的主题最低版本");
   }
   if (
     !satisfiesMinimum(versionContext.context.runtimeHaloVersion ?? "", versionContext.context.shikiHaloRequires ?? "")
@@ -439,8 +441,8 @@ function validateVersionAndEvidenceContract(files, issues) {
     issues,
     "shiki-version",
     document,
-    /plugin-shiki[^\n]*可选插件[^\n]*不会把主题核心最低版本[^\n]*>=2\.23\.0/,
-    "文档必须说明 Shiki 是可选插件，不能因此抬高主题核心最低版本",
+    /plugin-shiki[^\n]*可选插件[^\n]*不会把此历史快照的主题最低版本[^\n]*>=2\.23\.0/,
+    "历史文档必须说明 Shiki 是可选插件，不能因此抬高当时的主题最低版本",
   );
 
   const inventoryByPlugin = new Map(inventory.rows.map((row) => [row.plugin, row]));
@@ -1134,7 +1136,7 @@ function runCli() {
     console.log("Plugin compatibility contract validation passed.");
     console.log(`- Matrix rows: ${result.matrixRows.length}`);
     console.log(`- Evidence records: ${result.evidenceRows.length}`);
-    console.log(`- Halo runtime: ${result.context.runtimeHaloVersion}`);
+    console.log(`- Historical snapshot Halo runtime: ${result.context.runtimeHaloVersion}`);
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exitCode = 1;

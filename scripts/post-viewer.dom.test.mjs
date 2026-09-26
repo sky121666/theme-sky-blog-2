@@ -102,6 +102,33 @@ test("post keyboard controls cover directional, paging, and boundary scrolling",
   assert.equal(editorEvent.defaultPrevented, false);
 });
 
+test("focused reader landmark keeps shortcuts while nested controls keep their own keys", () => {
+  const main = document.getElementById("main");
+  const button = document.createElement("button");
+  main.append(button);
+  main.tabIndex = 0;
+  let scrollCount = 0;
+  main.scrollBy = () => (scrollCount += 1);
+
+  try {
+    main.focus();
+    const readerKey = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "j" });
+    main.dispatchEvent(readerKey);
+    assert.equal(readerKey.defaultPrevented, true);
+    assert.equal(scrollCount, 1);
+
+    button.focus();
+    const controlKey = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "j" });
+    button.dispatchEvent(controlKey);
+    assert.equal(controlKey.defaultPrevented, false);
+    assert.equal(scrollCount, 1);
+  } finally {
+    button.remove();
+    main.tabIndex = -1;
+    main.blur();
+  }
+});
+
 test("scroll events update and clamp reading progress through one animation frame", async () => {
   const main = document.getElementById("main");
   Object.defineProperty(main, "clientHeight", { configurable: true, value: 500 });

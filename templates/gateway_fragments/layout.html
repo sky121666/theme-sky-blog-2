@@ -145,11 +145,29 @@
           LOGOUT
         </h1>
 
-        <!-- Warning Text -->
+        <!-- Page-specific guidance; form errors are rendered by the form itself. -->
         <div class="border-terminal-green/30 mb-8 border-b border-dashed pb-6 text-center">
-          <p class="mb-2 animate-pulse font-bold tracking-widest text-red-500">[ ACCESS DENIED ]</p>
-          <p class="text-terminal-dim text-xs">Protected Resource. Credentials Required.</p>
-          <p class="text-terminal-green/35 mt-1 text-[10px]">IP: [PROTECTED] LOGGED</p>
+          <p
+            th:if="${pageType == null or pageType == 'login'}"
+            class="text-terminal-green mb-2 font-bold tracking-widest"
+          >
+            [ READY FOR LOGIN ]
+          </p>
+          <p th:if="${pageType == 'signup'}" class="text-terminal-green mb-2 font-bold tracking-widest">
+            [ CREATE ACCOUNT ]
+          </p>
+          <p th:if="${pageType == 'reset'}" class="text-terminal-green mb-2 font-bold tracking-widest">
+            [ RECOVER ACCESS ]
+          </p>
+          <p th:if="${pageType == 'logout'}" class="text-terminal-green mb-2 font-bold tracking-widest">
+            [ END SESSION ]
+          </p>
+          <p class="text-terminal-dim text-xs" th:if="${pageType == null or pageType == 'login'}">
+            输入账号和密码以继续。
+          </p>
+          <p class="text-terminal-dim text-xs" th:if="${pageType == 'signup'}">填写信息以创建账号。</p>
+          <p class="text-terminal-dim text-xs" th:if="${pageType == 'reset'}">按下方步骤重置密码。</p>
+          <p class="text-terminal-dim text-xs" th:if="${pageType == 'logout'}">确认后结束当前会话。</p>
         </div>
 
         <!-- Injected Body (The Form) -->

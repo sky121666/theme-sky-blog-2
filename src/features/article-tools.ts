@@ -109,7 +109,7 @@ export async function copyArticleLink() {
     return "copy: only available on post pages";
   }
 
-  const url = window.haloData.currentPost?.permalink ?? window.location.href;
+  const url = new URL(window.haloData.currentPost?.permalink || window.location.href, window.location.href).href;
 
   try {
     await navigator.clipboard.writeText(url);

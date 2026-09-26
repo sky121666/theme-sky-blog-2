@@ -54,6 +54,20 @@ export function registerFileListNavComponent() {
     },
 
     handleKeydown(event: KeyboardEvent) {
+      // Focused list links may use plain arrows and Enter, but modifier keys,
+      // composition, repeats, and events handled elsewhere keep their meaning.
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        event.repeat ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.shiftKey
+      ) {
+        return;
+      }
+
       const eventTarget = event.target;
       const targetIsCurrentListItem =
         eventTarget instanceof Element && this.$el.contains(eventTarget) && eventTarget.closest("[data-nav-item]");

@@ -74,6 +74,17 @@ test("current repository satisfies the local plugin compatibility contract", () 
   );
 });
 
+test("the historical Halo floor remains a snapshot when the current theme floor rises", () => {
+  const files = loadFiles();
+  assert.match(files["theme.yaml"], /requires: ">=2\.26\.0"/);
+  assert.match(files["docs/plugin-adaptation.md"], /\| themeHaloRequires\s+\| `>=2\.23\.0`/);
+
+  const olderRuntime = updateFile(files, "docs/plugin-adaptation.md", (document) =>
+    document.replace(/\| runtimeHaloVersion\s+\| `2\.25\.4`/, "| runtimeHaloVersion | `2.22.0`"),
+  );
+  assertHasIssue(validatePluginContracts(olderRuntime), "历史 Halo 运行版本不满足当时的主题最低版本");
+});
+
 test("matrix parser keeps installed, source, contract, and tested versions separate", () => {
   const document = loadFiles()["docs/plugin-adaptation.md"];
   const matrix = parseCompatibilityMatrix(document);

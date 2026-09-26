@@ -1,6 +1,8 @@
-# 主题本地插件兼容契约
+# 主题本地插件兼容契约（2026-07 历史快照）
 
-本文档是 Sky Blog 2 的插件兼容矩阵唯一版本真值。验证器从本矩阵读取版本并检查运行态、矩阵与证据账本的内部一致性，不再复制一套硬编码版本。它记录主题实际依赖的插件表面，并严格区分以下四类版本：
+本页保留 2026-07-17/18 的旧运行环境、旧版插件及当时的真页证据；当前目标版本、工作区改动和新版页面结果见 [2026-09-24 升级记录](upgrade-2026-09-24.md)。旧表中的 `confirmed` 只适用于其记录的 Halo、插件、主题和日期，不表示本次构建已经在旧组合或所有新版功能面通过。验证器继续用此历史基线检查四个主题集成守卫，不能将其输出的旧 Halo 版本当作当前站点版本。
+
+本历史矩阵严格区分以下四类版本：
 
 - `Installed version`：本次运行环境里安装且启用的版本。
 - `Shared source baseline`：全局 `halo-plugin-*` source skill 当前维护的源码基线；没有对应 skill 时必须写 `unavailable`。
@@ -16,10 +18,10 @@
 | snapshotDate       | `2026-07-17` | 本地 Halo、应用市场和共享 source skill 的同日审计快照 |
 | runtimeTarget      | `local Halo` | 当前主题真页验证环境                                  |
 | runtimeHaloVersion | `2.25.4`     | 本地 Halo 运行态                                      |
-| themeHaloRequires  | `>=2.23.0`   | `theme.yaml` 的主题核心最低版本                       |
+| themeHaloRequires  | `>=2.23.0`   | 2026-07 当时的 `theme.yaml` 主题最低版本              |
 | shikiHaloRequires  | `>=2.25.0`   | `plugin-shiki` 1.4.1 的插件运行最低版本               |
 
-`plugin-shiki` 是可选插件。它的 `>=2.25.0` 只约束启用该插件的 Halo 运行环境，不会把主题核心最低版本从 `>=2.23.0` 抬高。
+`plugin-shiki` 是可选插件。它的 `>=2.25.0` 只约束启用该插件的 Halo 运行环境，不会把此历史快照的主题最低版本从 `>=2.23.0` 抬高；本版实际最低版本以当前 `theme.yaml` 为准。
 
 ## Runtime inventory
 

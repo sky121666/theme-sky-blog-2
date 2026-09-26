@@ -23,7 +23,12 @@ const INTERACTIVE_SELECTOR = [
 ].join(",");
 
 export function isInteractiveEventTarget(event: Event) {
-  return event.composedPath().some((target) => target instanceof Element && target.matches(INTERACTIVE_SELECTOR));
+  return event
+    .composedPath()
+    .some(
+      (target) =>
+        target instanceof Element && target !== document.getElementById("main") && target.matches(INTERACTIVE_SELECTOR),
+    );
 }
 
 export function shouldIgnoreGlobalKeyboardEvent(event: KeyboardEvent) {

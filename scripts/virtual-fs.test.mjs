@@ -7,6 +7,7 @@ const environment = installDom("<!doctype html><html><head></head><body></body><
 const { dispatchCommand } = await import("../src/features/commands.ts");
 const {
   getCurrentUser,
+  getCurrentIndexPageContent,
   getDirectoryContent,
   getParentPath,
   getPostName,
@@ -174,6 +175,22 @@ test("directory content maps home, archive, taxonomy, and author page payloads",
   });
   assert.equal(getDirectoryContent("~/blog/authors/sky")?.[0].name, "Hello");
   assert.equal(getDirectoryContent("~/blog/unknown"), null);
+});
+
+test("index view lists only its rendered folders and current-page posts", () => {
+  const homePost = { spec: { slug: "first", title: "First page" } };
+  const secondPost = { spec: { slug: "second", title: "Second page" } };
+  window.haloData = createHaloData({ currentPosts: [secondPost], homePosts: [homePost] });
+  document.body.innerHTML = '<main id="main"><a id="link-categories" href="/categories">categories/</a></main>';
+
+  assert.deepEqual(
+    getCurrentIndexPageContent().map((entry) => entry.name),
+    ["categories", "Second page"],
+  );
+  assert.deepEqual(
+    getDirectoryContent("~/blog")?.map((entry) => entry.name),
+    ["categories", "tags", "archives", "First page"],
+  );
 });
 
 test("virtual URLs prefer current records and fall back only to safe route mappings", () => {

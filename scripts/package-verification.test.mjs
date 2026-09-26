@@ -53,12 +53,14 @@ test("rejects missing, duplicate, forbidden, and wrapped package entries", () =>
     "theme.yaml",
     "theme.yaml",
     "package.json",
+    "pnpm-workspace.yaml",
     "templates/index.html",
   ]);
 
   assert.ok(errors.some((error) => error.includes("Unexpected package root entry")));
   assert.ok(errors.some((error) => error.includes("Duplicate package entry: theme.yaml")));
   assert.ok(errors.some((error) => error.includes("Forbidden package entry: package.json")));
+  assert.ok(errors.some((error) => error.includes("Forbidden package entry: pnpm-workspace.yaml")));
   assert.ok(errors.some((error) => error.includes("Missing required package file: LICENSE")));
   assert.ok(errors.some((error) => error.includes("templates/assets/main.css")));
 });

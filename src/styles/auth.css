@@ -113,6 +113,25 @@
   border-bottom-style: solid;
 }
 
+/* auth-passkey 1.0.4 injects these status messages into the shared login form. */
+.auth-form-terminal :is(#passkey-error, #passkey-warn) {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid currentColor;
+  background: color-mix(in srgb, currentColor 8%, var(--terminal-bg));
+  font-family: var(--terminal-font-family);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+.auth-form-terminal #passkey-error {
+  color: #ef4444;
+}
+
+.auth-form-terminal #passkey-warn {
+  color: var(--terminal-text);
+}
+
 /* ========================================
    ALTCHA Security Verification Widget
    ======================================== */

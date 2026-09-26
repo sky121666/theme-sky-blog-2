@@ -106,23 +106,29 @@ const checks = [
       content.includes("<halo:comment") && content.includes("</halo:comment>") && content.includes("show_comments"),
   },
   {
+    file: "theme.yaml",
+    message: "theme should require the Halo 2.26 layout baseline",
+    test: (content) => /^ {2}requires: ["']>=2\.26\.0["']$/m.test(content),
+  },
+  {
     file: "README.md",
-    message: "README should document the official comment widget dependency and canonical contract",
+    message: "README should distinguish the current plugin results from the historical contract",
     test: (content) =>
       content.includes("PluginCommentWidget") &&
+      content.includes("docs/upgrade-2026-09-24.md") &&
       content.includes("docs/plugin-adaptation.md") &&
-      content.includes("唯一真值") &&
-      content.includes("Halo `>=2.23.0`"),
+      content.includes("2026-07 历史插件契约") &&
+      content.includes("Halo `>=2.26.0`"),
   },
   {
     file: "README.md",
     message: "README should document the actual Node.js and pnpm requirements",
     test: (content) =>
-      content.includes("`^22.22.1 || ^24.0.0`") &&
-      content.includes("CI 使用 Node.js 22.22.1 与 Node.js 24") &&
-      content.includes("CD 使用 Node.js 24") &&
-      content.includes("pnpm 10.x") &&
-      content.includes("pnpm 10.34.5") &&
+      content.includes("`^24.15.0`") &&
+      content.includes("CI 覆盖 Node.js 24.15.0 与最新 Node.js 24") &&
+      content.includes("CD 使用最新 Node.js 24") &&
+      content.includes("pnpm 12.x") &&
+      content.includes("pnpm 12.6.0") &&
       !content.includes("Node.js 20.19+ 或 22.12+"),
   },
   {
@@ -167,10 +173,10 @@ const checks = [
     test: (content) => {
       const manifest = parsePackageManifest(content);
       return (
-        manifest?.engines?.node === "^22.22.1 || ^24.0.0" &&
-        manifest?.engines?.pnpm === ">=10.6.5 <11" &&
+        manifest?.engines?.node === "^24.15.0" &&
+        manifest?.engines?.pnpm === ">=12.6.0 <13" &&
         !("packageManager" in manifest) &&
-        manifest?.devDependencies?.["@types/node"] === "^22.20.1" &&
+        manifest?.devDependencies?.["@types/node"] === "^24.13.6" &&
         !("pjax" in (manifest.dependencies || {})) &&
         !("pjax" in (manifest.devDependencies || {})) &&
         !("@typescript-eslint/eslint-plugin" in manifest.devDependencies) &&
@@ -321,7 +327,7 @@ const checks = [
   },
   {
     file: ".github/workflows/ci.yaml",
-    message: "CI should use immutable Node 24 actions and validate the supported Node LTS matrix with least privilege",
+    message: "CI should validate the Node 24 support floor and current Node 24 with least privilege",
     test: (content) => {
       const validate = parseWorkflowJobs(content).get("validate");
       const actionReferences = collectActionReferences(content);
@@ -333,9 +339,10 @@ const checks = [
         jobUses(validate, PINNED_ACTIONS.checkout) &&
         jobHasKeyValue(validate, "persist-credentials", "false") &&
         jobUses(validate, PINNED_ACTIONS.pnpmSetup) &&
-        jobHasKeyValue(validate, "version", "10.34.5") &&
+        jobHasKeyValue(validate, "version", "12.6.0") &&
+        jobHasKeyValue(validate, "install", "false") &&
         jobUses(validate, PINNED_ACTIONS.setupNode) &&
-        jobHasKeyValue(validate, "node-version", '["22.22.1", "24"]') &&
+        jobHasKeyValue(validate, "node-version", '["24.15.0", "24"]') &&
         jobHasKeyValue(validate, "node-version", "${{ matrix.node-version }}") &&
         jobHasRun(validate, "pnpm install --frozen-lockfile") &&
         jobHasRun(validate, "pnpm check") &&
@@ -378,7 +385,8 @@ const checks = [
         jobHasKeyValue(build, "fetch-tags", "true") &&
         jobHasKeyValue(build, "persist-credentials", "false") &&
         jobUses(build, PINNED_ACTIONS.pnpmSetup) &&
-        jobHasKeyValue(build, "version", "10.34.5") &&
+        jobHasKeyValue(build, "version", "12.6.0") &&
+        jobHasKeyValue(build, "install", "false") &&
         jobUses(build, PINNED_ACTIONS.setupNode) &&
         jobHasKeyValue(build, "node-version", "24") &&
         jobRunCount(build, "pnpm install --frozen-lockfile") === 1 &&
@@ -492,6 +500,7 @@ const checks = [
       content.includes("export const PACKAGE_FORBIDDEN_PATTERNS") &&
       [
         "pnpm-lock\\.yaml",
+        "pnpm-workspace\\.yaml",
         "package\\.json",
         "scripts\\/",
         "node_modules\\/",

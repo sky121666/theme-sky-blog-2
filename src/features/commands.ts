@@ -7,6 +7,7 @@ import {
 } from "./article-tools";
 import {
   getCurrentUser,
+  getCurrentIndexPageContent,
   getDirectoryContent,
   getParentPath,
   resolvePath,
@@ -85,7 +86,7 @@ async function handleCd(path: string, currentPath: string): Promise<CommandResul
   const directRootEntry = targetPath.startsWith("~/blog/") && !targetPath.slice("~/blog/".length).includes("/");
   const builtInDirectory = ["~/blog/archives", "~/blog/categories", "~/blog/tags"].includes(targetPath);
   if (!url && directRootEntry && !builtInDirectory && window.haloData?.pageType !== "index") {
-    await ensureHomePostsLoaded();
+    await ensureHomePostsLoaded({ waitForRefresh: true });
     url = virtualPathToUrl(targetPath);
   }
 
@@ -106,14 +107,55 @@ async function handleCd(path: string, currentPath: string): Promise<CommandResul
   return { newPath: targetPath };
 }
 
-async function handleLs(args: string, currentPath: string): Promise<string> {
-  const targetPath = args ? resolvePath(args, currentPath) : currentPath;
-
-  if (targetPath === "~/blog" && window.haloData?.pageType !== "index") {
-    await ensureHomePostsLoaded();
+function formatDirectoryDate(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
   }
 
-  const content = getDirectoryContent(targetPath);
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "—";
+  }
+
+  const parts = new Intl.DateTimeFormat(document.documentElement.lang || "zh-CN", {
+    day: "2-digit",
+    hour: "2-digit",
+    hourCycle: "h23",
+    minute: "2-digit",
+    month: "short",
+  }).formatToParts(date);
+  const part = (type: string) => parts.find((item) => item.type === type)?.value || "";
+  const monthIndex = parts.findIndex((item) => item.type === "month");
+  const monthSuffix = parts[monthIndex + 1]?.type === "literal" ? parts[monthIndex + 1].value.trim() : "";
+  return `${part("month")}${monthSuffix} ${part("day")} ${part("hour")}:${part("minute")}`;
+}
+
+async function handleLs(args: string, currentPath: string): Promise<string> {
+  const targetPath = args ? resolvePath(args, currentPath) : currentPath;
+  const currentIndexPage = !args && targetPath === "~/blog" && window.haloData?.pageType === "index";
+
+  if (targetPath === "~/blog" && !currentIndexPage) {
+    await ensureHomePostsLoaded({ waitForRefresh: true });
+  }
+
+  let content = currentIndexPage ? getCurrentIndexPageContent() : getDirectoryContent(targetPath);
+
+  if (content === null && args) {
+    const parentPath = getParentPath(targetPath);
+    const segment = targetPath.slice(parentPath.length + 1);
+    const parentContent = getDirectoryContent(parentPath) ?? [];
+    const currentPageFiles =
+      parentPath === "~/blog" && window.haloData?.pageType === "index"
+        ? getCurrentIndexPageContent().filter((entry) => entry.type === "file")
+        : [];
+    const entry = [...currentPageFiles, ...parentContent].find((item) => (item.slug || item.name) === segment);
+
+    if (entry?.type === "file") {
+      content = [entry];
+    } else if (entry?.type === "dir") {
+      return `ls: '${targetPath}' is not loaded on this page; use 'cd ${targetPath}' to open it`;
+    }
+  }
 
   if (content === undefined) {
     return `ls: '${targetPath}' is not loaded on this page; use 'cd ${targetPath}' to open it`;
@@ -130,12 +172,12 @@ async function handleLs(args: string, currentPath: string): Promise<string> {
   const lines = content.map((item) => {
     const permissions = item.type === "dir" ? "drwxr-xr-x" : "-rw-r--r--";
     const size = item.type === "dir" ? "-" : "4.0K";
-    const date = item.date ?? "Mar 30 12:00";
+    const date = formatDirectoryDate(item.date);
     const suffix = item.type === "dir" ? "/" : "";
     return `${permissions}  ${size} ${getCurrentUser()}  staff  ${date}  ${item.name}${suffix}`;
   });
 
-  return `Total ${content.length}\n${lines.join("\n")}`;
+  return `Showing ${content.length} ${content.length === 1 ? "entry" : "entries"} ${args ? `in ${targetPath}` : "on this page"}\n${lines.join("\n")}`;
 }
 
 function handleNavPost(direction: "next" | "prev"): CommandResult {
@@ -151,6 +193,10 @@ function handleNavPost(direction: "next" | "prev"): CommandResult {
 }
 
 function handlePage(next: boolean): CommandResult {
+  if (document.querySelector("[data-empty-page]")) {
+    return { output: "No items on this page. Use the first-page link to return." };
+  }
+
   const pagination = window.haloData?.pagination;
 
   if (!pagination) {

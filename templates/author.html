@@ -96,10 +96,20 @@
         </li>
       </ul>
 
-      <p th:if="${#lists.isEmpty(posts.items)}" class="text-terminal-dim mt-3 text-sm md:mt-6">No posts found.</p>
+      <p th:if="${#lists.isEmpty(posts.items)}" class="text-terminal-dim mt-3 text-sm md:mt-6">
+        <span th:if="${posts.total == 0}">No posts found.</span>
+        <span th:if="${posts.total > 0}" data-empty-page>
+          No posts on this page.
+          <a
+            th:href="@{${author.status.permalink}}"
+            class="text-terminal-green underline decoration-dotted underline-offset-4"
+            >Return to the first page</a
+          >.
+        </span>
+      </p>
 
       <nav
-        th:if="${posts.hasPrevious() || posts.hasNext()}"
+        th:if="${!#lists.isEmpty(posts.items) and (posts.hasPrevious() or posts.hasNext())}"
         class="mt-4 flex flex-wrap gap-4 text-sm md:mt-8"
         aria-label="Author posts pagination"
       >

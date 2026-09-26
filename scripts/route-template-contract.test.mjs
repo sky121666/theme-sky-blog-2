@@ -18,6 +18,18 @@ const CONTENT_ROUTES = [
   "templates/page.html",
 ];
 
+test("public layout accepts plugin head and content without relying on content-route variables", () => {
+  const layout = read("templates/layout.html");
+  assert.match(layout, /th:fragment="html \(head, content\)"/);
+  assert.match(layout, /<title th:if="\$\{head == null\}" th:text="\$\{site\.title\}"/);
+  assert.match(layout, /th:replace="\$\{head\}"/);
+  assert.match(layout, /th:replace="\$\{content\}"/);
+  assert.match(layout, /th:href="@\{\/assets\/main\.css\?v=/);
+  assert.match(layout, /modules\/theme-style :: themeStyle/);
+  assert.match(layout, /<halo:footer\s*\/>/);
+  assert.doesNotMatch(layout, /\$\{(?:post|singlePage)\./);
+});
+
 test("every content route delegates to the shared layout with one content fragment", () => {
   for (const path of CONTENT_ROUTES) {
     const template = read(path);
@@ -63,8 +75,9 @@ test("every paginated route exposes a named navigation landmark", () => {
 
 test("layout page-data payload contains every runtime field exactly once", () => {
   const layout = read("templates/modules/layout.html");
-  const payload = layout.match(/<script id="halo-page-data"[\s\S]*?<\/script>/)?.[0];
+  const payload = layout.match(/<script\b[^>]*\bid="halo-page-data"[\s\S]*?<\/script>/)?.[0];
   assert.ok(payload, "missing #halo-page-data payload");
+  assert.match(layout, /postFinder\.cursor\(post\.metadata\.name\)/);
   const topLevelKeyLines = payload
     .split("\n")
     .map((line) => ({ indent: line.match(/^\s*/)?.[0].length ?? 0, line }))
@@ -151,8 +164,17 @@ test("comment routes retain the opt-in guard and full-navigation cleanup boundar
 test("error route remains independent, responsive, and screen-reader safe", () => {
   const template = read("templates/error/error.html");
   assert.doesNotMatch(template, /modules\/layout/);
-  assert.match(template, /<title th:text="\$\{error\.status\}/);
-  assert.match(template, /aria-hidden="true"/);
+  assert.match(template, /<title th:text="\|\$\{error\.status\} - \$\{site\.title\}\|"/);
+  assert.match(template, /<main\b/);
+  assert.match(template, /<h1 id="error-heading"/);
+  assert.match(template, /aria-label="恢复操作"/);
+  assert.match(template, /error\.status == 404/);
+  assert.match(template, /error\.status == 401/);
+  assert.match(template, /error\.status == 403/);
+  assert.match(template, /error\.status == 429/);
+  assert.match(template, /error\.status >= 500/);
+  assert.doesNotMatch(template, /\$\{error\.(?:detail|title)\}/);
   assert.match(template, /th:href="@\{\/\}"/);
-  assert.match(template, /overflow-x-auto/);
+  assert.match(template, /min-w-0/);
+  assert.match(template, /min-h-11/);
 });

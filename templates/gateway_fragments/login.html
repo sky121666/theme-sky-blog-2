@@ -83,17 +83,11 @@
       <span>OTHER LOGIN METHODS</span>
       <span class="bg-terminal-green/20 h-px flex-1"></span>
     </div>
-    <ul class="pill-items flex justify-center gap-4">
+    <ul class="pill-items terminal-provider-list">
       <li th:each="provider : ${formAuthProviders}">
-        <a
-          th:href="@{/login(method=${provider.metadata.name})}"
-          class="border-terminal-dim hover:border-terminal-green block border p-2 transition-all hover:shadow-[0_0_10px_var(--terminal-glow)]"
-        >
-          <img
-            th:src="${provider.spec.logo}"
-            th:alt="|${provider.spec.displayName}'s icon|"
-            class="h-6 w-6 grayscale hover:grayscale-0"
-          />
+        <a th:href="@{/login(method=${provider.metadata.name})}" class="terminal-provider-choice">
+          <span aria-hidden="true">&gt;</span>
+          <span th:text="${provider.metadata.name == 'passkey' ? 'PASSKEY' : provider.spec.displayName}"></span>
         </a>
       </li>
     </ul>

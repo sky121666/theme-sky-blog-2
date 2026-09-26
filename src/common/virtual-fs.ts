@@ -47,6 +47,19 @@ export function mapPostsToDirectoryEntries(posts: HaloPostRecord[]): DirectoryEn
   }));
 }
 
+export function getCurrentIndexPageContent(): DirectoryEntry[] {
+  const main = document.getElementById("main");
+  const rootDirectories = getDirectoryContent("~/blog") ?? [];
+  const visibleDirectories = rootDirectories.filter(
+    (entry) =>
+      entry.type === "dir" &&
+      (entry.name === "categories" || entry.name === "tags") &&
+      main?.querySelector(`#link-${entry.name}`),
+  );
+
+  return [...visibleDirectories, ...mapPostsToDirectoryEntries(window.haloData?.currentPosts || [])];
+}
+
 export function getDirectoryContent(path: string): DirectoryEntry[] | null | undefined {
   if (path === "~/blog") {
     return [

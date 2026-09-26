@@ -1,19 +1,24 @@
 <!doctype html>
 <html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
   <th:block th:fragment="content">
-    <div class="min-w-0 px-2 md:px-0">
+    <div
+      class="min-w-0 px-2 md:px-0"
+      th:with="displaySlug=${#strings.startsWith(singlePage.spec.slug, '/') ? singlePage.spec.slug.substring(1) : singlePage.spec.slug}"
+    >
       <div class="text-terminal-green mb-6 flex min-w-0 items-center gap-2">
-        <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name == 'anonymousUser'}"
-          >guest@<span th:text="${site.title}"></span>:~/blog/pages/<span th:text="${singlePage.spec.slug}"></span
-          >$</span
+        <span class="text-terminal-dim min-w-0 truncate" th:if="${#authentication.name == 'anonymousUser'}"
+          ><span class="hidden sm:inline">guest@<span th:text="${site.title}"></span>:~/blog/pages/</span
+          ><span class="sm:hidden">~/pages/</span><span th:text="${displaySlug}"></span>$</span
         >
-        <span class="text-terminal-dim min-w-0" th:if="${#authentication.name != 'anonymousUser'}">
-          <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
-            th:text="${site.title}"
-          ></span
-          >:~/blog/pages/<span th:text="${singlePage.spec.slug}"></span>$
+        <span class="text-terminal-dim min-w-0 truncate" th:if="${#authentication.name != 'anonymousUser'}">
+          <span class="hidden sm:inline"
+            ><span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
+              th:text="${site.title}"
+            ></span
+            >:~/blog/pages/</span
+          ><span class="sm:hidden">~/pages/</span><span th:text="${displaySlug}"></span>$
         </span>
-        <span class="typing-effect truncate" x-data="typewriter('cat page.md', 30)" x-text="display"></span>
+        <span class="typing-effect shrink-0" x-data="typewriter('cat page.md', 30)" x-text="display"></span>
       </div>
 
       <article class="prose prose-invert max-w-none min-w-0">

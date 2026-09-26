@@ -59,3 +59,28 @@ test("opening search again replaces the previous focus-restoration listener", as
   await new Promise((resolve) => window.requestAnimationFrame(resolve));
   assert.equal(document.activeElement, trigger);
 });
+
+test("article back skips same-document hash entries to return to its source", async () => {
+  window.history.replaceState({}, "", "/source");
+  window.history.pushState(
+    { themePreviousUrl: "https://blog.example.com/source", themeSourceHistoryDepth: 1 },
+    "",
+    "/article",
+  );
+  window.history.pushState(
+    { themePreviousUrl: "https://blog.example.com/source", themeSourceHistoryDepth: 2 },
+    "",
+    "/article#section",
+  );
+  const back = document.createElement("button");
+  back.dataset.terminalAction = "source-back";
+  back.dataset.homeUrl = "/";
+  document.body.append(back);
+  initUiActions(back.parentElement);
+
+  const returned = new Promise((resolve) => window.addEventListener("popstate", resolve, { once: true }));
+  back.click();
+  await returned;
+  assert.equal(window.location.pathname, "/source");
+  assert.equal(window.location.hash, "");
+});

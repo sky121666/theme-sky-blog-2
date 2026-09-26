@@ -113,6 +113,52 @@
 <th:block th:fragment="basicStyleResources">
   <link rel="stylesheet" th:href="@{/webjars/normalize.css/8.0.1/normalize.css}" />
   <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+  <style>
+    .auth-form-terminal .terminal-provider-list {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .auth-form-terminal .terminal-provider-list > li {
+      flex: 1 1 5.5rem;
+      max-width: 10rem;
+      min-width: 0;
+    }
+
+    .auth-form-terminal button.terminal-provider-choice,
+    .auth-form-terminal a.terminal-provider-choice {
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.375rem;
+      width: 100% !important;
+      min-height: 44px;
+      margin: 0 !important;
+      padding: 0.5rem !important;
+      border: 1px solid var(--terminal-text) !important;
+      border-radius: 0;
+      background: transparent !important;
+      color: var(--terminal-text) !important;
+      font-family: var(--terminal-font-family) !important;
+      font-size: 0.875rem !important;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-align: center;
+      text-decoration: none !important;
+      overflow-wrap: anywhere;
+      box-shadow: none !important;
+    }
+
+    .auth-form-terminal .terminal-provider-choice:hover,
+    .auth-form-terminal .terminal-provider-choice:focus-visible {
+      background: color-mix(in srgb, var(--terminal-text) 12%, transparent) !important;
+      color: var(--terminal-text) !important;
+      box-shadow: 0 0 8px color-mix(in srgb, var(--terminal-text) 35%, transparent) !important;
+    }
+  </style>
 </th:block>
 
 <div th:remove="tag" th:fragment="languageSwitcher">
@@ -144,7 +190,7 @@
       <span>Social Login</span>
       <span class="bg-terminal-green/20 h-px flex-1"></span>
     </div>
-    <ul class="pill-items flex justify-center gap-4">
+    <ul class="pill-items terminal-provider-list">
       <li th:each="provider : ${socialAuthProviders}">
         <form
           class="social-auth-provider-form"
@@ -152,15 +198,14 @@
           method="post"
         >
           <input type="hidden" name="remember-me" value="false" />
-          <button
-            type="submit"
-            class="border-terminal-dim hover:border-terminal-green block cursor-pointer border bg-transparent p-2 transition-all hover:shadow-[0_0_10px_var(--terminal-glow)]"
-          >
-            <img
-              th:src="${provider.spec.logo}"
-              th:alt="|${provider.spec.displayName}'s icon|"
-              class="h-6 w-6 grayscale hover:grayscale-0"
-            />
+          <button type="submit" class="terminal-provider-choice">
+            <span aria-hidden="true">&gt;</span>
+            <span th:switch="${provider.metadata.name}">
+              <span th:case="'aliyun'">ALIYUN</span>
+              <span th:case="'baidu'">BAIDU</span>
+              <span th:case="'github'">GITHUB</span>
+              <span th:case="*" th:text="${provider.spec.displayName}"></span>
+            </span>
           </button>
         </form>
       </li>

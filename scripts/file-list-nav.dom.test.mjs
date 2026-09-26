@@ -89,6 +89,32 @@ test("focus outside the list clears selection and keyboard navigation restores i
   assert.equal(document.getElementById("second").classList.contains("selected"), true);
 });
 
+test("focused list links leave modified, composed, repeated, and handled keys alone", async () => {
+  const first = document.getElementById("first");
+  first.focus();
+  await Promise.resolve();
+
+  const cases = [
+    { key: "ArrowDown", ctrlKey: true },
+    { key: "Enter", metaKey: true },
+    { key: "Enter", shiftKey: true },
+    { key: "ArrowDown", repeat: true },
+    { key: "Enter", isComposing: true },
+  ];
+
+  for (const options of cases) {
+    const event = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, ...options });
+    first.dispatchEvent(event);
+    assert.equal(event.defaultPrevented, false, JSON.stringify(options));
+    assert.equal(document.getElementById("first").classList.contains("selected"), true);
+  }
+
+  const handled = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "ArrowDown" });
+  handled.preventDefault();
+  first.dispatchEvent(handled);
+  assert.equal(document.getElementById("first").classList.contains("selected"), true);
+});
+
 test("Enter delegates selected links to the safe navigation policy", async () => {
   const first = document.getElementById("first");
   first.setAttribute("href", "javascript:alert(1)");

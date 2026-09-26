@@ -1,0 +1,67 @@
+<!doctype html>
+<html
+  xmlns:th="https://www.thymeleaf.org"
+  th:lang="${#locale.toLanguageTag}"
+  th:fragment="html (head, content)"
+  class="terminal-theme color-scheme-dark"
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title th:if="${head == null}" th:text="${site.title}"></title>
+    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+    <th:block th:replace="~{modules/theme-style :: themeStyle}" />
+    <th:block th:if="${head != null}">
+      <th:block th:replace="${head}" />
+    </th:block>
+  </head>
+
+  <body class="flex min-h-screen flex-col font-mono">
+    <a
+      href="#plugin-page-content"
+      class="focus:bg-terminal-black focus:text-terminal-green sr-only focus:not-sr-only focus:absolute focus:z-50 focus:p-2"
+      >Skip to content</a
+    >
+    <div class="mx-auto flex w-full max-w-5xl flex-1 flex-col p-4 md:p-6">
+      <header
+        th:if="${theme.config.features?.show_header != false}"
+        class="border-terminal-dim mb-6 border-b border-dashed pb-4"
+      >
+        <div class="text-terminal-dim mb-2 text-xs">guest@<span th:text="${site.title}"></span>:~/blog$</div>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <a th:href="@{/}" class="text-terminal-green font-bold" th:text="${site.title}"></a>
+          <div th:if="${theme.config.features?.show_login != false}" class="text-terminal-dim text-xs">
+            <a th:if="${#authentication.name == 'anonymousUser'}" th:href="@{/login}" class="hover:text-terminal-green"
+              >[LOGIN]</a
+            >
+            <a th:if="${#authentication.name != 'anonymousUser'}" th:href="@{/logout}" class="hover:text-terminal-green"
+              >[LOGOUT]</a
+            >
+          </div>
+        </div>
+      </header>
+
+      <main id="plugin-page-content" data-plugin-page-layout tabindex="-1" class="min-w-0 flex-1">
+        <th:block th:replace="${content}" />
+      </main>
+
+      <footer
+        class="border-terminal-dim text-terminal-dim mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-dashed py-3 text-xs"
+      >
+        <nav aria-label="Site navigation" class="flex flex-wrap gap-x-4 gap-y-2">
+          <a th:href="@{/}" class="hover:text-terminal-green">[INDEX]</a>
+          <a th:href="@{${site.routes.categoriesUri}}" class="hover:text-terminal-green">[CATEGORY]</a>
+          <a th:href="@{${site.routes.tagsUri}}" class="hover:text-terminal-green">[TAG]</a>
+          <a th:href="@{${site.routes.archivesUri}}" class="hover:text-terminal-green">[ARCHIVES]</a>
+        </nav>
+        <div>
+          &copy; <span th:text="${#dates.year(#dates.createNow())}"></span> <span th:text="${site.title}"></span>
+        </div>
+      </footer>
+    </div>
+    <th:block th:if="${theme.config.footer.custom_head}">
+      <th:block th:utext="${theme.config.footer.custom_head}"></th:block>
+    </th:block>
+    <halo:footer />
+  </body>
+</html>

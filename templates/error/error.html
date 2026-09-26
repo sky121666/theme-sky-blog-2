@@ -1,106 +1,97 @@
 <!doctype html>
-<html th:lang="${#locale.toLanguageTag}" class="terminal-theme">
+<html th:lang="${#locale.toLanguageTag}" class="terminal-theme color-scheme-dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title th:text="${error.status} + ' - ' + site.title">Error</title>
+    <title th:text="|${error.status} - ${site.title}|">Error</title>
     <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
     <th:block th:replace="~{modules/theme-style :: themeStyle}" />
   </head>
 
-  <body
-    class="flex min-h-screen items-start justify-center overflow-x-auto overflow-y-auto p-4 py-8 md:items-center md:p-8"
-  >
-    <div class="w-full max-w-2xl font-mono">
-      <!-- Panic header for 5xx, Segfault for 4xx -->
-      <div th:if="${error.status >= 500}" class="mb-6">
-        <pre
-          aria-hidden="true"
-          class="text-terminal-green overflow-x-auto text-[10px] leading-snug sm:text-sm md:text-base"
-          style="text-shadow: 0 0 8px var(--terminal-glow)"
+  <body class="bg-terminal-black text-terminal-green flex min-h-screen items-center justify-center p-4 py-8 font-mono">
+    <main
+      class="border-terminal-green/60 bg-terminal-black w-full max-w-2xl min-w-0 border shadow-[0_0_30px_var(--terminal-glow)]"
+    >
+      <div
+        class="bg-terminal-green text-terminal-black flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs font-bold tracking-wider"
+      >
+        <span class="flex items-center gap-2"
+          ><span aria-hidden="true" class="bg-terminal-black h-2 w-2 rounded-full"></span>SYSTEM RESPONSE</span
         >
-╔══════════════════════════════════════════════════╗
-║           KERNEL PANIC - NOT SYNCING             ║
-╚══════════════════════════════════════════════════╝</pre>
-      </div>
-      <div th:if="${error.status < 500}" class="mb-6">
-        <pre
-          aria-hidden="true"
-          class="text-terminal-green overflow-x-auto text-[10px] leading-snug sm:text-sm md:text-base"
-          style="text-shadow: 0 0 8px var(--terminal-glow)"
-        >
-╔══════════════════════════════════════════════════╗
-║          SEGMENTATION FAULT (core dumped)        ║
-╚══════════════════════════════════════════════════╝</pre>
+        <span>HTTP <span th:text="${error.status}">404</span></span>
       </div>
 
-      <!-- Error details -->
-      <div class="text-terminal-green space-y-2 text-sm md:text-base" style="text-shadow: 0 0 4px var(--terminal-glow)">
-        <p>
-          <span class="text-terminal-green/70">PID:&nbsp;&nbsp;</span>
-          <span th:text="${error.status}">404</span>
+      <div class="min-w-0 p-5 sm:p-8">
+        <p class="text-terminal-dim mb-8 text-xs break-all">
+          guest@<span th:text="${site.title}">blog</span>:~$ status --code <span th:text="${error.status}">404</span>
         </p>
-        <p>
-          <span class="text-terminal-green/70">Signal:</span>
-          <span
-            th:text="${error.status >= 500 ? 'SIGABRT' : (error.status == 404 ? 'SIGSEGV' : (error.status == 403 ? 'SIGKILL' : 'SIGTERM'))}"
-            >SIGSEGV</span
+
+        <section aria-labelledby="error-heading" class="border-terminal-dim border-l-2 pl-4 sm:pl-6">
+          <p
+            class="text-terminal-dim mb-3 text-xs tracking-widest"
+            th:text="${error.status >= 500 ? '[ SERVER ERROR ]' : '[ REQUEST FAILED ]'}"
           >
-        </p>
-        <h1 class="text-base font-normal md:text-lg">
-          <span class="text-terminal-green/70">Title:</span>
-          <span th:text="${error.title ?: 'Unknown Error'}">Not Found</span>
-        </h1>
-        <p th:if="${error.detail != null}">
-          <span class="text-terminal-green/70">Fault:</span>
-          <span th:text="${error.detail}">detail</span>
-        </p>
-
-        <div class="border-terminal-green/30 my-4 border-t pt-4">
-          <p class="text-terminal-green/70 mb-2">Stack trace:</p>
-          <pre
-            class="text-terminal-green/50 text-xs leading-relaxed"
-          >  at PageHandler.resolve(<span th:text="${error.instance ?: '/unknown'}"></span>)
-  at Router.dispatch(kernel/router.c:421)
-  at HttpServer.processRequest(net/http.c:892)
-  at main(init/main.c:1)</pre>
-        </div>
-
-        <div class="border-terminal-green/30 my-4 border-t pt-4">
-          <p class="text-terminal-green/70 mb-3">Recovery options:</p>
-          <div class="space-y-1">
-            <p>
-              &gt;
-              <a
-                th:href="@{/}"
-                class="text-terminal-green underline decoration-dotted underline-offset-4 transition-all hover:brightness-125"
-                >cd /</a
-              >
-              <span class="text-terminal-green/50">&nbsp;&nbsp;# return to home</span>
-            </p>
-            <p>
-              &gt;
-              <button
-                type="button"
-                th:data-home-url="@{/}"
-                onclick="
-                  window.history.length > 1 ? window.history.back() : (window.location.href = this.dataset.homeUrl)
-                "
-                class="text-terminal-green cursor-pointer bg-transparent p-0 font-mono underline decoration-dotted underline-offset-4 transition-all hover:brightness-125"
-              >
-                back
-              </button>
-              <span class="text-terminal-green/50">&nbsp;&nbsp;# go to previous page</span>
+            [ REQUEST FAILED ]
+          </p>
+          <h1 id="error-heading" class="text-terminal-green mb-4 text-2xl font-bold break-words sm:text-3xl">
+            <span th:if="${error.status == 404}">页面未找到</span>
+            <span th:if="${error.status == 401}">需要登录</span>
+            <span th:if="${error.status == 403}">访问受限</span>
+            <span th:if="${error.status == 429}">请求过于频繁</span>
+            <span th:if="${error.status >= 500}">服务暂时不可用</span>
+            <span
+              th:if="${error.status < 500 and error.status != 404 and error.status != 401 and error.status != 403 and error.status != 429}"
+              >请求未能完成</span
+            >
+          </h1>
+          <div class="text-terminal-dim space-y-2 text-sm leading-6 sm:text-base">
+            <p th:if="${error.status == 404}">这个地址没有找到对应页面。请检查链接，或从首页继续浏览。</p>
+            <p th:if="${error.status == 401}">登录后再试一次，或返回首页浏览公开内容。</p>
+            <p th:if="${error.status == 403}">当前账号没有访问权限。你可以更换账号，或返回首页。</p>
+            <p th:if="${error.status == 429}">请稍后再试，避免连续重复请求。</p>
+            <p th:if="${error.status >= 500}">服务暂时无法完成请求。请稍后重试；持续出现时请联系站点管理员。</p>
+            <p
+              th:if="${error.status < 500 and error.status != 404 and error.status != 401 and error.status != 403 and error.status != 429}"
+            >
+              请返回上一页检查操作，或从首页重新开始。
             </p>
           </div>
-        </div>
+        </section>
 
-        <!-- Blinking cursor -->
-        <p class="mt-6">
-          <span class="text-terminal-green/70">root@system</span>:<span class="text-terminal-green/70">~#</span>
-          <span class="animate-pulse">▊</span>
-        </p>
+        <nav aria-label="恢复操作" class="border-terminal-dim mt-8 border-t border-dashed pt-5">
+          <p class="text-terminal-dim mb-3 text-xs tracking-widest">RECOVERY OPTIONS</p>
+          <div class="flex flex-wrap gap-3">
+            <a
+              th:href="@{/}"
+              class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black focus-visible:outline-terminal-green inline-flex min-h-11 items-center border px-4 py-2 text-sm font-bold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+              >cd / <span class="ml-2 font-normal">返回首页</span></a
+            >
+            <a
+              th:if="${error.status == 401 or error.status == 403}"
+              th:href="@{/login}"
+              class="border-terminal-dim text-terminal-green hover:border-terminal-green focus-visible:outline-terminal-green inline-flex min-h-11 items-center border px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+              >login <span class="ml-2">登录</span></a
+            >
+            <button
+              type="button"
+              th:data-home-url="@{/}"
+              onclick="
+                window.history.length > 1 ? window.history.back() : (window.location.href = this.dataset.homeUrl)
+              "
+              class="border-terminal-dim text-terminal-green hover:border-terminal-green focus-visible:outline-terminal-green inline-flex min-h-11 cursor-pointer items-center border bg-transparent px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              back <span class="ml-2">返回上页</span>
+            </button>
+          </div>
+        </nav>
       </div>
-    </div>
+
+      <div
+        class="border-terminal-dim text-terminal-dim flex flex-wrap justify-between gap-2 border-t px-4 py-2 text-xs"
+      >
+        <span>SKY BLOG 2 / ERROR VIEW</span>
+        <span>AWAITING COMMAND <span aria-hidden="true" class="animate-cursor">█</span></span>
+      </div>
+    </main>
   </body>
 </html>

@@ -14,11 +14,14 @@ const POSTS_API = "/apis/api.content.halo.run/v1alpha1/posts?sort=spec.publishTi
 const HOME_POST_PAGE_SIZE = 50;
 const HOME_POST_CACHE_TTL_MS = 5 * 60 * 1000;
 const HOME_POST_RETRY_DELAY_MS = 30 * 1000;
+const HOME_POST_REQUEST_TIMEOUT_MS = 8 * 1000;
 
 let cachedHomePosts: HaloPostRecord[] = [];
 let cachedHomePostsAt = 0;
+let cachedFirstPageSignatures: string[] | null = null;
 let cacheRevision = 0;
 let fetchInFlight: Promise<HaloPostRecord[]> | null = null;
+let fetchInFlightRevision: number | null = null;
 let nextFetchAllowedAt = 0;
 
 function ensureArray<T>(value: T[] | null | undefined): T[] {
@@ -126,6 +129,57 @@ function isHomePostCacheStale(now = Date.now()) {
   return cachedHomePostsAt === 0 || now - cachedHomePostsAt >= HOME_POST_CACHE_TTL_MS;
 }
 
+function getPostCacheKey(post: HaloPostRecord) {
+  return post.metadata?.name || post.status?.permalink || post.spec?.slug || post.spec?.title || null;
+}
+
+function getPostCacheSignature(post: HaloPostRecord | undefined) {
+  if (!post) {
+    return null;
+  }
+
+  return JSON.stringify([
+    getPostCacheKey(post),
+    post.metadata?.creationTimestamp ?? null,
+    post.spec?.owner ?? null,
+    post.spec?.publishTime ?? null,
+    post.spec?.slug ?? null,
+    post.spec?.title ?? null,
+    post.status?.permalink ?? null,
+  ]);
+}
+
+function reconcileHomePostCache(currentPosts: HaloPostRecord[]) {
+  const currentSignatures = currentPosts.map((post) => getPostCacheSignature(post) ?? "");
+  const previousSignatures = cachedFirstPageSignatures;
+  const firstPageUnchanged =
+    previousSignatures !== null &&
+    currentSignatures.length === previousSignatures.length &&
+    currentSignatures.every((signature, index) => signature === previousSignatures[index]);
+  if (firstPageUnchanged) {
+    return;
+  }
+
+  cachedFirstPageSignatures = currentSignatures;
+  const currentKeys = new Set(currentPosts.map(getPostCacheKey).filter((key): key is string => key !== null));
+  const cachedTail = cachedHomePosts.filter((post) => !currentKeys.has(getPostCacheKey(post) ?? ""));
+  cachedHomePosts = currentPosts.length === 0 ? [] : [...currentPosts, ...cachedTail].slice(0, HOME_POST_PAGE_SIZE);
+  cachedHomePostsAt = 0;
+  cacheRevision += 1;
+  nextFetchAllowedAt = 0;
+}
+
+function isCanonicalHomePage(homeUrl: string) {
+  try {
+    const home = new URL(homeUrl, window.location.href);
+    const current = new URL(window.location.href);
+    const normalizePath = (path: string) => path.replace(/\/+$/, "") || "/";
+    return home.origin === current.origin && normalizePath(home.pathname) === normalizePath(current.pathname);
+  } catch {
+    return false;
+  }
+}
+
 function inferTaxonomyRoot(items: HaloTaxonomyRecord[], fallback: string) {
   const firstItem = items[0];
   const permalink = firstItem?.status?.permalink;
@@ -191,12 +245,12 @@ export function syncHaloDataFromDocument() {
   const categories = ensureArray(payload.categories);
   const tags = ensureArray(payload.tags);
 
-  // Index page data is authoritative, including an intentionally empty list.
-  if (pageType === "index") {
-    cachedHomePosts = currentPosts;
-    cachedHomePostsAt = Date.now();
-    cacheRevision += 1;
-    nextFetchAllowedAt = 0;
+  const homeUrl = ensureUrl(payload.urls?.home, "/");
+
+  // Only the canonical first page can update the virtual root. Keep additional
+  // recent posts available while refreshing an out-of-date first page.
+  if (pageType === "index" && isCanonicalHomePage(homeUrl)) {
+    reconcileHomePostCache(currentPosts);
   }
 
   const inferredCategoriesUrl = inferTaxonomyRoot(categories, "/categories");
@@ -221,7 +275,7 @@ export function syncHaloDataFromDocument() {
     urls: {
       archives: ensureUrl(payload.urls?.archives, "/archives"),
       categories: ensureUrl(payload.urls?.categories, inferredCategoriesUrl),
-      home: ensureUrl(payload.urls?.home, "/"),
+      home: homeUrl,
       tags: ensureUrl(payload.urls?.tags, inferredTagsUrl),
     },
     user: typeof payload.user === "string" ? payload.user : "guest",
@@ -262,8 +316,8 @@ function mapApiPostsToRecords(items: ContentApiPostItem[]): HaloPostRecord[] {
   }));
 }
 
-export async function fetchRecentHomePosts(revisionAtRequestStart: number) {
-  const response = await fetch(`${POSTS_API}&page=1&size=${HOME_POST_PAGE_SIZE}`);
+export async function fetchRecentHomePosts(revisionAtRequestStart: number, signal?: AbortSignal) {
+  const response = await fetch(`${POSTS_API}&page=1&size=${HOME_POST_PAGE_SIZE}`, { signal });
   if (!response.ok) {
     throw new Error(`Content API returned HTTP ${response.status}.`);
   }
@@ -289,8 +343,28 @@ export async function fetchRecentHomePosts(revisionAtRequestStart: number) {
   });
 }
 
+async function fetchRecentHomePostsWithTimeout(revisionAtRequestStart: number) {
+  const controller = new AbortController();
+  let timeoutId: number | null = null;
+
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutId = window.setTimeout(() => {
+        controller.abort();
+        reject(new Error(`Content API request timed out after ${HOME_POST_REQUEST_TIMEOUT_MS} ms.`));
+      }, HOME_POST_REQUEST_TIMEOUT_MS);
+    });
+
+    return await Promise.race([fetchRecentHomePosts(revisionAtRequestStart, controller.signal), timeout]);
+  } finally {
+    if (timeoutId !== null) {
+      window.clearTimeout(timeoutId);
+    }
+  }
+}
+
 function fetchHomePostsFromApi() {
-  if (fetchInFlight) {
+  if (fetchInFlight && fetchInFlightRevision === cacheRevision) {
     return fetchInFlight;
   }
 
@@ -299,12 +373,13 @@ function fetchHomePostsFromApi() {
   }
 
   const revisionAtRequestStart = cacheRevision;
+  fetchInFlightRevision = revisionAtRequestStart;
 
-  fetchInFlight = (async () => {
+  const request = (async () => {
     try {
-      const posts = await fetchRecentHomePosts(revisionAtRequestStart);
+      const posts = await fetchRecentHomePostsWithTimeout(revisionAtRequestStart);
 
-      // A newer index-page payload supersedes this background request.
+      // A newer canonical home payload supersedes this background request.
       if (!posts || cacheRevision !== revisionAtRequestStart) {
         return cachedHomePosts;
       }
@@ -314,12 +389,16 @@ function fetchHomePostsFromApi() {
       cacheRevision += 1;
       nextFetchAllowedAt = 0;
 
-      // Patch live haloData so ls immediately reflects the fetched posts
-      if (window.haloData && window.haloData.pageType !== "index") {
+      // The current page's rendered list remains separate from recent posts.
+      if (window.haloData) {
         window.haloData.homePosts = cachedHomePosts;
       }
       return cachedHomePosts;
     } catch (error) {
+      if (cacheRevision !== revisionAtRequestStart) {
+        return cachedHomePosts;
+      }
+
       nextFetchAllowedAt = Date.now() + HOME_POST_RETRY_DELAY_MS;
       logError("Failed to refresh home posts.", error);
       dispatchRuntimeStatus({
@@ -328,22 +407,33 @@ function fetchHomePostsFromApi() {
       });
       return cachedHomePosts;
     } finally {
-      fetchInFlight = null;
+      if (fetchInFlightRevision === revisionAtRequestStart) {
+        fetchInFlight = null;
+        fetchInFlightRevision = null;
+      }
     }
   })();
 
-  return fetchInFlight;
+  fetchInFlight = request;
+  return request;
 }
 
 /**
  * Load the virtual root's post records only when a terminal/VFS action needs
- * them. A fresh server-rendered index payload stays authoritative; stale data
- * remains usable while one deduplicated refresh runs, and failures back off.
+ * them. The canonical index payload is a fallback while one deduplicated API
+ * refresh runs. Stale entries stay available unless a lookup needs fresh data.
  */
-export function ensureHomePostsLoaded(): Promise<HaloPostRecord[]> {
+export function ensureHomePostsLoaded({ waitForRefresh = false }: { waitForRefresh?: boolean } = {}): Promise<
+  HaloPostRecord[]
+> {
   if (!isHomePostCacheStale()) {
     return Promise.resolve(cachedHomePosts);
   }
 
-  return fetchHomePostsFromApi() ?? Promise.resolve(cachedHomePosts);
+  const refresh = fetchHomePostsFromApi();
+  if (cachedHomePosts.length > 0 && !waitForRefresh) {
+    return Promise.resolve(cachedHomePosts);
+  }
+
+  return refresh ?? Promise.resolve(cachedHomePosts);
 }

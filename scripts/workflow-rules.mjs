@@ -2,7 +2,7 @@ export const PINNED_ACTIONS = Object.freeze({
   checkout: "actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0",
   downloadArtifact: "actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c",
   haloAppStoreRelease: "halo-sigs/app-store-release-action@0b0b351312114a42a544471c1ee0b78d3f635e51",
-  pnpmSetup: "pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271",
+  pnpmSetup: "pnpm/setup@fbda4c85fc2e1e08721cd8763afea8f48d60f024",
   setupNode: "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020",
   uploadArtifact: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
 });

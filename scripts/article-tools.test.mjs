@@ -89,13 +89,20 @@ test("copy link reports success and exposes a usable fallback when clipboard acc
     value: { writeText: async (value) => (copied = value) },
   });
   assert.equal(await copyArticleLink(), "Copied current article link.");
-  assert.equal(copied, "/posts/copy-me");
+  assert.equal(copied, "https://blog.example.com/posts/copy-me");
 
-  setPostData(null);
+  setPostData({ permalink: "https://canonical.example.net/posts/absolute", slug: "absolute" });
+  assert.equal(await copyArticleLink(), "Copied current article link.");
+  assert.equal(copied, "https://canonical.example.net/posts/absolute");
+
+  setPostData({ permalink: "/posts/copy-me", slug: "copy-me" });
   Object.defineProperty(navigator, "clipboard", {
     configurable: true,
     value: { writeText: async () => Promise.reject(new Error("denied")) },
   });
+  assert.equal(await copyArticleLink(), "Copy unavailable. Link: https://blog.example.com/posts/copy-me");
+
+  setPostData(null);
   assert.equal(await copyArticleLink(), "Copy unavailable. Link: https://blog.example.com/");
 
   window.haloData.pageType = "page";

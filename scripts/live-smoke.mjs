@@ -1109,10 +1109,14 @@ async function main() {
       runId,
       setActiveCleanup,
     );
+    const finalHttpResult = await verifyHttpRuntime(baseUrl, themeName, expectedVersion, `${runId}-final`);
     assert.deepEqual(
       smokeCompletionIssues({ browserVerified: Boolean(browserResult), httpVerified: true }),
       [],
       "Complete smoke verification requires both HTTP and browser evidence",
+    );
+    log(
+      `Halo page cache timestamps: start=${httpResult.haloCacheAt ?? "none"}, end=${finalHttpResult.haloCacheAt ?? "none"}`,
     );
     log(`Partial navigation passed: ${browserResult.partialNavigation}`);
     log(

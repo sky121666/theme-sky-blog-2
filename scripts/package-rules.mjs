@@ -10,6 +10,7 @@ export const PACKAGE_EXCLUDE_ENTRIES = [
   "node_modules/*",
   "package.json",
   "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
   "src/*",
   "scripts/*",
   "settings.gradle",
@@ -20,6 +21,7 @@ export const PACKAGE_EXCLUDE_ENTRIES = [
 
 export const PACKAGE_FORBIDDEN_PATTERNS = [
   /^pnpm-lock\.yaml$/,
+  /^pnpm-workspace\.yaml$/,
   /^package\.json$/,
   /^scripts\//,
   /^node_modules\//,

@@ -1,4 +1,4 @@
-import { getDirectoryContent, resolvePath } from "../common/virtual-fs";
+import { getCurrentIndexPageContent, getDirectoryContent, resolvePath } from "../common/virtual-fs";
 
 // ── Auto-complete engine ───────────────────────────────────────────
 
@@ -64,10 +64,21 @@ export function getSuggestions(input: string, currentPath: string, isPost: boole
 
   const lookupPath = directoryPart ? resolvePath(directoryPart, currentPath) : currentPath;
 
-  const dirContent = getDirectoryContent(lookupPath);
-  if (!dirContent) {
+  const directoryContent = getDirectoryContent(lookupPath);
+  if (!directoryContent) {
     return [];
   }
+
+  // An implicit root path refers to the rendered index page. Keep built-in
+  // directory completion available, but suggest this page's posts instead of
+  // unrelated entries from the recent-post cache.
+  const currentIndexRoot = !directoryPart && lookupPath === "~/blog" && window.haloData?.pageType === "index";
+  const dirContent = currentIndexRoot
+    ? [
+        ...directoryContent.filter((item) => item.type === "dir"),
+        ...getCurrentIndexPageContent().filter((item) => item.type === "file"),
+      ]
+    : directoryContent;
 
   const candidates: string[] = [];
 

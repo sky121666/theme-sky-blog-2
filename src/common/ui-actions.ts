@@ -1,4 +1,5 @@
 import { logWarn } from "./logger";
+import { THEME_SOURCE_HISTORY_DEPTH_KEY } from "./navigation";
 
 type SearchWidget = {
   open?: () => void;
@@ -74,9 +75,34 @@ export function openSearchWidget(
   return false;
 }
 
+function returnToSource(trigger: HTMLElement) {
+  const state = window.history.state;
+  const previousUrl =
+    typeof state?.themePreviousUrl === "string" && state.themePreviousUrl ? state.themePreviousUrl : document.referrer;
+
+  try {
+    const source = new URL(previousUrl);
+    if (window.history.length > 1 && source.origin === window.location.origin && source.href !== window.location.href) {
+      const depth = state?.[THEME_SOURCE_HISTORY_DEPTH_KEY];
+      if (Number.isSafeInteger(depth) && depth > 1 && depth < window.history.length) {
+        window.history.go(-depth);
+      } else {
+        window.history.back();
+      }
+      return;
+    }
+  } catch {
+    // A direct entry has no usable same-origin source.
+  }
+
+  window.location.assign(trigger.dataset.homeUrl || window.haloData?.urls.home || "/");
+}
+
 function handleAction(action: string, trigger: HTMLElement) {
   if (action === "search") {
     openSearchWidget(trigger);
+  } else if (action === "source-back") {
+    returnToSource(trigger);
   }
 }
 

@@ -29,6 +29,8 @@
 | `clear`            | 清空终端屏幕                                 |
 | `search [keyword]` | 打开官方搜索组件弹窗（需安装并启用搜索插件） |
 
+无参数 `ls` 显示当前列表页的文章和可见目录，不计入 `../` 返回入口；`ls ~/blog` 列出虚拟根目录及最多 50 篇近期文章，必要时从 Halo 内容 API 刷新。列表底部的 `files found` 显示该列表的文章总数。
+
 #### 文章详情页 (Post)
 
 | 命令               | 描述                                         |
@@ -45,6 +47,8 @@
 | `help`             | 显示当前页面可用命令                         |
 | `clear`            | 清空终端屏幕                                 |
 | `search [keyword]` | 打开官方搜索组件弹窗（需安装并启用搜索插件） |
+
+`next` 跳转到发布时间较新的文章，`prev` 跳转到发布时间较早的文章。文章底部的 `[BACK]` 返回同源来源页；直接打开文章时返回首页。`cd ..` 始终返回虚拟父目录首页。
 
 #### 键盘快捷键 (文章阅读模式)
 
@@ -100,10 +104,12 @@
 
 ### 环境要求
 
-- Halo `>=2.23.0`（与 `theme.yaml` 的主题运行要求一致）
-- Node.js `^22.22.1 || ^24.0.0`（CI 使用 Node.js 22.22.1 与 Node.js 24；CD 使用 Node.js 24）
-- pnpm 10.x（CI/CD 固定使用 pnpm 10.34.5）
+- Halo `>=2.26.0`（与 `theme.yaml` 一致；公共页面布局契约从 2.26.0 起提供，本版在 2.26.1 真页验收）
+- Node.js `^24.15.0`（CI 覆盖 Node.js 24.15.0 与最新 Node.js 24；CD 使用最新 Node.js 24）
+- pnpm 12.x（CI/CD 固定使用 pnpm 12.6.0）
 - zip 命令行工具（用于从主题包中移除非主题运行文件）
+
+本项目使用 TypeScript 7.0.2 的 `tsc` 构建；`typescript-eslint` 仍通过官方的 `@typescript/typescript6` 兼容包读取 TypeScript 6 API。当前依赖升级结果及仍受上游约束的依赖见 [2026-09-24 升级记录](docs/upgrade-2026-09-24.md)。
 
 ### 安装依赖
 
@@ -127,6 +133,8 @@ pnpm build
 “上传安装 / 升级”刷新已启用主题；修改 `theme.yaml` 或升级版本后，必须调用
 `PUT /apis/api.console.halo.run/v1alpha1/themes/theme-sky-blog-2/reload` 重新载入主题元数据。
 仅重启容器不会刷新已安装主题版本。
+若站点启用了 Halo 页面缓存，旧的页面 HTML 可能继续引用上一版资源；Reload 后还需清理页面缓存，
+再用下方的 `smoke:live` 验证首页与列表页的真实导航。
 
 ### 发布前检查
 
@@ -150,16 +158,16 @@ pnpm audit --audit-level moderate
 
 > `pnpm audit` 主要检查本地构建与打包链路依赖；如上游工具链短期仍有传递依赖告警，应在发布说明中记录剩余风险。
 > CI/CD 的第三方 Actions 使用完整 commit SHA 固定。推送 `v*` tag 后，CD 绑定触发事件的原始提交，只构建并验证一次；ZIP 会统一时间、权限、条目顺序和扩展元数据以保证同一源码可复现。发布流程先在草稿 Release 中完整比对已有资产，再统一补齐缺失项，拒绝覆盖不同内容或修改已公开 Release，最后才公开；GitHub Release 与 Halo 应用市场复用同一份已验证产物。公开的 `SHA256SUMS` 使用裸 ZIP 文件名，可与下载到同一目录的 ZIP 直接校验。
-> pnpm 版本由 CI/CD 固定为 10.34.5；不要在 `package.json` 中恢复 `packageManager`，避免产生第二个版本来源。
+> pnpm 版本由 CI/CD 固定为 12.6.0；`pnpm-workspace.yaml` 仅批准 `esbuild` 执行安装脚本。不要在 `package.json` 中恢复 `packageManager`，避免产生第二个版本来源。
 
-运行态资源版本可用以下只读检查确认：
+首页运行态资源版本可用以下只读检查确认：
 
 ```bash
 pnpm check:runtime-version
 ```
 
-如输出 `Runtime asset version mismatch`，说明 Halo 当前页面仍在引用旧版本资源，需要执行主题 Reload，
-不需要上传 ZIP。
+如输出 `Runtime asset version mismatch`，说明 Halo 首页仍在引用旧版本资源，需要执行主题 Reload；
+若其他页面仍引用旧版本，还要清理 Halo 页面缓存。不需要上传 ZIP。
 
 需要验证本地 Halo 实际返回的文件内容、浏览器无缓存加载、真实局部导航和 390px 布局时，运行只读 smoke：
 
@@ -187,14 +195,14 @@ pnpm reload:theme
 
 1. 打开博客首页。
 2. 点击底部的终端输入框（`Home` 键旁边的闪烁光标处）。
-3. 输入 `ls` 并按 `Enter` 键 —— 应显示 `categories/`, `tags/` 和最新文章列表。
+3. 输入 `ls` 并按 `Enter` 键 —— 应显示当前页文章；启用“显示固定文件夹”时还会显示 `categories/` 和 `tags/`。
 4. 输入 `help` 并按 `Enter` 键 —— 应显示可用命令列表。
 
 ### 2. 键盘导航验证
 
 1. 输入 `cd categories` 并按 `Enter` —— 页面应无刷新跳转到分类列表，路径变更为 `~/blog/categories$`。
 2. 输入 `cd ..` 并按 `Enter` —— 应返回首页。
-3. 尝试输入 `cd ca` 然后按 `Tab` 键 —— 应自动补全为 `cd categories`。
+3. 尝试输入 `cd ca` 然后按 `Tab` 键 —— 应自动补全为 `cd categories/`。
 
 ### 3. 文章阅读体验验证
 
@@ -230,8 +238,9 @@ theme-sky-blog-2/
 │   └── styles/          # base / content / auth / tailwind 分层样式
 ├── templates/
 │   ├── assets/          # 编译产出目录
+│   ├── layout.html       # Halo 2.26 插件前台页面布局契约
 │   ├── modules/
-│   │   └── layout.html  # 全局布局（包含局部导航容器与终端）
+│   │   └── layout.html  # 主题内部布局（包含局部导航容器与终端）
 │   ├── gateway_fragments/ # 登录、注册、密码重置等网关片段
 │   ├── index.html       # 首页模板
 │   ├── post.html        # 文章详情页
@@ -252,13 +261,14 @@ theme-sky-blog-2/
 本主题以 Halo Core 为基础，并对实际使用的插件表面做显式兼容：
 
 - ✅ **核心功能**：文章、独立页面、归档、作者、分类和标签路由。
+- ✅ **公共页面布局**：`templates/layout.html` 提供 Halo 2.26 的 `html(head, content)` 契约，使调用该契约的插件前台页面使用主题的终端配色、导航和页脚；这不代表插件内部功能都已适配。
 - ✅ **超链接卡片**：适配块级 `regular / small / grid` 与行内卡片的终端暗色变量。
 - ⚠️ **搜索入口**：提供 `[SEARCH]` 按钮和 `search` 命令，调用官方搜索组件 `SearchWidget.open()`；搜索能力依赖站点安装并启用搜索插件。
 - ⚠️ **评论入口**：文章页可通过主题设置开启 `[COMMENTS]` 区块，调用 Halo `<halo:comment>` 扩展点；评论能力依赖站点安装并启用官方评论组件 `PluginCommentWidget`。原生局部导航会按插件约定重放显式 `script[type="module"][data-pjax]`（包含插件生成的内联初始化模块）。
 - ⚠️ **Shiki**：支持 `shiki-code` 与 `extraPathPatterns` 的 `window.pjax:complete` 生命周期；页面元数据精确同步，Head 可执行脚本、外链资源或插件生命周期节点发生变化时自动降级为整页导航。未标记的内联 `<style>` 不参与 Head 生命周期比较；带 `data-theme-navigation-style` 的主题声明式样式仍纳入契约。
 - ❌ **组件适配**：目前**暂未适配**相册等第三方插件。
 
-插件的安装版本、源码基线、主题契约版本和真页测试版本以 [主题本地插件兼容契约](docs/plugin-adaptation.md) 为唯一真值，可运行 `pnpm verify:plugin-contracts` 做静态验证。
+最新插件目标、当前资源观察和本次真页范围记录在 [2026-09-24 升级记录](docs/upgrade-2026-09-24.md)；[2026-07 历史插件契约](docs/plugin-adaptation.md) 保留旧环境的测试证据。`pnpm verify:plugin-contracts` 检查仓库的四项核心静态守卫，不等同于新版插件完整真页验收。
 
 ## 📝 开源协议
 

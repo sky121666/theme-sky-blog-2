@@ -169,6 +169,7 @@ test("successful partial navigation replaces the main shell and transfers busy s
   assert.equal(document.title, "Next");
   assert.equal(event.detail.focus, true);
   assert.equal(window.location.pathname, "/next");
+  assert.equal(window.history.state.themeSourceHistoryDepth, 1);
 
   navigator.stop();
   globalThis.fetch = previousFetch;

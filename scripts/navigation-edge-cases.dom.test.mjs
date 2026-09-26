@@ -348,6 +348,22 @@ test("same-document navigation preserves entry identity and honors explicit hist
   document.removeEventListener(NAVIGATION_SAME_DOCUMENT_EVENT, onSameDocument);
 });
 
+test("same-document hash entries track the distance back to the source page", () => {
+  resetPage("/article");
+  window.history.replaceState(
+    { themePreviousUrl: "https://blog.example.com/source", themeSourceHistoryDepth: 1 },
+    "",
+    "/article",
+  );
+  const navigator = new PartialPageNavigator();
+
+  navigator.navigate(new URL("https://blog.example.com/article#section"));
+  assert.equal(window.history.state.themeSourceHistoryDepth, 2);
+  navigator.navigate(new URL("https://blog.example.com/article#another"));
+  assert.equal(window.history.state.themeSourceHistoryDepth, 3);
+  navigator.stop();
+});
+
 test("popstate restores hashes, reloads guarded pages, and fetches different documents as history navigation", async () => {
   resetPage("/base");
   const calls = [];

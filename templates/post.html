@@ -114,11 +114,19 @@
         <halo:comment group="content.halo.run" kind="Post" th:attr="name=${post.metadata.name}"></halo:comment>
       </section>
 
-      <!-- Back Button -->
-      <div class="mb-8">
+      <!-- Return to the source page or move to the virtual parent directory. -->
+      <div class="mb-8 flex flex-wrap gap-3">
+        <button
+          type="button"
+          data-terminal-action="source-back"
+          th:data-home-url="@{/}"
+          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black inline-flex min-h-10 cursor-pointer items-center border bg-transparent px-4 py-1 font-mono transition-colors"
+        >
+          [BACK]
+        </button>
         <a
           th:href="@{/}"
-          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black inline-block border px-4 py-1 font-mono transition-colors"
+          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black inline-flex min-h-10 items-center border px-4 py-1 font-mono transition-colors"
         >
           cd ..
         </a>

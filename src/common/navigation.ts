@@ -39,6 +39,7 @@ interface NavigateOptions {
 
 const HTML_CONTENT_TYPE = /(?:^|;)\s*text\/html(?:\s*;|$)/i;
 const HISTORY_ENTRY_KEY = "themePartialNavigationKey";
+export const THEME_SOURCE_HISTORY_DEPTH_KEY = "themeSourceHistoryDepth";
 const FULL_NAVIGATION_EXIT_SELECTOR = '[data-navigation-exit="full"]';
 const THEME_NAVIGATION_STYLE_ATTRIBUTE = "data-theme-navigation-style";
 const DEFAULT_PARTIAL_REQUEST_TIMEOUT_MS = 15_000;
@@ -98,6 +99,25 @@ function createHistoryEntryKey() {
 
 function readHistoryState() {
   return typeof window.history.state === "object" && window.history.state !== null ? window.history.state : {};
+}
+
+function readSourceHistoryDepth(state: Record<string, unknown>) {
+  const depth = state[THEME_SOURCE_HISTORY_DEPTH_KEY];
+  if (Number.isSafeInteger(depth) && typeof depth === "number" && depth > 0) {
+    return depth;
+  }
+
+  const previousUrl = typeof state.themePreviousUrl === "string" ? state.themePreviousUrl : document.referrer;
+  try {
+    const source = new URL(previousUrl);
+    if (window.history.length > 1 && source.origin === window.location.origin && source.href !== window.location.href) {
+      return 1;
+    }
+  } catch {
+    // Direct entries have no same-origin source to track.
+  }
+
+  return null;
 }
 
 function ensureCurrentHistoryEntryKey() {
@@ -521,7 +541,17 @@ export class PartialPageNavigator {
     }
 
     if (!historyNavigation && target.href !== window.location.href) {
-      window.history.pushState({ ...readHistoryState(), [HISTORY_ENTRY_KEY]: targetEntryKey }, "", target);
+      const state = readHistoryState();
+      const sourceDepth = readSourceHistoryDepth(state);
+      window.history.pushState(
+        {
+          ...state,
+          [HISTORY_ENTRY_KEY]: targetEntryKey,
+          ...(sourceDepth === null ? {} : { [THEME_SOURCE_HISTORY_DEPTH_KEY]: sourceDepth + 1 }),
+        },
+        "",
+        target,
+      );
     }
 
     this.currentDocumentUrl = withoutHash(target);
@@ -643,6 +673,9 @@ export class PartialPageNavigator {
         ...readHistoryState(),
         [HISTORY_ENTRY_KEY]: targetEntryKey,
         themePartialNavigation: true,
+        ...(historyNavigation
+          ? {}
+          : { themePreviousUrl: this.currentDocumentUrl.toString(), [THEME_SOURCE_HISTORY_DEPTH_KEY]: 1 }),
       };
       if (historyNavigation) {
         if (finalTarget.href !== window.location.href) {
