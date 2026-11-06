@@ -140,6 +140,18 @@ export function resolveSafeNavigationUrl(url: string) {
   return resolveNavigationUrl(url, window.location.href);
 }
 
+function resolveProgrammaticNavigationUrl(url: string) {
+  const target = resolveSafeNavigationUrl(url);
+  const current = new URL(window.location.href);
+  const previewTheme = current.searchParams.get("preview-theme");
+
+  if (target?.origin === current.origin && previewTheme !== null && !target.searchParams.has("preview-theme")) {
+    target.searchParams.set("preview-theme", previewTheme);
+  }
+
+  return target;
+}
+
 function reportUnsafeNavigation() {
   dispatchRuntimeStatus({
     level: "error",
@@ -532,6 +544,7 @@ export class PartialPageNavigator {
     }
 
     this.cancelActiveNavigation();
+    const previousUrl = new URL(window.location.href);
     const fromEntryKey = this.currentEntryKey;
     const historyNavigation = options.history === true;
     let targetEntryKey = options.targetEntryKey;
@@ -564,6 +577,12 @@ export class PartialPageNavigator {
       targetUrl: target.toString(),
       ...(options.triggerElement ? { triggerElement: options.triggerElement } : {}),
     });
+
+    // pushState does not emit hashchange, but plugin-owned anchors listen for it.
+    // History traversal already supplies the browser's native event.
+    if (!historyNavigation && previousUrl.hash !== target.hash) {
+      window.dispatchEvent(new window.HashChangeEvent("hashchange", { oldURL: previousUrl.href, newURL: target.href }));
+    }
   }
 
   private async load(target: URL, options: NavigateOptions) {
@@ -726,7 +745,7 @@ export function startPartialNavigation() {
 }
 
 export function navigateWithFullReload(url: string) {
-  const target = resolveSafeNavigationUrl(url);
+  const target = resolveProgrammaticNavigationUrl(url);
   if (!target) {
     reportUnsafeNavigation();
     return false;
@@ -749,7 +768,7 @@ export function navigateWithFullReload(url: string) {
 }
 
 export function navigateToUrl(url: string) {
-  const target = resolveSafeNavigationUrl(url);
+  const target = resolveProgrammaticNavigationUrl(url);
   if (!target) {
     reportUnsafeNavigation();
     return false;

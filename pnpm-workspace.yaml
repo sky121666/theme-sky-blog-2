@@ -1,2 +1,11 @@
 allowBuilds:
   esbuild: true
+
+overrides:
+  # GHSA-rj75-hqrm-r3gf: Typography pins the vulnerable parser exactly.
+  "@tailwindcss/typography@0.5.20>postcss-selector-parser": 6.1.5
+  # GHSA-3g3m-2fjr-6pw4: keep the override within archiver-utils' glob consumer.
+  "archiver-utils@5.0.2>glob": 14.0.2
+  # GHSA-g3hv-75wg-m249: glob 14 supports minimatch 11; glob 10 does not.
+  # Only override the audited ESLint consumers, preserving unrelated old majors.
+  minimatch@10.2.6: 11.0.1

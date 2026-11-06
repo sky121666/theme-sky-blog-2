@@ -34,6 +34,7 @@ html.terminal-theme.color-scheme-dark {
   --halo-cw-base-font-size: 14px;
   --halo-cw-base-rounded: 0px;
   --halo-cw-primary-1-color: var(--terminal-text);
+  --halo-cw-primary-contrast-color: var(--terminal-bg);
   --halo-cw-primary-2-color: color-mix(in srgb, var(--terminal-text) 82%, var(--terminal-bg));
   --halo-cw-primary-3-color: color-mix(in srgb, var(--terminal-text) 16%, var(--terminal-bg));
   --halo-cw-text-1-color: var(--terminal-text);

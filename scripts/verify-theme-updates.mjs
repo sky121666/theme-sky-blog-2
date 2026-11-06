@@ -107,8 +107,8 @@ const checks = [
   },
   {
     file: "theme.yaml",
-    message: "theme should require the Halo 2.26 layout baseline",
-    test: (content) => /^ {2}requires: ["']>=2\.26\.0["']$/m.test(content),
+    message: "theme should require the Halo 2.27 baseline for the adapted plugin versions",
+    test: (content) => /^ {2}requires: ["']>=2\.27\.0["']$/m.test(content),
   },
   {
     file: "README.md",
@@ -118,7 +118,7 @@ const checks = [
       content.includes("docs/upgrade-2026-09-24.md") &&
       content.includes("docs/plugin-adaptation.md") &&
       content.includes("2026-07 历史插件契约") &&
-      content.includes("Halo `>=2.26.0`"),
+      content.includes("Halo `>=2.27.0`"),
   },
   {
     file: "README.md",

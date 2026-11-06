@@ -364,6 +364,62 @@ test("same-document hash entries track the distance back to the source page", ()
   navigator.stop();
 });
 
+test("same-document clicks and programmatic navigation notify hash listeners once with both URLs", () => {
+  resetPage("/article");
+  document.getElementById("main").innerHTML = '<a href="#halo-comment=comment-1">Comment</a>';
+  const navigator = new PartialPageNavigator();
+  const events = [];
+  const onHashChange = (event) => events.push(event);
+  window.addEventListener("hashchange", onHashChange);
+  navigator.start();
+
+  try {
+    dispatchClick(document.querySelector("a"));
+    navigator.navigate(new URL("https://blog.example.com/article#halo-comment=comment-1&reply=reply-1"));
+    navigator.navigate(new URL(window.location.href));
+    navigator.navigate(new URL("https://blog.example.com/article"));
+
+    assert.equal(events.length, 3);
+    assert.ok(events.every((event) => event instanceof window.HashChangeEvent));
+    assert.deepEqual(
+      events.map(({ oldURL, newURL }) => [oldURL, newURL]),
+      [
+        ["https://blog.example.com/article", "https://blog.example.com/article#halo-comment=comment-1"],
+        [
+          "https://blog.example.com/article#halo-comment=comment-1",
+          "https://blog.example.com/article#halo-comment=comment-1&reply=reply-1",
+        ],
+        ["https://blog.example.com/article#halo-comment=comment-1&reply=reply-1", "https://blog.example.com/article"],
+      ],
+    );
+  } finally {
+    navigator.stop();
+    window.removeEventListener("hashchange", onHashChange);
+  }
+});
+
+test("history navigation and popstate do not synthesize duplicate hashchange events", () => {
+  resetPage("/article");
+  const navigator = new PartialPageNavigator();
+  const events = [];
+  const onHashChange = (event) => events.push(event);
+  window.addEventListener("hashchange", onHashChange);
+  navigator.start();
+
+  try {
+    navigator.navigate(new URL("https://blog.example.com/article#halo-comment"), {
+      history: true,
+      targetEntryKey: "existing-comment-entry",
+    });
+    window.history.replaceState({ themePartialNavigationKey: "restored-comment-entry" }, "", "/article#halo-comment");
+    window.dispatchEvent(new Event("popstate"));
+    assert.equal(events.length, 0);
+  } finally {
+    navigator.stop();
+    window.removeEventListener("hashchange", onHashChange);
+  }
+});
+
 test("popstate restores hashes, reloads guarded pages, and fetches different documents as history navigation", async () => {
   resetPage("/base");
   const calls = [];

@@ -87,6 +87,7 @@ const COMMENT_CSS_VARIABLES = [
   "--halo-cw-base-font-size",
   "--halo-cw-base-rounded",
   "--halo-cw-primary-1-color",
+  "--halo-cw-primary-contrast-color",
   "--halo-cw-primary-2-color",
   "--halo-cw-primary-3-color",
   "--halo-cw-text-1-color",
@@ -775,10 +776,9 @@ function validateCssContract(files, issues) {
   const baseCss = files["src/styles/base.css"];
   const contentCss = files["src/styles/content.css"];
   const terminalPluginScope = extractCssRuleBody(baseCss, /html\.terminal-theme\.color-scheme-dark\s*\{/);
-  const hyperlinkPluginScope = extractCssRuleBody(
-    contentCss,
-    /\.terminal-theme\s+hyperlink-card\s*,\s*\.terminal-theme\s+hyperlink-inline-card\s*\{/,
-  );
+  const hyperlinkPluginSelector =
+    /html\.terminal-theme\s+hyperlink-card\s*,\s*html\.terminal-theme\s+hyperlink-inline-card\s*\{/;
+  const hyperlinkPluginScope = extractCssRuleBody(contentCss, hyperlinkPluginSelector);
 
   expectPattern(
     issues,
@@ -833,6 +833,13 @@ function validateCssContract(files, issues) {
       `缺少 hyperlink-card ${theme} 主题选择器`,
     );
   }
+  expectPattern(
+    issues,
+    "hyperlink-css",
+    contentCss,
+    hyperlinkPluginSelector,
+    "超链接卡片变量必须使用 html.terminal-theme 提高优先级，避免插件暗色变量覆盖",
+  );
   for (const variable of HYPERLINK_CSS_VARIABLES) {
     if (!hasCssVariableDeclaration(hyperlinkPluginScope, variable)) {
       addIssue(issues, "hyperlink-css", `超链接卡片组件作用域缺少变量 ${variable}`);

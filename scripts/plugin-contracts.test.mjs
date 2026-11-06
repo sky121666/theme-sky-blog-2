@@ -76,7 +76,7 @@ test("current repository satisfies the local plugin compatibility contract", () 
 
 test("the historical Halo floor remains a snapshot when the current theme floor rises", () => {
   const files = loadFiles();
-  assert.match(files["theme.yaml"], /requires: ">=2\.26\.0"/);
+  assert.match(files["theme.yaml"], /requires: ">=2\.27\.0"/);
   assert.match(files["docs/plugin-adaptation.md"], /\| themeHaloRequires\s+\| `>=2\.23\.0`/);
 
   const olderRuntime = updateFile(files, "docs/plugin-adaptation.md", (document) =>
@@ -485,6 +485,36 @@ test("plugin CSS variables remain guarded as DOM-level compatibility surfaces", 
   );
   const result = validatePluginContracts(files);
   assertHasIssue(result, "超链接卡片组件作用域缺少变量 --halo-hyperlink-card-skeleton-color");
+});
+
+test("hyperlink variables outrank plugin dark-mode selectors on both card hosts", () => {
+  const files = loadFiles();
+  assert.match(
+    files["src/styles/content.css"],
+    /html\.terminal-theme\s+hyperlink-card\s*,\s*html\.terminal-theme\s+hyperlink-inline-card\s*\{/,
+  );
+
+  for (const host of ["hyperlink-card", "hyperlink-inline-card"]) {
+    const weakenedScope = updateFile(files, "src/styles/content.css", (content) =>
+      content.replace(`html.terminal-theme ${host}`, `.terminal-theme ${host}`),
+    );
+    assertHasIssue(
+      validatePluginContracts(weakenedScope),
+      "超链接卡片变量必须使用 html.terminal-theme 提高优先级，避免插件暗色变量覆盖",
+    );
+  }
+});
+
+test("comment widget 3.4 keeps contrasting text on terminal-colored primary buttons", () => {
+  const files = loadFiles();
+  assert.match(files["src/styles/base.css"], /--halo-cw-primary-contrast-color:\s*var\(--terminal-bg\);/);
+  const missingContrast = updateFile(files, "src/styles/base.css", (content) =>
+    content.replace("--halo-cw-primary-contrast-color:", "--removed-comment-contrast:"),
+  );
+  assertHasIssue(
+    validatePluginContracts(missingContrast),
+    "暗色主题作用域缺少评论插件变量 --halo-cw-primary-contrast-color",
+  );
 });
 
 test("comment emoji picker colors derive from current theme variables instead of hardcoded RGB", () => {

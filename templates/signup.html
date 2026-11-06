@@ -1,30 +1,32 @@
 <!doctype html>
-<html
-  xmlns:th="https://www.thymeleaf.org"
-  th:replace="~{gateway_fragments/layout :: layout(title = '注册 - ' + ${site.title}, head = ~{::head}, body = ~{::body}, pageType = 'signup')}"
->
-  <th:block th:fragment="head">
-    <style>
-      .signup-page-wrapper {
-        max-width: 38em;
-      }
-    </style>
-  </th:block>
-  <th:block th:fragment="body">
-    <div class="terminal-login-wrapper signup-page-wrapper w-full">
-      <!-- Form Container -->
-      <div class="terminal-form-box">
-        <form th:replace="~{gateway_fragments/signup::form}"></form>
-        <div th:replace="~{gateway_fragments/common::socialAuthProviders}"></div>
-      </div>
+<th:block th:with="authPageType='signup'">
+  <html
+    xmlns:th="https://www.thymeleaf.org"
+    th:replace="~{gateway_fragments/layout :: layout(title = '注册 - ' + ${site.title}, head = ~{::head}, body = ~{::body})}"
+  >
+    <th:block th:fragment="head">
+      <style>
+        .signup-page-wrapper {
+          max-width: 38em;
+        }
+      </style>
+    </th:block>
+    <th:block th:fragment="body">
+      <div class="terminal-login-wrapper signup-page-wrapper w-full">
+        <!-- Form Container -->
+        <div class="terminal-form-box">
+          <form th:replace="~{gateway_fragments/signup::form}"></form>
+          <div th:replace="~{gateway_fragments/common::socialAuthProviders}"></div>
+        </div>
 
-      <!-- Footer -->
-      <div
-        class="border-terminal-green/30 text-terminal-dim mt-6 flex flex-col items-center gap-2 border-t border-dashed pt-4 text-center text-xs"
-      >
-        <div th:replace="~{gateway_fragments/common::loginNoticeContent}"></div>
-        <div th:replace="~{gateway_fragments/common::returnToSiteContent}"></div>
+        <!-- Footer -->
+        <div
+          class="border-terminal-green/30 text-terminal-dim mt-6 flex flex-col items-center gap-2 border-t border-dashed pt-4 text-center text-xs"
+        >
+          <div th:replace="~{gateway_fragments/common::loginNoticeContent}"></div>
+          <div th:replace="~{gateway_fragments/common::returnToSiteContent}"></div>
+        </div>
       </div>
-    </div>
-  </th:block>
-</html>
+    </th:block>
+  </html>
+</th:block>

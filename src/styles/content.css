@@ -537,8 +537,8 @@
 }
 
 /* Terminal Theme Hyperlink Card Variables */
-.terminal-theme hyperlink-card,
-.terminal-theme hyperlink-inline-card {
+html.terminal-theme hyperlink-card,
+html.terminal-theme hyperlink-inline-card {
   --halo-hyperlink-card-bg-color: color-mix(in srgb, var(--terminal-bg) 50%, transparent);
   --halo-hyperlink-card-inline-bg-color: color-mix(in srgb, var(--terminal-text) 5%, transparent);
   --halo-hyperlink-card-inline-hover-bg-color: color-mix(in srgb, var(--terminal-text) 15%, transparent);

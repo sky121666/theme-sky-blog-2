@@ -1,5 +1,5 @@
 <!doctype html>
-<html th:lang="${#locale.toLanguageTag}" th:fragment="layout (title,head,body,pageType)">
+<html th:lang="${#locale.toLanguageTag}" th:fragment="layout (title,head,body)">
   <head>
     <!-- Basic Metas -->
     <meta charset="UTF-8" />
@@ -67,7 +67,7 @@
 
         <!-- Ascii Header -->
         <pre
-          th:if="${pageType == null or pageType == 'login'}"
+          th:if="${authPageType == null or authPageType == 'login'}"
           aria-hidden="true"
           class="ascii-art text-terminal-green mb-8 text-center text-[0.6rem] leading-[0.6rem] font-bold whitespace-pre opacity-80 select-none md:text-xs md:leading-none"
         >
@@ -81,7 +81,7 @@
               |___/         
             </pre>
         <pre
-          th:if="${pageType == 'signup'}"
+          th:if="${authPageType == 'signup'}"
           aria-hidden="true"
           class="ascii-art text-terminal-green mb-8 text-center text-[0.6rem] leading-[0.6rem] font-bold whitespace-pre opacity-80 select-none md:text-xs md:leading-none"
         >
@@ -95,7 +95,7 @@
           |___/            |_|    
             </pre>
         <pre
-          th:if="${pageType == 'reset'}"
+          th:if="${authPageType == 'reset'}"
           aria-hidden="true"
           class="ascii-art text-terminal-green mb-8 text-center text-[0.6rem] leading-[0.6rem] font-bold whitespace-pre opacity-80 select-none md:text-xs md:leading-none"
         >
@@ -107,7 +107,7 @@
 |_|  \_\___||___/\___|\__|
             </pre>
         <pre
-          th:if="${pageType == 'logout'}"
+          th:if="${authPageType == 'logout'}"
           aria-hidden="true"
           class="ascii-art text-terminal-green mb-8 text-center text-[0.6rem] leading-[0.6rem] font-bold whitespace-pre opacity-80 select-none md:text-xs md:leading-none"
         >
@@ -121,25 +121,25 @@
               |___/                      
             </pre>
         <h1
-          th:if="${pageType == null or pageType == 'login'}"
+          th:if="${authPageType == null or authPageType == 'login'}"
           class="mobile-header text-terminal-green border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-center font-mono text-2xl font-bold tracking-widest"
         >
           LOGIN
         </h1>
         <h1
-          th:if="${pageType == 'signup'}"
+          th:if="${authPageType == 'signup'}"
           class="mobile-header text-terminal-green border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-center font-mono text-2xl font-bold tracking-widest"
         >
           SIGNUP
         </h1>
         <h1
-          th:if="${pageType == 'reset'}"
+          th:if="${authPageType == 'reset'}"
           class="mobile-header text-terminal-green border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-center font-mono text-2xl font-bold tracking-widest"
         >
           RESET
         </h1>
         <h1
-          th:if="${pageType == 'logout'}"
+          th:if="${authPageType == 'logout'}"
           class="mobile-header text-terminal-green border-terminal-green mb-8 border-b-2 border-dashed pb-4 text-center font-mono text-2xl font-bold tracking-widest"
         >
           LOGOUT
@@ -148,26 +148,26 @@
         <!-- Page-specific guidance; form errors are rendered by the form itself. -->
         <div class="border-terminal-green/30 mb-8 border-b border-dashed pb-6 text-center">
           <p
-            th:if="${pageType == null or pageType == 'login'}"
+            th:if="${authPageType == null or authPageType == 'login'}"
             class="text-terminal-green mb-2 font-bold tracking-widest"
           >
             [ READY FOR LOGIN ]
           </p>
-          <p th:if="${pageType == 'signup'}" class="text-terminal-green mb-2 font-bold tracking-widest">
+          <p th:if="${authPageType == 'signup'}" class="text-terminal-green mb-2 font-bold tracking-widest">
             [ CREATE ACCOUNT ]
           </p>
-          <p th:if="${pageType == 'reset'}" class="text-terminal-green mb-2 font-bold tracking-widest">
+          <p th:if="${authPageType == 'reset'}" class="text-terminal-green mb-2 font-bold tracking-widest">
             [ RECOVER ACCESS ]
           </p>
-          <p th:if="${pageType == 'logout'}" class="text-terminal-green mb-2 font-bold tracking-widest">
+          <p th:if="${authPageType == 'logout'}" class="text-terminal-green mb-2 font-bold tracking-widest">
             [ END SESSION ]
           </p>
-          <p class="text-terminal-dim text-xs" th:if="${pageType == null or pageType == 'login'}">
+          <p class="text-terminal-dim text-xs" th:if="${authPageType == null or authPageType == 'login'}">
             输入账号和密码以继续。
           </p>
-          <p class="text-terminal-dim text-xs" th:if="${pageType == 'signup'}">填写信息以创建账号。</p>
-          <p class="text-terminal-dim text-xs" th:if="${pageType == 'reset'}">按下方步骤重置密码。</p>
-          <p class="text-terminal-dim text-xs" th:if="${pageType == 'logout'}">确认后结束当前会话。</p>
+          <p class="text-terminal-dim text-xs" th:if="${authPageType == 'signup'}">填写信息以创建账号。</p>
+          <p class="text-terminal-dim text-xs" th:if="${authPageType == 'reset'}">按下方步骤重置密码。</p>
+          <p class="text-terminal-dim text-xs" th:if="${authPageType == 'logout'}">确认后结束当前会话。</p>
         </div>
 
         <!-- Injected Body (The Form) -->

@@ -44,7 +44,7 @@
 
   <!-- Dynamic Form Fields Injection -->
   <div
-    th:replace="~{__${#strings.startsWith(fragmentTemplateName, 'plugin:') ? fragmentTemplateName : 'gateway_fragments/' + fragmentTemplateName}__::form}"
+    th:replace="~{__${#strings.startsWith(fragmentTemplateName, 'plugin:') ? fragmentTemplateName : (fragmentTemplateName == 'login_local' ? 'gateway_fragments/login_local' : fragmentTemplateName)}__::form}"
   ></div>
 
   <!-- Remember Me -->

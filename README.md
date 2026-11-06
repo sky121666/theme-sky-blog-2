@@ -83,33 +83,33 @@
 | 列表 (ul) | 文件树风格：`├──` `└──`                   |
 | 列表 (ol) | 括号风格：`[1]` `[2]`                     |
 | 任务列表  | 交互式复选框：`[ ]` / `[x]`               |
-| 表格      | 绿色边框，鼠标悬停高亮                    |
+| 表格      | 主题色边框，鼠标悬停高亮                  |
 | 图片      | 带有 `[ IMAGE ]` 标注框                   |
 | 视频      | 带有 `▶ MEDIA PLAYER :: VIDEO` 播放器外观 |
 | 音频      | 带有 `♪ MEDIA PLAYER :: AUDIO` 播放器外观 |
 | 链接      | 虚线下划线，悬停反色效果                  |
-| 高亮      | 反色显示 (绿底黑字)                       |
+| 高亮      | 反色显示 (主题色背景)                     |
 
 ### 🔗 链接卡片 (Hyperlink Card)
 
-完美适配 Halo 的链接卡片组件，自动继承终端主题：
+适配 Halo 链接卡片的主题样式，自动继承终端配色：
 
 - **常规卡片**：带有 `$ curl -I` 模拟请求头样式的顶部栏。
 - **网格卡片**：极简边框风格。
 - **行内卡片**：带有 `[链接]` 样式的方括号装饰。
 
-全部组件支持深色模式，使用半透明背景和荧光绿边框。
+卡片使用半透明深色背景和主题色边框，颜色跟随主题设置。
 
 ## 🛠️ 开发指南
 
 ### 环境要求
 
-- Halo `>=2.26.0`（与 `theme.yaml` 一致；公共页面布局契约从 2.26.0 起提供，本版在 2.26.1 真页验收）
+- Halo `>=2.27.0`（与 `theme.yaml` 一致；1.2.13 以本轮最新版已适配插件组合为支持基线，其中 Comment 3.5 要求 Halo 2.27.0；本轮真页验证使用 Halo 2.27.2，具体边界见[适配与验收记录](docs/upgrade-2026-09-24.md#latest-2026-11-06)）
 - Node.js `^24.15.0`（CI 覆盖 Node.js 24.15.0 与最新 Node.js 24；CD 使用最新 Node.js 24）
 - pnpm 12.x（CI/CD 固定使用 pnpm 12.6.0）
 - zip 命令行工具（用于从主题包中移除非主题运行文件）
 
-本项目使用 TypeScript 7.0.2 的 `tsc` 构建；`typescript-eslint` 仍通过官方的 `@typescript/typescript6` 兼容包读取 TypeScript 6 API。当前依赖升级结果及仍受上游约束的依赖见 [2026-09-24 升级记录](docs/upgrade-2026-09-24.md)。
+本项目使用 TypeScript 7.0.2 的 `tsc` 构建；`typescript-eslint` 仍通过官方的 `@typescript/typescript6` 兼容包读取 TypeScript 6 API。当前依赖升级、安全修复与验收边界见 [适配与验收记录](docs/upgrade-2026-09-24.md#latest-2026-11-06)。
 
 ### 安装依赖
 
@@ -121,6 +121,12 @@ pnpm install
 
 ```bash
 pnpm dev
+```
+
+`pnpm dev` 持续生成供挂载式预览使用的资源。需要一次性生成 JS/CSS、不生成发布 ZIP 时，运行：
+
+```bash
+pnpm build-only
 ```
 
 ### 打包构建
@@ -156,7 +162,7 @@ pnpm audit --audit-level moderate
 严格制品验证同时限制核心 CSS 不超过 80 KiB、核心 JavaScript 不超过 128 KiB、主题 PNG 图标不超过
 192 KiB、Figlet 字体合计不超过 320 KiB、压缩 ZIP 不超过 384 KiB；预算超限会直接阻止构建验收。
 
-> `pnpm audit` 主要检查本地构建与打包链路依赖；如上游工具链短期仍有传递依赖告警，应在发布说明中记录剩余风险。
+> `pnpm audit` 同时检查生产和开发依赖。CI/CD 使用 `--audit-level moderate`；达到中危及以上阈值的报告会阻断发布，需要修复，不能只记录后继续发布。低于门槛的剩余风险仍应如实说明。
 > CI/CD 的第三方 Actions 使用完整 commit SHA 固定。推送 `v*` tag 后，CD 绑定触发事件的原始提交，只构建并验证一次；ZIP 会统一时间、权限、条目顺序和扩展元数据以保证同一源码可复现。发布流程先在草稿 Release 中完整比对已有资产，再统一补齐缺失项，拒绝覆盖不同内容或修改已公开 Release，最后才公开；GitHub Release 与 Halo 应用市场复用同一份已验证产物。公开的 `SHA256SUMS` 使用裸 ZIP 文件名，可与下载到同一目录的 ZIP 直接校验。
 > pnpm 版本由 CI/CD 固定为 12.6.0；`pnpm-workspace.yaml` 仅批准 `esbuild` 执行安装脚本。不要在 `package.json` 中恢复 `packageManager`，避免产生第二个版本来源。
 
@@ -217,7 +223,7 @@ pnpm reload:theme
 ### 4. 样式适配验证
 
 - 检查文章内的代码块是否带有 `$ cat ...` 顶部栏。
-- 检查链接是否显示为绿色虚线下划线。
+- 检查链接是否显示为主题色虚线下划线。
 - 检查图片是否有 `[ IMAGE ]` 边框包裹。
 
 ### 5. 搜索入口验证
@@ -263,12 +269,14 @@ theme-sky-blog-2/
 - ✅ **核心功能**：文章、独立页面、归档、作者、分类和标签路由。
 - ✅ **公共页面布局**：`templates/layout.html` 提供 Halo 2.26 的 `html(head, content)` 契约，使调用该契约的插件前台页面使用主题的终端配色、导航和页脚；这不代表插件内部功能都已适配。
 - ✅ **超链接卡片**：适配块级 `regular / small / grid` 与行内卡片的终端暗色变量。
-- ⚠️ **搜索入口**：提供 `[SEARCH]` 按钮和 `search` 命令，调用官方搜索组件 `SearchWidget.open()`；搜索能力依赖站点安装并启用搜索插件。
+- ⚠️ **搜索入口**：提供 `[SEARCH]` 按钮和 `search` 命令，调用官方搜索组件 `SearchWidget.open()`；搜索能力依赖站点安装并启用搜索插件。预览模式下，支持 Navigation API 的浏览器会为同源搜索结果保留 `preview-theme`；其他浏览器沿用插件原始跳转。
 - ⚠️ **评论入口**：文章页可通过主题设置开启 `[COMMENTS]` 区块，调用 Halo `<halo:comment>` 扩展点；评论能力依赖站点安装并启用官方评论组件 `PluginCommentWidget`。原生局部导航会按插件约定重放显式 `script[type="module"][data-pjax]`（包含插件生成的内联初始化模块）。
+- ✅ **评论 3.4–3.5 主题契约**：补齐主色按钮文字变量，支持评论/回复固定链接的 hash 通知与重复定位；编辑、私有回复、属地及通知等业务行为由插件提供。
 - ⚠️ **Shiki**：支持 `shiki-code` 与 `extraPathPatterns` 的 `window.pjax:complete` 生命周期；页面元数据精确同步，Head 可执行脚本、外链资源或插件生命周期节点发生变化时自动降级为整页导航。未标记的内联 `<style>` 不参与 Head 生命周期比较；带 `data-theme-navigation-style` 的主题声明式样式仍纳入契约。
+- ⚠️ **已有局部适配**：Vote 提供正文组件配色，Lottery 仅覆盖“活动不存在”空态；Passkey 保留 Halo 动态登录片段及错误提示样式，不接管插件认证流程。
 - ❌ **组件适配**：目前**暂未适配**相册等第三方插件。
 
-最新插件目标、当前资源观察和本次真页范围记录在 [2026-09-24 升级记录](docs/upgrade-2026-09-24.md)；[2026-07 历史插件契约](docs/plugin-adaptation.md) 保留旧环境的测试证据。`pnpm verify:plugin-contracts` 检查仓库的四项核心静态守卫，不等同于新版插件完整真页验收。
+最新插件目标、安装版本和预览验收范围见 [2026-11-06 适配记录](docs/upgrade-2026-09-24.md#latest-2026-11-06)；该文档保留此前升级历史，[2026-07 历史插件契约](docs/plugin-adaptation.md) 保留旧环境的测试证据。`pnpm verify:plugin-contracts` 检查仓库的四项核心静态守卫，不等同于新版插件完整真页验收。
 
 ## 📝 开源协议
 

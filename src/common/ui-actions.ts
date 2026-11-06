@@ -1,5 +1,6 @@
 import { logWarn } from "./logger";
 import { THEME_SOURCE_HISTORY_DEPTH_KEY } from "./navigation";
+import { initSearchPreviewNavigation } from "./search-preview";
 
 type SearchWidget = {
   open?: () => void;
@@ -64,6 +65,7 @@ export function openSearchWidget(
   const searchWidget = (window as unknown as { SearchWidget?: SearchWidget }).SearchWidget;
 
   if (typeof searchWidget?.open === "function") {
+    initSearchPreviewNavigation();
     if (trigger) {
       armSearchFocusRestoration(trigger);
     }

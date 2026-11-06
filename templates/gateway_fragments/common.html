@@ -40,7 +40,7 @@
     };
   </script>
 
-  <script th:src="@{/js/main.js}"></script>
+  <script th:src="@{/js/main.js?v={version}(version=${site.version})}"></script>
 
   <!-- Altcha Captcha Scripts (Halo Pro) -->
   <th:block th:if="${globalInfo != null and #strings.contains(globalInfo.toString(), 'captchaProvider')}">
@@ -179,7 +179,7 @@
     }
   </style>
   <div class="halo-logo">
-    <img th:src="@{/images/wordmark.svg}" alt="Halo" />
+    <img th:src="@{/images/wordmark.svg?v={version}(version=${site.version})}" alt="Halo" />
   </div>
 </div>
 
@@ -217,13 +217,11 @@
       const socialAuthProviders = document.querySelectorAll(".social-auth-provider-form");
 
       if (rememberMeCheckbox) {
-        rememberMeCheckbox.addEventListener("change", function (e) {
-          const rememberMe = e.target.checked;
-
-          socialAuthProviders.forEach((form) => {
+        socialAuthProviders.forEach((form) => {
+          form.addEventListener("submit", function () {
             const rememberMeInput = form.querySelector('input[name="remember-me"]');
             if (rememberMeInput) {
-              rememberMeInput.value = rememberMe ? "true" : "false";
+              rememberMeInput.value = rememberMeCheckbox.checked ? "true" : "false";
             }
           });
         });

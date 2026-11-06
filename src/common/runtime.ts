@@ -206,8 +206,78 @@ export function announceNavigation() {
   }
 }
 
+function findCommentHashContainer() {
+  const rawHash = window.location.hash.slice(1);
+  if (rawHash !== "halo-comment") {
+    try {
+      decodeURIComponent(rawHash);
+      if (!new URLSearchParams(rawHash).get("halo-comment")?.trim()) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  // The official tag renders a container before its widget is lazily mounted.
+  return document.querySelector<HTMLElement>('#main comment-widget, #main .terminal-comments > div[id^="comment-"]');
+}
+
+function findRenderedCommentHashTarget(container: HTMLElement) {
+  const params = new URLSearchParams(window.location.hash.slice(1));
+  const commentName = params.get("halo-comment");
+  const replyName = params.get("reply") || undefined;
+  if (!commentName) {
+    return null;
+  }
+
+  // CommentWidget 3.4–3.5 has no repeat-location API. Read its open shadow roots only,
+  // verify each target name, and fall back to the container if its structure changes.
+  // Never reload the detail or remount the widget: either could discard an open draft.
+  const widget = container.matches("comment-widget") ? container : container.querySelector("comment-widget");
+  const detail = widget?.shadowRoot?.querySelector<
+    HTMLElement & { target?: { commentName?: string; replyName?: string } }
+  >("comment-detail");
+  if (detail?.target?.commentName !== commentName || detail.target.replyName !== replyName) {
+    return null;
+  }
+
+  type CommentItem = HTMLElement & {
+    comment?: { metadata?: { name?: string } };
+    reply?: { metadata?: { name?: string } };
+  };
+  const item = detail.shadowRoot?.querySelector<CommentItem>("comment-item");
+  if (item?.comment?.metadata?.name !== commentName) {
+    return null;
+  }
+  if (!replyName) {
+    return item;
+  }
+
+  const replies = item.shadowRoot?.querySelector<HTMLElement>("comment-replies");
+  if (!replies?.shadowRoot || replies.hidden) {
+    return null;
+  }
+  return (
+    Array.from(replies.shadowRoot.querySelectorAll<CommentItem>("reply-item")).find(
+      (reply) => reply.comment?.metadata?.name === commentName && reply.reply?.metadata?.name === replyName,
+    ) ?? null
+  );
+}
+
 function restoreScrollPosition(detail: NavigationEventDetail) {
   cancelPendingScrollRestoration();
+
+  const commentContainer = findCommentHashContainer();
+  if (commentContainer) {
+    // An unchanged hash does not make the plugin locate its discussion again.
+    if (!detail.history && detail.fromEntryKey === detail.targetEntryKey) {
+      const target = findRenderedCommentHashTarget(commentContainer) ?? commentContainer;
+      target.scrollIntoView({ behavior: "auto", block: "start" });
+      focusNavigationContext(detail, target);
+    }
+    return;
+  }
 
   scrollFrameId = window.requestAnimationFrame(() => {
     scrollFrameId = null;
