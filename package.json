@@ -8,7 +8,7 @@
     "pnpm": ">=12.6.0 <13"
   },
   "scripts": {
-    "build": "tsc && vite build && theme-package && node scripts/prune-theme-package.mjs",
+    "build": "node scripts/check-release.mjs --when-publishing && tsc && vite build && theme-package && node scripts/prune-theme-package.mjs && pnpm verify:package -- --strict-dist",
     "build-only": "tsc && vite build",
     "check": "pnpm test:coverage && pnpm verify:plugin-contracts && pnpm prettier:check && pnpm verify:theme-updates && pnpm lint",
     "check:release": "node scripts/check-release.mjs",

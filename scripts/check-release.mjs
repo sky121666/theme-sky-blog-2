@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 
 import { assertReleaseState } from "./release-guard-core.mjs";
@@ -27,6 +27,11 @@ function readEventReleaseTag() {
 
 function git(...arguments_) {
   return execFileSync("git", arguments_, { encoding: "utf8" }).trim();
+}
+
+const publishingOnly = process.argv.includes("--when-publishing");
+if (publishingOnly && process.env.GITHUB_EVENT_NAME !== "release") {
+  process.exit(0);
 }
 
 const { name: themeName, version: themeVersion } = readThemeMetadata();
@@ -63,3 +68,11 @@ assertReleaseState({
 });
 
 console.log(`Release guard passed: ${releaseTag} -> ${headCommit}`);
+
+if (publishingOnly) {
+  const audit = spawnSync("pnpm", ["audit", "--audit-level", "moderate"], { stdio: "inherit" });
+  if (audit.error) {
+    throw audit.error;
+  }
+  process.exitCode = audit.status ?? 1;
+}

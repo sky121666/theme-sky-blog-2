@@ -4,21 +4,8 @@ import test from "node:test";
 import { validateReleaseState } from "./release-guard-core.mjs";
 import { parseThemeMetadata } from "./theme-metadata.mjs";
 import {
-  PINNED_ACTIONS,
   collectActionReferences,
   isPinnedActionReference,
-  jobActionHasInput,
-  jobHasKeyValue,
-  jobHasLine,
-  jobHasLinesInOrder,
-  jobHasPermission,
-  jobHasRun,
-  jobRunCount,
-  jobUses,
-  parseWorkflowJobs,
-  workflowActionsArePinned,
-  workflowHasActiveKey,
-  workflowHasTopLevelKeyValue,
   validateFormKitSchema,
   yamlScalarAtPath,
 } from "./workflow-rules.mjs";
@@ -69,57 +56,20 @@ spec:
   assert.throws(() => parseThemeMetadata("metadata:\n  name: incomplete"), /spec\.version/);
 });
 
-test("workflow parser ignores commented guard text and scopes checks to jobs", () => {
-  const workflow = `
-# pnpm-version: 10
-permissions: {}
-jobs:
-  build_and_verify:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      # - run: pnpm build
-      # - uses: actions/checkout@v4
-      - uses: ${PINNED_ACTIONS.checkout}
-        with:
-          persist-credentials: false
-      - run: pnpm check
-  github-release:
-    needs: build_and_verify
-    permissions:
-      contents: write
-    steps:
-      - uses: ${PINNED_ACTIONS.downloadArtifact}
-`;
-  const jobs = parseWorkflowJobs(workflow);
-
-  assert.equal(jobUses(jobs.get("build_and_verify"), PINNED_ACTIONS.checkout), true);
-  assert.equal(jobHasRun(jobs.get("build_and_verify"), "pnpm check"), true);
-  assert.equal(jobHasLine(jobs.get("build_and_verify"), "persist-credentials: false"), true);
-  assert.equal(
-    jobHasLinesInOrder(jobs.get("build_and_verify"), [`- uses: ${PINNED_ACTIONS.checkout}`, "- run: pnpm check"]),
-    true,
-  );
-  assert.equal(
-    jobHasLinesInOrder(jobs.get("build_and_verify"), ["- run: pnpm check", "persist-credentials: false"]),
-    false,
-  );
-  assert.equal(jobRunCount(jobs.get("build_and_verify"), "pnpm build"), 0);
-  assert.equal(jobHasPermission(jobs.get("build_and_verify"), "contents", "read"), true);
-  assert.equal(jobHasKeyValue(jobs.get("github-release"), "needs", "build_and_verify"), true);
-  assert.equal(jobHasPermission(jobs.get("github-release"), "contents", "write"), true);
-  assert.equal(workflowHasActiveKey(workflow, "pnpm-version"), false);
-  assert.equal(workflowHasTopLevelKeyValue(workflow, "permissions", "{}"), true);
-  assert.equal(workflowActionsArePinned(workflow), true);
-  assert.deepEqual(collectActionReferences(workflow), [PINNED_ACTIONS.checkout, PINNED_ACTIONS.downloadArtifact]);
-});
-
 test("workflow action policy accepts only local actions or immutable full commit SHAs", () => {
-  assert.equal(isPinnedActionReference(PINNED_ACTIONS.setupNode), true);
+  const officialWorkflow = "halo-sigs/reusable-workflows/.github/workflows/theme-cd.yaml";
+  const pinned = `${officialWorkflow}@${"a".repeat(40)}`;
+  const workflow = `
+# uses: ignored@v5
+jobs:
+  publish:
+    uses: ${pinned}
+`;
+
+  assert.equal(isPinnedActionReference(pinned), true);
   assert.equal(isPinnedActionReference("./.github/actions/local-check"), true);
-  assert.equal(isPinnedActionReference("actions/checkout@v6"), false);
-  assert.equal(isPinnedActionReference("halo-sigs/reusable-workflows/.github/workflows/theme-cd.yaml@v4"), false);
+  assert.equal(isPinnedActionReference(`${officialWorkflow}@v5`), false);
+  assert.deepEqual(collectActionReferences(workflow), [pinned]);
 });
 
 test("App Store release input must match the theme app id", () => {
@@ -130,23 +80,17 @@ metadata:
 `;
   const workflow = `
 jobs:
-  appstore-release:
-    steps:
-      - name: Publish verified package
-        uses: ${PINNED_ACTIONS.haloAppStoreRelease}
-        with:
-          app-id: app-example123
-      - name: Decoy input
-        run: echo ignored
-        with:
-          app-id: app-other
+  publish:
+    with:
+      app-id: app-example123
+  decoy:
+    with:
+      app-id: app-other
 `;
   const appId = yamlScalarAtPath(theme, ["metadata", "annotations", "store.halo.run/app-id"]);
-  const job = parseWorkflowJobs(workflow).get("appstore-release");
 
   assert.equal(appId, "app-example123");
-  assert.equal(jobActionHasInput(job, PINNED_ACTIONS.haloAppStoreRelease, "app-id", appId), true);
-  assert.equal(jobActionHasInput(job, PINNED_ACTIONS.haloAppStoreRelease, "app-id", "app-other"), false);
+  assert.equal(yamlScalarAtPath(workflow, ["jobs", "publish", "with", "app-id"]), appId);
 });
 
 test("settings FormKit schema rejects duplicate names and dangling condition ids", () => {

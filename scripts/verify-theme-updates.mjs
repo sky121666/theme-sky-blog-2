@@ -3,20 +3,8 @@ import { join } from "node:path";
 
 import { parseThemeMetadata } from "./theme-metadata.mjs";
 import {
-  PINNED_ACTIONS,
   collectActionReferences,
-  jobActionHasInput,
-  jobHasKeyValue,
-  jobHasLine,
-  jobHasLinesInOrder,
-  jobHasPermission,
-  jobHasRun,
-  jobRunCount,
-  jobUses,
-  parseWorkflowJobs,
-  workflowActionsArePinned,
-  workflowHasActiveKey,
-  workflowHasTopLevelKeyValue,
+  isPinnedActionReference,
   validateFormKitSchema,
   yamlScalarAtPath,
 } from "./workflow-rules.mjs";
@@ -129,21 +117,10 @@ const checks = [
     message: "README should document the actual Node.js and pnpm requirements",
     test: (content) =>
       content.includes("`^24.15.0`") &&
-      content.includes("CI 覆盖 Node.js 24.15.0 与最新 Node.js 24") &&
-      content.includes("CD 使用最新 Node.js 24") &&
+      content.includes("Halo 官方发布使用 Node.js 24") &&
       content.includes("pnpm 12.x") &&
       content.includes("pnpm 12.6.0") &&
       !content.includes("Node.js 20.19+ 或 22.12+"),
-  },
-  {
-    file: "README.md",
-    message: "README should document the immutable single-artifact release workflow",
-    test: (content) =>
-      content.includes("完整 commit SHA") &&
-      content.includes("只构建并验证一次") &&
-      content.includes("GitHub Release 与 Halo 应用市场复用同一份已验证产物") &&
-      content.includes("不要在 `package.json` 中恢复 `packageManager`") &&
-      !content.includes("theme-cd.yaml@v4"),
   },
   {
     file: "README.md",
@@ -330,151 +307,27 @@ const checks = [
       !content.includes("console.log(token"),
   },
   {
-    file: ".github/workflows/ci.yaml",
-    message: "CI should validate the Node 24 support floor and current Node 24 with least privilege",
-    test: (content) => {
-      const validate = parseWorkflowJobs(content).get("validate");
-      const actionReferences = collectActionReferences(content);
-      return (
-        workflowHasTopLevelKeyValue(content, "permissions", "{}") &&
-        workflowActionsArePinned(content) &&
-        actionReferences.length === 3 &&
-        jobHasPermission(validate, "contents", "read") &&
-        jobUses(validate, PINNED_ACTIONS.checkout) &&
-        jobHasKeyValue(validate, "persist-credentials", "false") &&
-        jobUses(validate, PINNED_ACTIONS.pnpmSetup) &&
-        jobHasKeyValue(validate, "version", "12.6.0") &&
-        jobHasKeyValue(validate, "install", "false") &&
-        jobUses(validate, PINNED_ACTIONS.setupNode) &&
-        jobHasKeyValue(validate, "node-version", '["24.15.0", "24"]') &&
-        jobHasKeyValue(validate, "node-version", "${{ matrix.node-version }}") &&
-        jobHasRun(validate, "pnpm install --frozen-lockfile") &&
-        jobHasRun(validate, "pnpm check") &&
-        jobHasRun(validate, "pnpm build") &&
-        jobHasRun(validate, "pnpm verify:package -- --strict-dist") &&
-        jobHasRun(validate, "pnpm audit --audit-level moderate") &&
-        jobHasKeyValue(validate, "if", "matrix.node-version == '24'")
-      );
-    },
-  },
-  {
     file: ".github/workflows/cd.yaml",
-    message: "CD should build once with read-only permissions and promote one verified artifact",
+    message: "Theme publication should delegate to Halo's official workflow and use the configured App Store app",
     test: (content) => {
-      const jobs = parseWorkflowJobs(content);
-      const build = jobs.get("build_and_verify");
-      const githubRelease = jobs.get("github-release");
-      const appStoreRelease = jobs.get("appstore-release");
-      const actionReferences = collectActionReferences(content);
+      const actions = collectActionReferences(content);
+      const [workflow] = actions;
       const themeAppId = yamlScalarAtPath(readFileSync("theme.yaml", "utf8"), [
         "metadata",
         "annotations",
         "store.halo.run/app-id",
       ]);
-      const integrityCheck = "sha256sum --check --strict release-integrity/SHA256SUMS";
-      const outputDigestCheck = 'echo "$PACKAGE_SHA256  dist/$PACKAGE_NAME" | sha256sum --check --strict -';
       return (
-        workflowHasTopLevelKeyValue(content, "permissions", "{}") &&
-        content.includes('on:\n  push:\n    tags:\n      - "v*"') &&
-        content.includes(
-          "concurrency:\n  group: cd-${{ github.repository }}-${{ github.ref }}\n  cancel-in-progress: false",
-        ) &&
-        !content.includes("release:\n    types:\n      - published") &&
-        workflowActionsArePinned(content) &&
-        actionReferences.length === 7 &&
-        jobHasPermission(build, "contents", "read") &&
-        jobUses(build, PINNED_ACTIONS.checkout) &&
-        jobHasKeyValue(build, "ref", "${{ github.sha }}") &&
-        jobHasKeyValue(build, "fetch-depth", "0") &&
-        jobHasKeyValue(build, "fetch-tags", "true") &&
-        jobHasKeyValue(build, "persist-credentials", "false") &&
-        jobUses(build, PINNED_ACTIONS.pnpmSetup) &&
-        jobHasKeyValue(build, "version", "12.6.0") &&
-        jobHasKeyValue(build, "install", "false") &&
-        jobUses(build, PINNED_ACTIONS.setupNode) &&
-        jobHasKeyValue(build, "node-version", "24") &&
-        jobRunCount(build, "pnpm install --frozen-lockfile") === 1 &&
-        jobHasRun(
-          build,
-          'pnpm check:release -- --tag "${{ github.ref_name }}" --expected-commit "${{ github.sha }}"',
-        ) &&
-        jobHasRun(build, `printf 'release-commit=%s\\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"`) &&
-        jobHasRun(build, "pnpm check") &&
-        jobRunCount(build, "pnpm build") === 1 &&
-        jobRunCount(build, "node scripts/audit-release.mjs") === 1 &&
-        jobHasLinesInOrder(build, [
-          "run: pnpm verify:package -- --strict-dist --write-integrity release-integrity --github-output",
-          "run: node scripts/audit-release.mjs",
-          `uses: ${PINNED_ACTIONS.uploadArtifact}`,
-        ]) &&
-        jobUses(build, PINNED_ACTIONS.uploadArtifact) &&
-        jobHasKeyValue(build, "name", "verified-theme-package") &&
-        jobHasLine(build, "dist/${{ steps.package.outputs.package-name }}") &&
-        jobHasLine(build, "release-integrity/SHA256SUMS") &&
-        jobHasKeyValue(build, "package-name", "${{ steps.package.outputs.package-name }}") &&
-        jobHasKeyValue(build, "package-sha256", "${{ steps.package.outputs.package-sha256 }}") &&
-        jobHasKeyValue(build, "release-commit", "${{ steps.release-identity.outputs.release-commit }}") &&
-        jobHasKeyValue(githubRelease, "needs", "build_and_verify") &&
-        jobHasPermission(githubRelease, "contents", "write") &&
-        jobUses(githubRelease, PINNED_ACTIONS.downloadArtifact) &&
-        jobHasKeyValue(githubRelease, "name", "verified-theme-package") &&
-        jobHasRun(githubRelease, integrityCheck) &&
-        jobHasRun(githubRelease, outputDigestCheck) &&
-        jobHasLinesInOrder(githubRelease, [
-          'cp "dist/$PACKAGE_NAME" "$PACKAGE_NAME"',
-          `printf '%s  %s\\n' "$PACKAGE_SHA256" "$PACKAGE_NAME" > SHA256SUMS`,
-          "sha256sum --check --strict SHA256SUMS",
-        ]) &&
-        jobHasLinesInOrder(githubRelease, [
-          "verify_remote_tag_commit() {",
-          'REMOTE_TAG_COMMIT="$(gh api "repos/$GH_REPO/commits/$RELEASE_TAG" --jq .sha)"',
-          'if [ "$REMOTE_TAG_COMMIT" != "$EXPECTED_COMMIT" ]; then',
-          "verify_remote_tag_commit",
-          'if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then',
-          'IS_DRAFT="$(gh release view "$RELEASE_TAG" --json isDraft --jq .isDraft)"',
-          'gh release create "$RELEASE_TAG" --draft --verify-tag --title "$RELEASE_TAG" --generate-notes',
-          'ASSETS=("$PACKAGE_NAME" SHA256SUMS)',
-          "MISSING_ASSETS=()",
-          'for ASSET in "${ASSETS[@]}"; do',
-          'if gh release download "$RELEASE_TAG" --pattern "$ASSET" --dir existing-release-assets 2>/dev/null; then',
-          'cmp --silent "release-artifact/$ASSET" "existing-release-assets/$ASSET" || {',
-          'MISSING_ASSETS+=("$ASSET")',
-          'if [ "$IS_DRAFT" != "true" ] && [ "${#MISSING_ASSETS[@]}" -gt 0 ]; then',
-          'for ASSET in "${MISSING_ASSETS[@]}"; do',
-          'gh release upload "$RELEASE_TAG" "release-artifact/$ASSET"',
-          "verify_remote_tag_commit",
-          'if [ "$IS_DRAFT" = "true" ]; then',
-          'gh release edit "$RELEASE_TAG" --draft=false',
-          'RELEASE_ID="$(gh api "repos/$GH_REPO/releases/tags/$RELEASE_TAG" --jq .id)"',
-          'if ! [[ "$RELEASE_ID" =~ ^[0-9]+$ ]]; then',
-          `printf 'release-id=%s\\n' "$RELEASE_ID" >> "$GITHUB_OUTPUT"`,
-        ]) &&
-        jobHasKeyValue(githubRelease, "release-id", "${{ steps.release.outputs.release-id }}") &&
-        jobHasKeyValue(githubRelease, "GH_REPO", "${{ github.repository }}") &&
-        jobHasKeyValue(githubRelease, "EXPECTED_COMMIT", "${{ needs.build_and_verify.outputs.release-commit }}") &&
-        jobHasKeyValue(githubRelease, "RELEASE_TAG", "${{ github.ref_name }}") &&
-        !content.includes("--clobber") &&
-        !jobUses(githubRelease, PINNED_ACTIONS.checkout) &&
-        jobRunCount(githubRelease, "pnpm install --frozen-lockfile") === 0 &&
-        jobRunCount(githubRelease, "pnpm build") === 0 &&
-        jobHasKeyValue(appStoreRelease, "needs", "[build_and_verify, github-release]") &&
-        jobHasPermission(appStoreRelease, "contents", "read") &&
-        !jobHasPermission(appStoreRelease, "contents", "write") &&
-        jobUses(appStoreRelease, PINNED_ACTIONS.downloadArtifact) &&
-        jobHasKeyValue(appStoreRelease, "name", "verified-theme-package") &&
-        jobHasRun(appStoreRelease, integrityCheck) &&
-        jobHasRun(appStoreRelease, outputDigestCheck) &&
-        jobUses(appStoreRelease, PINNED_ACTIONS.haloAppStoreRelease) &&
+        actions.length === 1 &&
+        isPinnedActionReference(workflow) &&
+        workflow.startsWith("halo-sigs/reusable-workflows/.github/workflows/theme-cd.yaml@") &&
+        yamlScalarAtPath(content, ["on", "release", "types"]) === "[published]" &&
+        yamlScalarAtPath(content, ["jobs", "publish", "uses"]) === workflow &&
+        yamlScalarAtPath(content, ["jobs", "publish", "permissions", "contents"]) === "write" &&
+        yamlScalarAtPath(content, ["jobs", "publish", "with", "pnpm-version"]) === "12.6.0" &&
+        yamlScalarAtPath(content, ["jobs", "publish", "secrets", "halo-pat"]) === "${{ secrets.HALO_PAT }}" &&
         Boolean(themeAppId) &&
-        jobActionHasInput(appStoreRelease, PINNED_ACTIONS.haloAppStoreRelease, "app-id", themeAppId) &&
-        jobHasKeyValue(appStoreRelease, "release-id", "${{ needs.github-release.outputs.release-id }}") &&
-        jobHasKeyValue(appStoreRelease, "assets-dir", "release-artifact/dist") &&
-        jobHasKeyValue(appStoreRelease, "halo-pat", "${{ secrets.HALO_PAT }}") &&
-        !jobUses(appStoreRelease, PINNED_ACTIONS.checkout) &&
-        jobRunCount(appStoreRelease, "pnpm install --frozen-lockfile") === 0 &&
-        jobRunCount(appStoreRelease, "pnpm build") === 0 &&
-        !content.includes("reusable-workflows") &&
-        !workflowHasActiveKey(content, "pnpm-version")
+        yamlScalarAtPath(content, ["jobs", "publish", "with", "app-id"]) === themeAppId
       );
     },
   },
@@ -592,7 +445,6 @@ const checks = [
     test: (content) =>
       content.includes("accepts a release whose tag, commit, package, and theme agree") &&
       content.includes("rejects release tag, package, and commit mismatches") &&
-      content.includes("workflow parser ignores commented guard text") &&
       content.includes("workflow action policy accepts only local actions or immutable full commit SHAs") &&
       content.includes("App Store release input must match the theme app id") &&
       content.includes("settings FormKit schema rejects duplicate names and dangling condition ids"),

@@ -115,9 +115,9 @@ Halo 渲染完整 HTML。站内普通链接和终端命令通过 swup 4 切换�
 ### 环境要求
 
 - Halo `>=2.27.0`。1.3.0 的页面与认证验证使用 Halo CE 2.27.0 和 Halo Pro 2.27.3，覆盖范围见 [验收记录](docs/upgrade-2026-09-24.md#latest-2026-11-18)。
-- Node.js `^24.15.0`（CI 覆盖 Node.js 24.15.0 与最新 Node.js 24；CD 使用最新 Node.js 24）
-- pnpm 12.x（CI/CD 固定使用 pnpm 12.6.0）
-- zip 命令行工具（用于从主题包中移除非主题运行文件）
+- Node.js `^24.15.0`（Halo 官方发布使用 Node.js 24）
+- pnpm 12.x（Halo 官方发布使用 pnpm 12.6.0）
+- `zip`、`unzip` 和 `zipinfo` 命令行工具（用于打包和校验主题 ZIP）
 
 本项目使用 TypeScript 7.0.2 的 `tsc` 构建，`typescript-eslint` 通过官方的 `@typescript/typescript6` 兼容包读取 TypeScript 6 API。
 
@@ -157,7 +157,6 @@ pnpm build
 ```bash
 pnpm check
 pnpm build
-pnpm verify:package -- --strict-dist
 pnpm audit --audit-level moderate
 ```
 
@@ -166,15 +165,16 @@ pnpm audit --audit-level moderate
 不低于 95%，并要求 `alpine.ts`、
 `navigation.ts`、`runtime.ts` 三个关键运行时文件的行、分支、函数覆盖率分别不低于 95%。测试覆盖 BFCache
 解锁、导航竞态与失败回滚、终端命令/历史/补全、页面数据与虚拟路径、任务列表、文章工具、插件契约、模板语义和
-发布包规则。`pnpm check` 默认执行上述门禁。正式发版的
-`pnpm check:release` 还会拒绝任何已修改或未跟踪文件，确保标签对应完整、可追溯的主题快照。
+发布包规则。`pnpm check` 执行本地测试和静态检查。`pnpm build` 生成并校验 ZIP，同时输出 SHA-256。
+也可以用 `pnpm verify:package -- --strict-dist` 单独复验已构建的包。
 
-严格制品验证输出核心 CSS、JavaScript、主题 PNG 图标、Figlet 字体合计和压缩 ZIP 的实际字节数，供版本间比较。
-验收仍检查 ZIP 完整性、必需文件、资源非空以及主题名称和版本，并输出制品 SHA-256。
+### 发布到 GitHub 和 Halo 应用市场
 
-> CI/CD 使用 `--audit-level moderate` 检查生产和开发依赖，中危及以上公告默认阻断。仅 `v1.3.0` 的 CD 对开发依赖的 `GHSA-fc5q-39xc-vjpf` 有一次例外。该例外须匹配已审查的锁文件和包内前台脚本，并通过独立的生产依赖审计。详见 [1.3.0 兼容与验收](docs/upgrade-2026-09-24.md#latest-2026-11-18)。
-> CI/CD 的第三方 Actions 使用完整 commit SHA 固定。推送 `v*` tag 后，CD 绑定触发事件的原始提交，只构建并验证一次；ZIP 会统一时间、权限、条目顺序和扩展元数据以保证同一源码可复现。发布流程先在草稿 Release 中完整比对已有资产，再统一补齐缺失项，拒绝覆盖不同内容或修改已公开 Release，最后才公开；GitHub Release 与 Halo 应用市场复用同一份已验证产物。公开的 `SHA256SUMS` 使用裸 ZIP 文件名，可与下载到同一目录的 ZIP 直接校验。
-> pnpm 版本由 CI/CD 固定为 12.6.0；`pnpm-workspace.yaml` 仅批准 `esbuild` 执行安装脚本。不要在 `package.json` 中恢复 `packageManager`，避免产生第二个版本来源。
+在干净的发布提交上创建对应的 Git 标签，运行 `pnpm check:release -- --tag vX.Y.Z` 核对标签、提交和版本。
+本地检查和审计通过后，在 GitHub 公开对应的 Release 并填写更新说明。公开 Release 会触发官方工作流，重新构建主题、上传 ZIP 并同步应用市场。 [Halo 官方主题发布工作流](https://github.com/halo-sigs/reusable-workflows/tree/v5.0.1#theme)
+
+正式构建还会核对标签和提交，执行完整的中危及以上依赖审计，并校验生成的主题包。检查失败会停止上传和同步。
+`v1.3.0` 的一次性审计例外记载于 [验收记录](docs/upgrade-2026-09-24.md#latest-2026-11-18)。
 
 首页运行态资源版本可用以下只读检查确认：
 
