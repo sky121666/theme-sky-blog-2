@@ -16,7 +16,9 @@ const environment = installDom(`<!doctype html><html><head><title>Runtime edges<
   <p id="navigation-announcer" role="status"></p>
   <main id="main" tabindex="-1">
     <script id="halo-page-data" type="application/json">${PAGE_DATA}</script>
-    <img class="lozad" alt="" />
+    <img id="legacy" class="lozad" data-src="/legacy.png" alt="" />
+    <img id="placeholder" class="lozad" src="/placeholder.png" data-src="/real.png" loading="eager" alt="" />
+    <img id="responsive" class="lozad" data-srcset="/small.png 320w, /large.png 720w" alt="" />
   </main>
 </body></html>`);
 environment.dom.virtualConsole.removeAllListeners("jsdomError");
@@ -24,27 +26,6 @@ environment.dom.virtualConsole.on("jsdomError", (error) => {
   if (!error.message.includes("Not implemented: navigation to another Document")) {
     throw error;
   }
-});
-
-class TestIntersectionObserver {
-  constructor(callback) {
-    this.callback = callback;
-  }
-
-  disconnect() {}
-
-  observe(target) {
-    this.callback([{ intersectionRatio: 1, isIntersecting: true, target }], this);
-  }
-
-  unobserve() {}
-}
-
-window.IntersectionObserver = TestIntersectionObserver;
-Object.defineProperty(globalThis, "IntersectionObserver", {
-  configurable: true,
-  value: TestIntersectionObserver,
-  writable: true,
 });
 
 const Alpine = (await import("../src/common/alpine.ts")).default;
@@ -66,7 +47,6 @@ test.after(async () => {
   Alpine.destroyTree(document.body);
   Alpine.stopObservingMutations();
   await new Promise((resolve) => window.setTimeout(resolve, 0));
-  delete globalThis.IntersectionObserver;
   environment.restore();
 });
 
@@ -117,6 +97,20 @@ function renderMain(content = "") {
   `;
   return document.getElementById("main");
 }
+
+test("legacy article images retain their source through native lazy loading", () => {
+  const image = document.getElementById("legacy");
+  assert.equal(image.getAttribute("src"), "/legacy.png");
+  assert.equal(image.getAttribute("loading"), "lazy");
+
+  const placeholder = document.getElementById("placeholder");
+  assert.equal(placeholder.getAttribute("src"), "/real.png");
+  assert.equal(placeholder.getAttribute("loading"), "eager");
+
+  const responsive = document.getElementById("responsive");
+  assert.equal(responsive.getAttribute("srcset"), "/small.png 320w, /large.png 720w");
+  assert.equal(responsive.getAttribute("loading"), "lazy");
+});
 
 test("module replay ignores late completion, rejects timeouts, and blocks unsafe protocols", async () => {
   const originalSetTimeout = window.setTimeout;
@@ -211,17 +205,7 @@ test("full-navigation intent cancels restoration and suppresses stale runtime ev
   }
 });
 
-test("runtime error fallback omits an empty target and rejects stale delayed reloads", () => {
-  const originalSetTimeout = window.setTimeout;
-  let delayedFallback;
-  window.setTimeout = (callback, delay) => {
-    if (delay === 100) {
-      delayedFallback = callback;
-      return 101;
-    }
-    return originalSetTimeout(callback, delay);
-  };
-
+test("runtime error fallback omits an empty target and rejects stale reloads", async () => {
   const statuses = [];
   const onStatus = (event) => statuses.push(event.detail);
   document.addEventListener(RUNTIME_STATUS_EVENT, onStatus);
@@ -230,11 +214,11 @@ test("runtime error fallback omits an empty target and rejects stale delayed rel
     const missingTarget = navigationDetail("missing-target", { targetUrl: "" });
     dispatchNavigation(NAVIGATION_ERROR_EVENT, { ...missingTarget, error: new Error("missing target") });
     assert.equal(statuses.at(-1).targetUrl, undefined);
-    assert.equal(delayedFallback, undefined);
+    await Promise.resolve();
 
     const staleTarget = navigationDetail("stale-target");
     dispatchNavigation(NAVIGATION_ERROR_EVENT, { ...staleTarget, error: new Error("stale request") });
-    assert.equal(typeof delayedFallback, "function");
+
     dispatchNavigation(NAVIGATION_START_EVENT, navigationDetail("newer-navigation"));
 
     let fullReloadCount = 0;
@@ -242,12 +226,26 @@ test("runtime error fallback omits an empty target and rejects stale delayed rel
       fullReloadCount += 1;
     };
     document.addEventListener(NAVIGATION_FULL_RELOAD_EVENT, onReload);
-    delayedFallback();
+    await new Promise((resolve) => window.requestAnimationFrame(resolve));
     assert.equal(fullReloadCount, 0);
     document.removeEventListener(NAVIGATION_FULL_RELOAD_EVENT, onReload);
   } finally {
     document.removeEventListener(RUNTIME_STATUS_EVENT, onStatus);
-    window.setTimeout = originalSetTimeout;
+    resetFullNavigationState();
+  }
+});
+
+test("choosing a same-document anchor after failure supersedes its pending full reload", async () => {
+  const reloads = [];
+  const onReload = (event) => reloads.push(event.detail.targetUrl);
+  document.addEventListener(NAVIGATION_FULL_RELOAD_EVENT, onReload);
+  try {
+    dispatchNavigation(NAVIGATION_ERROR_EVENT, navigationDetail("failed"));
+    dispatchNavigation(NAVIGATION_SAME_DOCUMENT_EVENT, navigationDetail("#section"));
+    await new Promise((resolve) => window.setTimeout(resolve, 125));
+    assert.deepEqual(reloads, []);
+  } finally {
+    document.removeEventListener(NAVIGATION_FULL_RELOAD_EVENT, onReload);
     resetFullNavigationState();
   }
 });

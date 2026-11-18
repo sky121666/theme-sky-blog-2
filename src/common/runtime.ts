@@ -1,5 +1,5 @@
 import Alpine from "./alpine";
-import lozad from "lozad";
+import { findCommentHashContainer, findRenderedCommentHashTarget, keepInitialReplyVisible } from "./comment-navigation";
 
 import { logError, logWarn } from "./logger";
 import {
@@ -16,31 +16,37 @@ import {
 } from "./navigation";
 import { syncHaloDataFromDocument } from "./page-data";
 import { dispatchPageReady, dispatchRuntimeStatus } from "./runtime-events";
+import { bindEntryScrollHistory, checkpointScrollPosition } from "./scroll-history";
 import { initTaskListInteraction } from "./task-list";
 import { initUiActions } from "./ui-actions";
 
-const MAX_SCROLL_POSITIONS = 100;
-const FULL_RELOAD_DELAY_MS = 100;
+let pendingFailure: NavigationEventDetail | null = null;
 const MODULE_REPLAY_TIMEOUT_MS = 5000;
 const MODULE_REPLAY_EVENT_PREFIX = "theme:module-replay:";
 const PJAX_COMPAT_COMPLETE_EVENT = "pjax:complete";
 
-let observer: ReturnType<typeof lozad> | null = null;
 let navigationSequence = 0;
 let moduleReplaySequence = 0;
 let scrollFrameId: number | null = null;
 let fullNavigationPending = false;
+let scrollOwner: NavigationEventDetail | null = null;
+// Only a newly inserted main waiting for plugin replay needs a fallback mount.
+let pendingMount: { main: HTMLElement; pageType: string; releaseVisit: () => void } | null = null;
 const scrollPositions = new Map<string, number>();
 
-function initLazyLoading(root: ParentNode = document) {
-  observer?.observer.disconnect();
-  observer = lozad(root.querySelectorAll(".lozad"), {
-    loaded: (element) => {
-      element.classList.add("loaded");
-    },
-  });
-
-  observer.observe();
+function hydrateLegacyImages(root: ParentNode = document) {
+  // Promote the old image attributes while keeping native loading and authored priorities.
+  for (const image of root.querySelectorAll<HTMLImageElement>("img.lozad:is([data-src], [data-srcset])")) {
+    if (image.dataset.loaded === "true") continue;
+    const { src, srcset, sizes } = image.dataset;
+    if (!src?.trim() && !srcset?.trim()) continue;
+    if (!image.hasAttribute("loading")) image.setAttribute("loading", "lazy");
+    if (sizes?.trim()) image.sizes = sizes;
+    if (srcset?.trim()) image.srcset = srcset;
+    if (src?.trim()) image.src = src;
+    image.dataset.loaded = "true";
+    image.classList.add("loaded");
+  }
 }
 
 export async function replayNavigationScripts(root: HTMLElement) {
@@ -151,15 +157,7 @@ function rememberScrollPosition(entryKey: string) {
     return;
   }
 
-  scrollPositions.delete(entryKey);
-  scrollPositions.set(entryKey, main.scrollTop);
-
-  if (scrollPositions.size > MAX_SCROLL_POSITIONS) {
-    const oldestEntryKey = scrollPositions.keys().next().value;
-    if (oldestEntryKey) {
-      scrollPositions.delete(oldestEntryKey);
-    }
-  }
+  checkpointScrollPosition(scrollPositions, entryKey, main);
 }
 
 function cancelPendingScrollRestoration() {
@@ -206,69 +204,11 @@ export function announceNavigation() {
   }
 }
 
-function findCommentHashContainer() {
-  const rawHash = window.location.hash.slice(1);
-  if (rawHash !== "halo-comment") {
-    try {
-      decodeURIComponent(rawHash);
-      if (!new URLSearchParams(rawHash).get("halo-comment")?.trim()) {
-        return null;
-      }
-    } catch {
-      return null;
-    }
-  }
-
-  // The official tag renders a container before its widget is lazily mounted.
-  return document.querySelector<HTMLElement>('#main comment-widget, #main .terminal-comments > div[id^="comment-"]');
-}
-
-function findRenderedCommentHashTarget(container: HTMLElement) {
-  const params = new URLSearchParams(window.location.hash.slice(1));
-  const commentName = params.get("halo-comment");
-  const replyName = params.get("reply") || undefined;
-  if (!commentName) {
-    return null;
-  }
-
-  // CommentWidget 3.4–3.5 has no repeat-location API. Read its open shadow roots only,
-  // verify each target name, and fall back to the container if its structure changes.
-  // Never reload the detail or remount the widget: either could discard an open draft.
-  const widget = container.matches("comment-widget") ? container : container.querySelector("comment-widget");
-  const detail = widget?.shadowRoot?.querySelector<
-    HTMLElement & { target?: { commentName?: string; replyName?: string } }
-  >("comment-detail");
-  if (detail?.target?.commentName !== commentName || detail.target.replyName !== replyName) {
-    return null;
-  }
-
-  type CommentItem = HTMLElement & {
-    comment?: { metadata?: { name?: string } };
-    reply?: { metadata?: { name?: string } };
-  };
-  const item = detail.shadowRoot?.querySelector<CommentItem>("comment-item");
-  if (item?.comment?.metadata?.name !== commentName) {
-    return null;
-  }
-  if (!replyName) {
-    return item;
-  }
-
-  const replies = item.shadowRoot?.querySelector<HTMLElement>("comment-replies");
-  if (!replies?.shadowRoot || replies.hidden) {
-    return null;
-  }
-  return (
-    Array.from(replies.shadowRoot.querySelectorAll<CommentItem>("reply-item")).find(
-      (reply) => reply.comment?.metadata?.name === commentName && reply.reply?.metadata?.name === replyName,
-    ) ?? null
-  );
-}
-
 function restoreScrollPosition(detail: NavigationEventDetail) {
   cancelPendingScrollRestoration();
 
-  const commentContainer = findCommentHashContainer();
+  const savedTop = detail.history ? scrollPositions.get(detail.targetEntryKey) : undefined;
+  const commentContainer = savedTop === undefined ? findCommentHashContainer() : null;
   if (commentContainer) {
     // An unchanged hash does not make the plugin locate its discussion again.
     if (!detail.history && detail.fromEntryKey === detail.targetEntryKey) {
@@ -281,7 +221,7 @@ function restoreScrollPosition(detail: NavigationEventDetail) {
 
   scrollFrameId = window.requestAnimationFrame(() => {
     scrollFrameId = null;
-    const hashTarget = findHashTarget();
+    const hashTarget = savedTop === undefined ? findHashTarget() : null;
     if (hashTarget instanceof HTMLElement) {
       hashTarget.scrollIntoView({ behavior: "auto", block: "start" });
       focusNavigationContext(detail, hashTarget);
@@ -290,17 +230,22 @@ function restoreScrollPosition(detail: NavigationEventDetail) {
 
     document.getElementById("main")?.scrollTo({
       behavior: "auto",
-      top: detail.history ? (scrollPositions.get(detail.targetEntryKey) ?? 0) : 0,
+      top: savedTop ?? 0,
     });
     focusNavigationContext(detail, null);
   });
 }
 
-async function initializeReplacedPage(detail: NavigationEventDetail, expectedNavigationSequence: number) {
+async function initializeReplacedPage(
+  detail: NavigationEventDetail,
+  expectedNavigationSequence: number,
+  releaseVisit: () => void,
+) {
   const main = document.getElementById("main");
-  const haloData = syncHaloDataFromDocument();
+  const pageType = syncHaloDataFromDocument(detail.pageData)?.pageType ?? "unknown";
 
   if (main) {
+    pendingMount = { main, pageType, releaseVisit };
     await replayNavigationScripts(main);
     if (
       fullNavigationPending ||
@@ -314,29 +259,63 @@ async function initializeReplacedPage(detail: NavigationEventDetail, expectedNav
     // listens for this lifecycle event. Emitting the compatibility event keeps
     // that plugin surface working without restoring the Pjax dependency.
     window.dispatchEvent(new CustomEvent(PJAX_COMPAT_COMPLETE_EVENT));
-    Alpine.initTree(main);
-    initUiActions(main);
-    initLazyLoading(main);
+    mountPageControls(main);
+    pendingMount = null;
   }
 
   initTaskListInteraction();
   announceNavigation();
-  restoreScrollPosition(detail);
-  dispatchPageReady({ pageType: haloData?.pageType ?? "unknown" });
+  if (scrollOwner === detail) restoreScrollPosition(detail);
+  dispatchPageReady({ pageType });
+}
+
+function mountPageControls(main: HTMLElement) {
+  Alpine.initTree(main);
+  initUiActions(main);
+  hydrateLegacyImages(main);
+}
+
+function recoverPendingMount() {
+  const page = pendingMount;
+  if (!page) return;
+  pendingMount = null;
+  page.releaseVisit();
+  if (page.main !== document.getElementById("main")) return;
+
+  // Modules that completed before a sibling failed may already have side effects.
+  // Only restore the theme's own interaction layer on the still-visible document.
+  let message = "Page controls restored. Some page plugins may be unavailable. Reload to try again.";
+  try {
+    mountPageControls(page.main);
+    initTaskListInteraction();
+    dispatchPageReady({ pageType: page.pageType });
+  } catch (error) {
+    logError("Failed to restore page controls.", error);
+    message = "Page controls could not be restored. Reload to try again.";
+  }
+  dispatchRuntimeStatus({ level: "error", message, targetUrl: window.location.href });
 }
 
 function bindGlobalEvents() {
   document.addEventListener(NAVIGATION_FULL_RELOAD_EVENT, () => {
+    pendingFailure = null;
     fullNavigationPending = true;
     navigationSequence += 1;
     cancelPendingScrollRestoration();
   });
 
   document.addEventListener(NAVIGATION_FULL_RELOAD_RESET_EVENT, () => {
+    pendingFailure = null;
     fullNavigationPending = false;
     navigationSequence += 1;
     cancelPendingScrollRestoration();
-    setPartialNavigationBarrier(Promise.resolve());
+    const resetSequence = navigationSequence;
+    // Publish the specific recovery outcome after the watchdog's reset notification.
+    setPartialNavigationBarrier(
+      Promise.resolve().then(() => {
+        if (resetSequence === navigationSequence) recoverPendingMount();
+      }),
+    );
 
     const main = document.getElementById("main");
     main?.classList.remove("loading");
@@ -344,6 +323,7 @@ function bindGlobalEvents() {
   });
 
   document.addEventListener(NAVIGATION_START_EVENT, (event) => {
+    pendingFailure = null;
     navigationSequence += 1;
     rememberScrollPosition(event.detail.fromEntryKey);
     cancelPendingScrollRestoration();
@@ -360,33 +340,42 @@ function bindGlobalEvents() {
       return;
     }
 
+    scrollOwner = event.detail;
     const successfulNavigationSequence = navigationSequence;
-    const initialization = initializeReplacedPage(event.detail, successfulNavigationSequence);
-    setPartialNavigationBarrier(initialization);
-    void initialization
-      .catch((error) => {
-        logError("Failed to initialize the partially navigated page.", error);
-        if (fullNavigationPending || successfulNavigationSequence !== navigationSequence) {
-          return;
-        }
-        dispatchRuntimeStatus({
-          level: "error",
-          message: "Page initialization failed. Retrying with a full page load...",
-          targetUrl: event.detail.targetUrl,
+    const barrier = new Promise<void>((releaseVisit) => {
+      void initializeReplacedPage(event.detail, successfulNavigationSequence, releaseVisit)
+        .catch((error) => {
+          logError("Failed to initialize the partially navigated page.", error);
+          if (fullNavigationPending || successfulNavigationSequence !== navigationSequence) {
+            return;
+          }
+          if (scrollOwner !== event.detail) {
+            // A newer anchor owns the visible page. Restore its controls in place.
+            recoverPendingMount();
+            return;
+          }
+          dispatchRuntimeStatus({
+            level: "error",
+            message: "Page initialization failed. Retrying with a full page load...",
+            targetUrl: event.detail.targetUrl,
+          });
+          navigateWithFullReload(event.detail.targetUrl, { recovery: true });
+        })
+        .finally(() => {
+          releaseVisit();
+          if (successfulNavigationSequence !== navigationSequence) {
+            return;
+          }
+          const main = document.getElementById("main");
+          main?.classList.remove("loading");
+          main?.removeAttribute("aria-busy");
         });
-        navigateWithFullReload(event.detail.targetUrl);
-      })
-      .finally(() => {
-        if (successfulNavigationSequence !== navigationSequence) {
-          return;
-        }
-        const main = document.getElementById("main");
-        main?.classList.remove("loading");
-        main?.removeAttribute("aria-busy");
-      });
+    });
+    setPartialNavigationBarrier(barrier);
   });
 
   document.addEventListener(NAVIGATION_SAME_DOCUMENT_EVENT, (event) => {
+    pendingFailure = null;
     if (fullNavigationPending) {
       return;
     }
@@ -394,7 +383,10 @@ function bindGlobalEvents() {
     const main = document.getElementById("main");
     main?.classList.remove("loading");
     main?.removeAttribute("aria-busy");
-    rememberScrollPosition(event.detail.fromEntryKey);
+    scrollOwner = event.detail;
+    if (event.detail.fromEntryKey !== event.detail.targetEntryKey) {
+      rememberScrollPosition(event.detail.fromEntryKey);
+    }
     restoreScrollPosition(event.detail);
   });
 
@@ -403,7 +395,7 @@ function bindGlobalEvents() {
       return;
     }
 
-    const failedNavigationSequence = navigationSequence;
+    pendingFailure = event.detail;
     const targetUrl = event.detail.targetUrl;
 
     const main = document.getElementById("main");
@@ -420,11 +412,12 @@ function bindGlobalEvents() {
       return;
     }
 
-    window.setTimeout(() => {
-      if (!fullNavigationPending && failedNavigationSequence === navigationSequence) {
-        navigateWithFullReload(targetUrl);
+    window.requestAnimationFrame(() => {
+      if (pendingFailure === event.detail) {
+        pendingFailure = null;
+        navigateWithFullReload(targetUrl, { recovery: true });
       }
-    }, FULL_RELOAD_DELAY_MS);
+    });
   });
 }
 
@@ -435,9 +428,11 @@ export function bootstrapRuntime() {
   window.Alpine = Alpine;
   Alpine.start();
 
-  initLazyLoading();
+  hydrateLegacyImages();
   bindGlobalEvents();
   startPartialNavigation();
+  if (!bindEntryScrollHistory(scrollPositions)) keepInitialReplyVisible();
   initTaskListInteraction();
   initUiActions();
+  document.documentElement.setAttribute("data-theme-ready", "");
 }

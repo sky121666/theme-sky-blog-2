@@ -226,52 +226,67 @@ export function virtualPathToUrl(path: string): string | null {
     return window.haloData?.urls.archives || "/archives";
   }
 
-  if (path.startsWith("~/blog/categories/")) {
-    const slug = path.slice("~/blog/categories/".length);
-    const category = (window.haloData?.categories || []).find((item) => getTaxonomySlug(item) === slug);
-
-    return category?.status?.permalink || appendRouteSegment(window.haloData?.urls.categories || "/categories", slug);
+  if (!path.startsWith("~/blog/")) {
+    return null;
   }
 
-  if (path.startsWith("~/blog/tags/")) {
-    const slug = path.slice("~/blog/tags/".length);
-    const tag = (window.haloData?.tags || []).find((item) => getTaxonomySlug(item) === slug);
-
-    return tag?.status?.permalink || appendRouteSegment(window.haloData?.urls.tags || "/tags", slug);
+  const parentPath = getParentPath(path);
+  const segment = path.slice(parentPath.length + 1);
+  if (!segment || segment === "." || segment === "..") {
+    return null;
   }
 
-  if (path.startsWith("~/blog/authors/")) {
-    const currentAuthor = window.haloData?.currentAuthor;
-    const slug = path.slice("~/blog/authors/".length);
-    return getRefSlug(currentAuthor) === slug ? currentAuthor?.permalink || null : null;
-  }
+  if (parentPath === "~/blog/categories") {
+    const category = window.haloData?.categories?.find((item) => getTaxonomySlug(item) === segment);
 
-  if (path.startsWith("~/blog/pages/")) {
-    const currentPage = window.haloData?.currentPage ?? window.haloData?.currentPost;
-    const slug = path.slice("~/blog/pages/".length);
-    return getRefSlug(currentPage) === slug ? currentPage?.permalink || null : null;
-  }
-
-  if (path.startsWith("~/blog/")) {
-    const segment = path.slice("~/blog/".length);
-    if (!segment || segment.includes("/")) {
-      return null;
-    }
-
-    const currentPost = window.haloData?.currentPost;
-    if (getRefSlug(currentPost) === segment && currentPost?.permalink) {
-      return currentPost.permalink;
-    }
-
-    const posts = [...(window.haloData?.homePosts || []), ...(window.haloData?.currentPosts || [])];
-    const post = posts.find(
-      (item) => getSafePathSegment(getPostSlug(item)) === segment || getSafePathSegment(getPostName(item)) === segment,
+    return (
+      category?.status?.permalink || appendRouteSegment(window.haloData?.urls.categories || "/categories", segment)
     );
-
-    return post?.status?.permalink || null;
   }
 
-  return null;
+  if (parentPath === "~/blog/tags") {
+    const tag = window.haloData?.tags?.find((item) => getTaxonomySlug(item) === segment);
+
+    return tag?.status?.permalink || appendRouteSegment(window.haloData?.urls.tags || "/tags", segment);
+  }
+
+  if (parentPath === "~/blog/authors") {
+    const currentAuthor = window.haloData?.currentAuthor;
+    return getRefSlug(currentAuthor) === segment ? currentAuthor?.permalink || null : null;
+  }
+
+  if (parentPath === "~/blog/pages") {
+    const currentPage = window.haloData?.currentPage ?? window.haloData?.currentPost;
+    return getRefSlug(currentPage) === segment ? currentPage?.permalink || null : null;
+  }
+
+  if (parentPath !== "~/blog") {
+    const entry = getDirectoryContent(parentPath)?.find(
+      (item) => item.type === "file" && getSafePathSegment(item.slug || item.name) === segment,
+    );
+    return entry?.permalink || null;
+  }
+
+  const { currentPost, homePosts, currentPosts } = window.haloData ?? {};
+  const currentPermalink = getRefSlug(currentPost) === segment ? currentPost?.permalink : null;
+  if (currentPost?.slug && currentPermalink) {
+    return currentPermalink;
+  }
+
+  const findPost = (matches: (post: HaloPostRecord) => boolean) =>
+    homePosts?.find(matches) ?? currentPosts?.find(matches);
+  const bySlug = findPost(({ spec }) => Boolean(spec?.slug && getSafePathSegment(spec.slug) === segment));
+  if (bySlug) {
+    return bySlug.status?.permalink || null;
+  }
+  if (currentPermalink) {
+    return currentPermalink;
+  }
+
+  const post = findPost(
+    (item) => getSafePathSegment(getPostSlug(item)) === segment || getSafePathSegment(getPostName(item)) === segment,
+  );
+  return post?.status?.permalink || null;
 }
 
 export function syncPathWithUrl(): string {

@@ -4,7 +4,10 @@ import test from "node:test";
 
 import { installDom } from "./dom-test-helpers.mjs";
 
-const template = await readFile(new URL("../templates/gateway_fragments/signup.html", import.meta.url), "utf8");
+const template = await readFile(
+  new URL("../templates/gateway_fragments/terminal_signup.html", import.meta.url),
+  "utf8",
+);
 const scriptBlocks = [...template.matchAll(/<script[^>]*>([\s\S]*?)<\/script>/g)].map((match) => match[1]);
 const verificationScript = scriptBlocks
   .find((script) => script.includes("throwRequestFailure"))

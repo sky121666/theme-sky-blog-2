@@ -6,6 +6,7 @@ const GLOBAL_NAMES = [
   "AbortController",
   "CustomEvent",
   "DOMParser",
+  "Document",
   "DocumentFragment",
   "Element",
   "Event",
@@ -21,8 +22,10 @@ const GLOBAL_NAMES = [
   "Node",
   "NodeList",
   "PageTransitionEvent",
+  "PopStateEvent",
   "ShadowRoot",
   "SVGElement",
+  "Text",
 ];
 
 export function installDom(html, url = "https://blog.example.com/") {
@@ -37,6 +40,11 @@ export function installDom(html, url = "https://blog.example.com/") {
   expose("window", dom.window);
   expose("document", dom.window.document);
   expose("navigator", dom.window.navigator);
+  expose("location", dom.window.location);
+  expose("history", dom.window.history);
+  for (const name of ["cancelAnimationFrame", "getComputedStyle", "requestAnimationFrame"]) {
+    expose(name, dom.window[name].bind(dom.window));
+  }
 
   for (const name of GLOBAL_NAMES) {
     if (dom.window[name]) {

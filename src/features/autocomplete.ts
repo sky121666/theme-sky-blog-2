@@ -1,51 +1,12 @@
 import { getCurrentIndexPageContent, getDirectoryContent, resolvePath } from "../common/virtual-fs";
+import { getCommandNameSuggestions, supportsPathCompletion } from "./commands";
 
 // ── Auto-complete engine ───────────────────────────────────────────
 
-const LIST_COMMANDS = [
-  "cd",
-  "ls",
-  "ll",
-  "pd",
-  "pu",
-  "npage",
-  "ppage",
-  "back",
-  "help",
-  "clear",
-  "top",
-  "bottom",
-  "search",
-];
-const POST_COMMANDS = ["cd", "next", "prev", "back", "toc", "jump", "top", "bottom", "copy", "help", "clear", "search"];
-const NO_ARG_COMMANDS = new Set([
-  "help",
-  "clear",
-  "back",
-  "next",
-  "prev",
-  "pd",
-  "pu",
-  "npage",
-  "ppage",
-  "ls",
-  "ll",
-  "top",
-  "bottom",
-  "toc",
-  "copy",
-]);
-const PATH_COMMANDS = new Set(["cd", "ls", "ll"]);
-
-export function getSuggestions(input: string, currentPath: string, isPost: boolean): string[] {
-  const inputLower = input.toLowerCase();
-
+export function getSuggestions(input: string, currentPath: string, isPost?: boolean): string[] {
   // Phase 1: complete command name
   if (!input.includes(" ")) {
-    const commands = isPost ? POST_COMMANDS : LIST_COMMANDS;
-    return commands
-      .filter((cmd) => cmd.startsWith(inputLower))
-      .map((cmd) => (NO_ARG_COMMANDS.has(cmd) ? cmd : `${cmd} `));
+    return getCommandNameSuggestions(input.toLowerCase(), isPost);
   }
 
   // Phase 2: complete path argument
@@ -53,7 +14,7 @@ export function getSuggestions(input: string, currentPath: string, isPost: boole
   const command = input.slice(0, firstSpace).toLowerCase();
   const rawArgument = input.slice(firstSpace + 1);
 
-  if (!PATH_COMMANDS.has(command)) {
+  if (!supportsPathCompletion(command)) {
     return [];
   }
 

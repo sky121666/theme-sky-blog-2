@@ -1,0 +1,226 @@
+/* One frame sets the horizontal edges of every primary page surface. */
+:root {
+  --terminal-page-width: 72rem;
+  --terminal-page-gutter: 1rem;
+  --terminal-control-height: 2.75rem;
+  --terminal-rule-color: color-mix(in srgb, var(--terminal-reading-text) 26%, var(--terminal-bg));
+  --terminal-rule-style: solid;
+  --terminal-selection-color: color-mix(in srgb, var(--terminal-text) 10%, transparent);
+}
+
+@media (width >= 48rem) {
+  :root {
+    --terminal-page-gutter: 1.5rem;
+  }
+}
+
+:root:has(> head > style[data-terminal-compact]) {
+  --terminal-page-gutter: 0px;
+}
+
+.terminal-frame {
+  box-sizing: border-box;
+  inline-size: 100%;
+  max-inline-size: var(--terminal-page-width);
+  min-inline-size: 0;
+  margin-inline: auto;
+  padding: var(--terminal-page-gutter);
+}
+
+.terminal-system-frame {
+  display: flex;
+  min-block-size: 100svh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+}
+
+:is(.terminal-reader, .terminal-panel) {
+  inline-size: 100%;
+  min-inline-size: 0;
+}
+
+.terminal-panel {
+  border: 1px var(--terminal-rule-style) var(--terminal-rule-color);
+  background: var(--terminal-bg);
+}
+
+.terminal-panel-bar {
+  background: var(--terminal-text);
+  color: var(--terminal-bg);
+}
+
+.terminal-panel-content {
+  padding: max(1rem, var(--terminal-page-gutter));
+}
+
+.terminal-shell > #main {
+  min-block-size: 0;
+}
+
+.terminal-ascii-title {
+  overflow-x: auto;
+}
+
+.terminal-frame a {
+  text-shadow: none;
+}
+
+.terminal-shell-header,
+.terminal-shell-footer,
+.terminal-command-panel,
+.reader-actions,
+.reader-fallback {
+  border-color: var(--terminal-rule-color);
+  border-style: var(--terminal-rule-style);
+}
+
+.terminal-shell-footer {
+  gap: 0.5rem 1rem;
+}
+
+.terminal-command-line {
+  display: flex;
+  min-block-size: var(--terminal-control-height);
+  align-items: center;
+}
+
+.terminal-command-path {
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.terminal-command-caret {
+  inline-size: 0.55rem;
+  block-size: 0.875rem;
+  border: 1px solid currentColor;
+  background: currentColor;
+  font-size: 0;
+}
+
+.terminal-command-line:not(:focus-within) .terminal-command-caret {
+  background: transparent;
+  animation: none;
+}
+
+.terminal-command-output,
+#terminal-command-help {
+  max-block-size: min(28dvh, 14rem);
+  overflow: auto;
+  overflow-wrap: anywhere;
+}
+
+/* The shared style element carries the same mode on every server-rendered page. */
+:root:has(> head > style[data-terminal-layout="unix"]) {
+  .terminal-shell-header {
+    border-block-end: 1px var(--terminal-rule-style) var(--terminal-rule-color);
+    padding-block-end: 0.5rem;
+  }
+
+  .terminal-shell-header-meta {
+    flex-wrap: wrap;
+  }
+
+  .terminal-header-navigation {
+    display: block;
+    flex-basis: 100%;
+  }
+
+  .terminal-shell:not(:has(> [data-reader-tools])) {
+    > #main {
+      flex: 0 1 auto;
+    }
+
+    .terminal-shell-controls,
+    #terminal-tools {
+      display: flex;
+      flex: 1 0 auto;
+      flex-direction: column;
+    }
+
+    .terminal-shell-footer {
+      justify-content: flex-end;
+      margin-block-start: auto;
+    }
+
+    &:has(> .terminal-shell-header) .terminal-shell-footer .terminal-site-navigation {
+      display: none;
+    }
+  }
+
+  .terminal-prompt-host {
+    display: none;
+  }
+
+  .terminal-command-sigil {
+    margin-inline-start: 0.4em;
+  }
+
+  .terminal-panel-bar {
+    border-block-end: 1px var(--terminal-rule-style) var(--terminal-rule-color);
+    background: var(--terminal-selection-color);
+    color: var(--terminal-text);
+  }
+}
+
+@media (width >= 48rem) {
+  .terminal-shell-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .terminal-shell-header-meta {
+    margin-block-start: 0;
+  }
+
+  .terminal-command-line {
+    min-block-size: 2rem;
+  }
+
+  :root:has(> head > style[data-terminal-layout="unix"]) {
+    .terminal-shell-header {
+      padding-block-end: 0.875rem;
+    }
+
+    .terminal-shell-header-meta {
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.75rem;
+    }
+  }
+}
+
+@media (width >= 64rem) {
+  .terminal-shell:not(:has(> [data-reader-tools])) {
+    .terminal-command-panel {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 1rem;
+      align-items: center;
+    }
+
+    .terminal-command-output,
+    #terminal-command-help {
+      grid-column: 1 / -1;
+    }
+
+    .terminal-command-keys {
+      display: block;
+      color: var(--terminal-secondary);
+      font-size: 0.75rem;
+    }
+
+    .terminal-command-keys-type,
+    .terminal-command-line:focus-within + .terminal-command-keys .terminal-command-keys-browse {
+      display: none;
+    }
+
+    .terminal-command-line:focus-within + .terminal-command-keys .terminal-command-keys-type {
+      display: inline;
+    }
+  }
+}

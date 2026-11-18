@@ -3,7 +3,7 @@ import Alpine from "../common/alpine";
 import { shouldIgnoreGlobalKeyboardEvent } from "../common/keyboard";
 import { getPreferredScrollBehavior } from "../common/motion";
 import { NAVIGATION_COMPLETE_EVENT, NAVIGATION_START_EVENT } from "../common/navigation";
-import { getArticleToc, type ArticleTocItem } from "./article-tools";
+import { observeArticleToc, type ArticleTocItem } from "./article-tools";
 
 export function registerPostViewerComponent() {
   Alpine.data("postViewer", () => ({
@@ -12,11 +12,14 @@ export function registerPostViewerComponent() {
     navigationStartHandler: null as (() => void) | null,
     readingProgress: 0,
     scrollFrameId: null as number | null,
-    scrollHandler: null as (() => void) | null,
+    stopTrackingProgress: null as (() => void) | null,
+    stopTrackingToc: null as (() => void) | null,
     tocItems: [] as ArticleTocItem[],
 
     destroy() {
       this.unbindListeners();
+      this.stopTrackingToc?.();
+      this.stopTrackingToc = null;
 
       if (this.navigationStartHandler) {
         document.removeEventListener(NAVIGATION_START_EVENT, this.navigationStartHandler);
@@ -83,8 +86,10 @@ export function registerPostViewerComponent() {
     },
 
     init() {
-      this.refreshToc();
-      this.updateReadingProgress();
+      const content = this.$el.querySelector(".terminal-content");
+      if (content) {
+        this.stopTrackingToc = observeArticleToc(content, (items) => this.updateToc(items));
+      }
       this.bindListeners();
 
       this.navigationStartHandler = () => this.unbindListeners();
@@ -99,30 +104,44 @@ export function registerPostViewerComponent() {
         window.addEventListener("keydown", this.keydownHandler);
       }
 
-      if (!this.scrollHandler) {
-        this.scrollHandler = () => {
-          if (this.scrollFrameId !== null) {
-            return;
-          }
+      const main = this.$el.closest<HTMLElement>("#main");
+      const content = this.$el.querySelector<HTMLElement>(".terminal-content");
+      if (this.stopTrackingProgress || !main || !content) {
+        return;
+      }
 
+      const update = () => {
+        const body = content.getBoundingClientRect();
+        const viewportBottom = main.getBoundingClientRect().top + main.clientTop + main.clientHeight;
+        if (main.clientHeight === 0 || viewportBottom < body.top) {
+          this.readingProgress = 0;
+        } else if (viewportBottom >= body.bottom) {
+          this.readingProgress = 100;
+        } else {
+          this.readingProgress = Math.floor(((viewportBottom - body.top) / body.height) * 100);
+        }
+      };
+      const scheduleUpdate = () => {
+        if (this.scrollFrameId === null) {
           this.scrollFrameId = window.requestAnimationFrame(() => {
             this.scrollFrameId = null;
-            this.updateReadingProgress();
+            update();
           });
-        };
-        document.getElementById("main")?.addEventListener("scroll", this.scrollHandler, { passive: true });
-      }
-    },
+        }
+      };
 
-    jumpToHeading(id: string) {
-      document.getElementById(id)?.scrollIntoView({
-        behavior: this.scrollBehavior,
-        block: "start",
-      });
-    },
-
-    refreshToc() {
-      this.tocItems = getArticleToc();
+      const observer = window.ResizeObserver ? new window.ResizeObserver(scheduleUpdate) : null;
+      observer?.observe(main);
+      observer?.observe(this.$el);
+      observer?.observe(content);
+      main.addEventListener("scroll", scheduleUpdate, { passive: true });
+      window.addEventListener("resize", scheduleUpdate);
+      this.stopTrackingProgress = () => {
+        observer?.disconnect();
+        main.removeEventListener("scroll", scheduleUpdate);
+        window.removeEventListener("resize", scheduleUpdate);
+      };
+      update();
     },
 
     scrollAmount: 100,
@@ -133,10 +152,8 @@ export function registerPostViewerComponent() {
         this.keydownHandler = null;
       }
 
-      if (this.scrollHandler) {
-        document.getElementById("main")?.removeEventListener("scroll", this.scrollHandler);
-        this.scrollHandler = null;
-      }
+      this.stopTrackingProgress?.();
+      this.stopTrackingProgress = null;
 
       if (this.scrollFrameId !== null) {
         window.cancelAnimationFrame(this.scrollFrameId);
@@ -144,16 +161,19 @@ export function registerPostViewerComponent() {
       }
     },
 
-    updateReadingProgress() {
-      const main = document.getElementById("main");
-      if (!main) {
-        this.readingProgress = 0;
+    updateToc(items: ArticleTocItem[]) {
+      const focused = document.activeElement;
+      this.tocItems = items;
+      if (!(focused instanceof HTMLAnchorElement) || !this.$el.contains(focused.closest("details.reader-toc"))) {
         return;
       }
 
-      const maxScroll = main.scrollHeight - main.clientHeight;
-      this.readingProgress =
-        maxScroll > 0 ? Math.min(100, Math.max(0, Math.round((main.scrollTop / maxScroll) * 100))) : 100;
+      // Moving a keyed row can blur its link even when Alpine reuses the node.
+      void this.$nextTick(() => {
+        if (this.stopTrackingToc && focused.isConnected && document.activeElement === document.body) {
+          focused.focus({ preventScroll: true });
+        }
+      });
     },
   }));
 }

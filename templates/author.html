@@ -1,135 +1,22 @@
 <!doctype html>
 <html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
   <th:block th:fragment="content">
-    <div class="px-2 md:px-0" x-data="fileListNav">
-      <div class="text-terminal-green mb-3 flex min-w-0 items-center gap-2 md:mb-6">
-        <span class="text-terminal-dim min-w-0 truncate" th:if="${#authentication.name == 'anonymousUser'}"
-          >guest@<span th:text="${site.title}"></span>:~/blog/authors/<span th:text="${author.metadata.name}"></span
-          >$</span
-        >
-        <span class="text-terminal-dim min-w-0 truncate" th:if="${#authentication.name != 'anonymousUser'}">
-          <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
-            th:text="${site.title}"
-          ></span
-          >:~/blog/authors/<span th:text="${author.metadata.name}"></span>$
-        </span>
-        <span
-          class="typing-effect flex-shrink-0 whitespace-nowrap"
-          x-data="typewriter('ls -la', 50)"
-          x-text="display"
-        ></span>
-      </div>
+    <div class="terminal-file-list" x-data="fileListNav">
+      <th:block th:replace="~{modules/file-list :: prompt(|~/blog/authors/${author.metadata.name}|)}"></th:block>
 
-      <div
-        class="border-terminal-dim bg-terminal-green/20 mb-2 flex min-h-10 flex-wrap items-center gap-x-2 border px-2 py-2 text-xs md:mb-4 md:block md:p-3"
-      >
-        <span class="text-terminal-dim">Author:</span>
-        <h1 th:text="${author.spec.displayName}" class="text-terminal-green inline font-bold break-words"></h1>
-        <span class="text-terminal-dim md:ml-4">Posts:</span>
-        <span th:text="${posts.total}" class="text-terminal-green"></span>
-      </div>
+      <th:block
+        th:replace="~{modules/file-list :: context('Author:', ${author.spec.displayName}, ${posts.total})}"
+      ></th:block>
 
-      <div
-        class="border-terminal-dim text-terminal-green mb-1 flex items-center justify-between border-b pb-1 text-xs font-bold opacity-80 md:mb-2 md:grid md:grid-cols-12 md:gap-2 md:text-sm"
-      >
-        <div class="md:hidden">NAME</div>
-        <div class="md:hidden">META</div>
-        <div class="hidden md:col-span-2 md:block">PERMISSIONS</div>
-        <div class="hidden md:col-span-2 md:block">DATE</div>
-        <div class="hidden md:col-span-8 md:block">NAME</div>
-      </div>
+      <th:block th:replace="~{modules/file-list :: gridHeader('DATE', 'USER')}"></th:block>
 
-      <ul class="font-mono text-xs md:space-y-1 md:text-sm">
-        <li
-          data-nav-item
-          :class="{ '!bg-terminal-green !text-terminal-black': isSelected($el) }"
-          class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black grid min-h-10 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 px-1 transition-colors md:min-h-0 md:grid-cols-12 md:gap-2 md:py-0"
-        >
-          <div class="hidden whitespace-nowrap md:col-span-2 md:col-start-1 md:row-start-1 md:block">drwxr-xr-x</div>
-          <div
-            class="text-terminal-dim col-start-2 row-start-1 justify-self-end whitespace-nowrap md:col-span-2 md:col-start-3 md:justify-self-auto"
-            :class="{ '!text-terminal-black': isSelected($el.closest('[data-nav-item]')) }"
-          >
-            ...
-          </div>
-          <div class="col-start-1 row-start-1 min-w-0 md:col-span-8 md:col-start-5">
-            <a
-              th:href="@{/}"
-              class="flex min-h-10 min-w-0 items-center py-1 break-words text-inherit md:block md:min-h-0 md:truncate md:py-0"
-              >../</a
-            >
-          </div>
-        </li>
+      <th:block th:replace="~{modules/file-list :: parentShortcut('/', 'root')}"></th:block>
+      <th:block th:replace="~{modules/file-list :: postList(${posts.items}, true)}"></th:block>
 
-        <li
-          th:each="post : ${posts.items}"
-          data-nav-item
-          data-post-record
-          th:data-post-name="${post.metadata.name}"
-          th:data-post-created-at="${post.metadata.creationTimestamp}"
-          th:data-post-title="${post.spec.title}"
-          th:data-post-slug="${post.spec.slug}"
-          th:data-post-owner="${post.spec.owner}"
-          th:data-post-published-at="${post.spec.publishTime}"
-          th:data-post-permalink="${post.status.permalink}"
-          :class="{ '!bg-terminal-green !text-terminal-black': isSelected($el) }"
-          class="group text-terminal-green hover:bg-terminal-green hover:text-terminal-black grid min-h-10 cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-center gap-x-2 px-1 transition-colors md:min-h-0 md:grid-cols-12 md:gap-2 md:py-0"
-        >
-          <div
-            class="hidden whitespace-nowrap opacity-70 group-hover:opacity-100 md:col-span-2 md:col-start-1 md:row-start-1 md:block"
-          >
-            -rw-r--r--
-          </div>
-          <time
-            class="col-start-2 row-start-1 justify-self-end whitespace-nowrap opacity-70 group-hover:opacity-100 md:col-span-2 md:col-start-3 md:justify-self-auto"
-            th:datetime="${#dates.format(post.spec.publishTime, 'yyyy-MM-dd')}"
-            th:text="${#dates.format(post.spec.publishTime, 'MMM dd HH:mm')}"
-          ></time>
-          <div class="col-start-1 row-start-1 min-w-0 md:col-span-8 md:col-start-5">
-            <a
-              th:href="@{${post.status.permalink}}"
-              th:text="${post.spec.title}"
-              class="flex min-h-10 min-w-0 items-center py-1 break-words text-inherit md:block md:min-h-0 md:truncate md:py-0"
-              >Post Title</a
-            >
-          </div>
-        </li>
-      </ul>
-
-      <p th:if="${#lists.isEmpty(posts.items)}" class="text-terminal-dim mt-3 text-sm md:mt-6">
-        <span th:if="${posts.total == 0}">No posts found.</span>
-        <span th:if="${posts.total > 0}" data-empty-page>
-          No posts on this page.
-          <a
-            th:href="@{${author.status.permalink}}"
-            class="text-terminal-green underline decoration-dotted underline-offset-4"
-            >Return to the first page</a
-          >.
-        </span>
-      </p>
-
-      <nav
-        th:if="${!#lists.isEmpty(posts.items) and (posts.hasPrevious() or posts.hasNext())}"
-        class="mt-4 flex flex-wrap gap-4 text-sm md:mt-8"
-        aria-label="Author posts pagination"
-      >
-        <a
-          th:if="${posts.hasPrevious()}"
-          th:href="@{${posts.prevUrl}}"
-          data-nav-item
-          :class="{ '!bg-terminal-green !text-terminal-black': isSelected($el) }"
-          class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black border-terminal-green inline-flex min-h-10 items-center border px-3 py-2 transition-colors md:min-h-0 md:px-2 md:py-0"
-          >&lt; PREV</a
-        >
-        <a
-          th:if="${posts.hasNext()}"
-          th:href="@{${posts.nextUrl}}"
-          data-nav-item
-          :class="{ '!bg-terminal-green !text-terminal-black': isSelected($el) }"
-          class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black border-terminal-green inline-flex min-h-10 items-center border px-3 py-2 transition-colors md:min-h-0 md:px-2 md:py-0"
-          >NEXT &gt;</a
-        >
-      </nav>
+      <th:block
+        th:replace="~{modules/file-list :: emptyPage(${posts}, ${author.status.permalink}, 'No posts found.', 'No posts on this page.')}"
+      ></th:block>
+      <th:block th:replace="~{modules/file-list :: summary(${posts}, 'Author posts pagination', false)}"></th:block>
     </div>
   </th:block>
 </html>

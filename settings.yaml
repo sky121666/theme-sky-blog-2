@@ -8,6 +8,22 @@ spec:
       label: 外观设置
       formSchema:
         - $formkit: toggle
+          id: terminal_layout_selector
+          name: terminal_layout
+          label: 终端布局
+          render-type: image
+          size: 160
+          gap: 12
+          help: "切换博客页面的终端布局。列表和阅读页共用页面宽度，登录网关有自己的版式，并使用下方的终端配色。"
+          value: classic
+          options:
+            - label: 经典文件表
+              value: classic
+              render: /themes/theme-sky-blog-2/assets/images/layout-classic.webp
+            - label: Unix 长列表
+              value: unix
+              render: /themes/theme-sky-blog-2/assets/images/layout-unix.webp
+        - $formkit: toggle
           id: color_preset_selector
           name: color_preset
           label: 终端配色方案
@@ -110,7 +126,7 @@ spec:
           name: show_search
           label: 显示搜索按钮
           value: true
-          help: 在页脚显示 [SEARCH] 按钮（需安装搜索插件）
+          help: 在页脚或手机阅读工具栏显示 [SEARCH] 按钮（需安装搜索插件）
         - $formkit: checkbox
           id: show_comments
           name: show_comments
@@ -140,7 +156,7 @@ spec:
           name: show_ls_simulation
           label: 显示首页命令模拟行
           value: true
-          help: 首页显示 "ls -la ./posts" 打字动画行
+          help: 首页显示可在终端运行的 ls 或 ll 命令
         - $formkit: checkbox
           id: show_pinned_folders
           name: show_pinned_folders

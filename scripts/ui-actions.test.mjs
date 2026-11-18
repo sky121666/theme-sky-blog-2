@@ -39,9 +39,13 @@ test("search integration restores keyboard focus after the modal closes", async 
 
 test("opening search again replaces the previous focus-restoration listener", async () => {
   let opens = 0;
+  let formRoot;
   window.SearchWidget = {
     open() {
       opens += 1;
+      const form = document.createElement("search-form");
+      formRoot = form.attachShadow({ mode: "open" });
+      wrapper.replaceChildren(form);
       wrapper.style.display = "flex";
       modal.focus();
     },
@@ -53,6 +57,9 @@ test("opening search again replaces the previous focus-restoration listener", as
   trigger.focus();
   trigger.click();
   assert.equal(opens, 2);
+  await Promise.resolve();
+  assert.equal(formRoot.querySelectorAll("style[data-theme-search-selected]").length, 1);
+  assert.match(formRoot.querySelector("style").textContent, /--halo-search-widget-primary-color/);
 
   wrapper.style.display = "none";
   window.dispatchEvent(new MouseEvent("click", { bubbles: true }));

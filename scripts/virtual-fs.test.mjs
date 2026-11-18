@@ -74,6 +74,19 @@ test("taxonomy paths use custom Halo route roots without requiring global listAl
   assert.equal(virtualPathToUrl("~/blog/tags/pixel"), "/labels/pixel");
 });
 
+test("taxonomy fallback only maps a single non-empty slug segment", () => {
+  window.haloData = createHaloData({ pageType: "post" });
+
+  for (const path of [
+    "~/blog/categories/halo/unknown",
+    "~/blog/tags/pixel/unknown",
+    "~/blog/categories/",
+    "~/blog/tags/..",
+  ]) {
+    assert.equal(virtualPathToUrl(path), null, path);
+  }
+});
+
 test("taxonomy directories preserve unloaded, loaded-empty, and loaded-with-data states", async () => {
   window.haloData.categories = [];
   window.haloData.categoriesLoaded = false;

@@ -354,7 +354,7 @@ test("native partial navigation script replay keeps the explicit module and data
     content.replace('script[type="module"][data-pjax]', 'script[type="module"]'),
   );
   const result = validatePluginContracts(files);
-  assertHasIssue(result, "原生局部导航只允许重放显式 data-pjax 的 module script");
+  assertHasIssue(result, "主题局部导航只允许重放显式 data-pjax 的 module script");
 });
 
 test("native partial navigation keeps CommentWidget inline module initialization", () => {
@@ -392,9 +392,16 @@ test("Shiki compatibility event targets the plugin window listener", () => {
   assertHasIssue(result, "必须在 window 上触发 Shiki 局部导航兼容事件");
 });
 
+test("swup cannot bypass the theme's plugin lifecycle during content replacement", () => {
+  const files = updateFile(loadFiles(), "src/common/navigation.ts", (content) =>
+    content.replace('hooks.replace("content:replace"', 'hooks.on("content:replace"'),
+  );
+  assertHasIssue(validatePluginContracts(files), "swup 的内容替换必须经过主题的插件生命周期守卫");
+});
+
 test("head extension contract changes keep a full-navigation lifecycle boundary", () => {
   const files = updateFile(loadFiles(), "src/common/navigation.ts", (content) =>
-    content.replace("headNavigationContractChanged(parsedDocument, finalTarget)", "false"),
+    content.replace("headNavigationContractChanged(parsedDocument, finalTarget, this.displayedUrl)", "false"),
   );
   const result = validatePluginContracts(files);
   assertHasIssue(result, "head 生命周期契约变化时必须切换为整页导航");
@@ -408,12 +415,13 @@ test("unmarked inline styles cannot disable otherwise safe partial navigation", 
   assertHasIssue(result, "未标记内联样式不得误触发整页导航");
 });
 
-test("theme declarative style cannot lose its head lifecycle marker", () => {
-  const files = updateFile(loadFiles(), "templates/modules/theme-style.html", (content) =>
-    content.replace(" data-theme-navigation-style", ""),
-  );
-  const result = validatePluginContracts(files);
-  assertHasIssue(result, "主题声明式样式必须带有 head 生命周期标记");
+test("each declarative theme style needs its head lifecycle marker", () => {
+  const attempts = [/\sdata-theme-navigation-style/, /(?<=th:fragment="palette")\s+data-theme-navigation-style/];
+  const original = loadFiles();
+  for (const marker of attempts) {
+    const files = updateFile(original, "templates/modules/theme-style.html", (content) => content.replace(marker, ""));
+    assertHasIssue(validatePluginContracts(files), "主题声明式样式必须带有 head 生命周期标记");
+  }
 });
 
 test("partial navigation cannot drop exact page metadata synchronization", () => {
@@ -461,6 +469,27 @@ test("static evidence resolves the current theme version from theme.yaml", () =>
   const result = validatePluginContracts(files);
   assert.equal(result.issues.length, 0, result.issues.join("\n"));
   assert.equal(result.context.resolvedThemeVersion, "9.9.9");
+});
+
+test("theme artifact versions accept release candidates and reject malformed SemVer identifiers", () => {
+  for (const [version, valid] of [
+    ["1.3.0-rc.1", true],
+    ["1.3.0-rc.1+build.12", true],
+    ["1.3.0-rc.01", false],
+    ["1.3.0-rc..1", false],
+    ["01.3.0", false],
+    ["1.3", false],
+  ]) {
+    const files = updateFile(loadFiles(), "theme.yaml", (content) =>
+      content.replace(/^ {2}version:.*$/m, `  version: "${version}"`),
+    );
+    const result = validatePluginContracts(files);
+    assert.equal(
+      result.issues.some((issue) => issue.includes("[theme-version]")),
+      !valid,
+      version,
+    );
+  }
 });
 
 test("comment tags keep the Halo resource identity contract", () => {
@@ -574,8 +603,8 @@ test("search, comment, and hyperlink variables must remain inside their plugin s
 
   const commentedDeclarationFiles = updateFile(loadFiles(), "src/styles/base.css", (content) =>
     content.replace(
-      "--halo-search-widget-muted-color: color-mix",
-      "/* --halo-search-widget-muted-color: color-mix */\n  --moved-search-widget-muted-color: color-mix",
+      "--halo-search-widget-muted-color:",
+      "/* --halo-search-widget-muted-color: */\n  --moved-search-widget-muted-color:",
     ),
   );
   assertHasIssue(

@@ -5,7 +5,8 @@ import { installDom } from "./dom-test-helpers.mjs";
 
 const environment = installDom(`<!doctype html><html><head></head><body>
   <div id="terminal" x-data="terminalInput('~/blog')">
-    <input id="command-input" x-ref="cmdInput" type="text">
+    <input id="command-input" x-ref="cmdInput" @keydown="handleKeydown($event)" type="text">
+    <pre id="command-help" x-show="showHelp" x-text="helpText"></pre>
   </div>
 </body></html>`);
 
@@ -99,6 +100,99 @@ test("terminal keyboard handling respects IME and applies Tab and Escape behavio
   assert.equal(terminal.output, "");
   assert.equal(terminal.showHelp, false);
   assert.notEqual(document.activeElement, commandInput);
+});
+
+test("native Tab navigation survives blank, unmatched, completed, reverse and composing input", () => {
+  for (const [command, options] of [
+    ["", {}],
+    ["   ", {}],
+    ["missing", {}],
+    ["help", {}],
+    ["he", { shiftKey: true }],
+    ["中文", { isComposing: true }],
+    ["he", { keyCode: 229 }],
+  ]) {
+    terminal.command = command;
+    const tab = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Tab", ...options });
+    commandInput.dispatchEvent(tab);
+    assert.equal(tab.defaultPrevented, false, JSON.stringify([command, options]));
+    assert.equal(terminal.command, command);
+  }
+});
+
+test("forward Tab releases focus navigation after one round of command completions", () => {
+  terminal.command = "p";
+
+  for (const expected of ["pd", "pu", "ppage"]) {
+    const tab = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Tab" });
+    commandInput.dispatchEvent(tab);
+    assert.equal(terminal.command, expected);
+    assert.equal(tab.defaultPrevented, true);
+  }
+
+  const exit = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Tab" });
+  commandInput.dispatchEvent(exit);
+  assert.equal(exit.defaultPrevented, false);
+  assert.equal(terminal.command, "ppage");
+});
+
+test("Tab skips an exact first candidate and cycles through the remaining matches", () => {
+  window.haloData.currentPosts = [{ spec: { slug: "guide" } }, { spec: { slug: "guide-next" } }];
+  terminal.command = "cd guide";
+
+  try {
+    for (const expected of ["cd guide-next", "cd guide"]) {
+      const tab = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Tab" });
+      commandInput.dispatchEvent(tab);
+      assert.equal(terminal.command, expected);
+      assert.equal(tab.defaultPrevented, true);
+    }
+    const exit = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Tab" });
+    commandInput.dispatchEvent(exit);
+    assert.equal(exit.defaultPrevented, false);
+    assert.equal(terminal.command, "cd guide");
+  } finally {
+    window.haloData.currentPosts = [];
+  }
+});
+
+test("standalone page help advertises available commands", async () => {
+  const previousData = window.haloData;
+  const help = document.getElementById("command-help");
+  terminal.command = "help";
+  await terminal.executeCommand();
+  assert.match(help.textContent, /^List Page Commands:/);
+
+  window.haloData = {
+    ...previousData,
+    currentPage: { permalink: "/about", slug: "about" },
+    pageType: "page",
+  };
+  try {
+    document.dispatchEvent(new CustomEvent(PAGE_READY_EVENT, { detail: { pageType: "page" } }));
+    terminal.command = "help";
+    await terminal.executeCommand();
+    assert.equal(terminal.showHelp, true);
+    assert.match(help.textContent, /^Standalone Page Commands:/);
+    assert.match(help.textContent, /^\s+cd <path>\s+- Navigate to path/m);
+    assert.match(help.textContent, /^\s+search\s+- Open search/m);
+    assert.doesNotMatch(help.textContent, /^\s+(?:ls|pd|pu|next|prev|toc)\b/m);
+  } finally {
+    window.haloData = previousData;
+    document.dispatchEvent(new CustomEvent(PAGE_READY_EVENT, { detail: { pageType: previousData.pageType } }));
+  }
+});
+
+test("Escape discards a pending listing and history is ready for the next command", async () => {
+  terminal.command = "ls";
+  const listing = terminal.executeCommand();
+  assert.equal(terminal.output, "Loading...");
+  commandInput.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Escape" }));
+  await listing;
+  assert.equal(terminal.output, "");
+  assert.equal(terminal.command, "");
+  commandInput.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "ArrowUp" }));
+  assert.equal(terminal.command, "ls");
 });
 
 test("terminal result application and unexpected failures keep deterministic UI state", async () => {

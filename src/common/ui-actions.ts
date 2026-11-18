@@ -1,64 +1,13 @@
 import { logWarn } from "./logger";
 import { THEME_SOURCE_HISTORY_DEPTH_KEY } from "./navigation";
 import { initSearchPreviewNavigation } from "./search-preview";
+import { armSearchFocusRestoration, styleSearchSelectedResults } from "./search-widget-dom";
 
 type SearchWidget = {
   open?: () => void;
 };
 
 const ACTION_ATTRIBUTE = "data-terminal-action";
-const SEARCH_FOCUS_RESTORE_TIMEOUT_MS = 60_000;
-let cancelSearchFocusRestoration: (() => void) | null = null;
-
-function armSearchFocusRestoration(trigger: HTMLElement) {
-  cancelSearchFocusRestoration?.();
-
-  let timeoutId: number | null = null;
-  let frameId: number | null = null;
-  const cleanup = () => {
-    if (timeoutId !== null) {
-      window.clearTimeout(timeoutId);
-    }
-    if (frameId !== null) {
-      window.cancelAnimationFrame(frameId);
-    }
-    window.removeEventListener("click", scheduleRestoreCheck, true);
-    window.removeEventListener("keyup", handleKeyUp, true);
-    if (cancelSearchFocusRestoration === cleanup) {
-      cancelSearchFocusRestoration = null;
-    }
-  };
-  const restoreIfClosed = () => {
-    frameId = null;
-    const modal = document.querySelector("search-modal");
-    const wrapper = modal?.shadowRoot?.querySelector<HTMLElement>(".modal__wrapper");
-    const closed = !modal || wrapper?.style.display === "none";
-    if (!closed) {
-      return;
-    }
-
-    cleanup();
-    if (trigger.isConnected) {
-      trigger.focus({ preventScroll: true });
-    }
-  };
-  const scheduleRestoreCheck = () => {
-    if (frameId === null) {
-      frameId = window.requestAnimationFrame(restoreIfClosed);
-    }
-  };
-  const handleKeyUp = (event: KeyboardEvent) => {
-    if (event.key === "Escape") {
-      scheduleRestoreCheck();
-    }
-  };
-
-  window.addEventListener("click", scheduleRestoreCheck, true);
-  window.addEventListener("keyup", handleKeyUp, true);
-  timeoutId = window.setTimeout(cleanup, SEARCH_FOCUS_RESTORE_TIMEOUT_MS);
-  cancelSearchFocusRestoration = cleanup;
-}
-
 export function openSearchWidget(
   trigger = document.activeElement instanceof HTMLElement ? document.activeElement : null,
 ) {
@@ -70,6 +19,7 @@ export function openSearchWidget(
       armSearchFocusRestoration(trigger);
     }
     searchWidget.open();
+    styleSearchSelectedResults();
     return true;
   }
 

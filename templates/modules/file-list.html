@@ -1,0 +1,186 @@
+<!doctype html>
+<html xmlns:th="https://www.thymeleaf.org">
+  <div
+    th:fragment="prompt(path)"
+    th:with="unixLayout=${theme.config.appearance?.terminal_layout == 'unix'}"
+    class="terminal-list-prompt"
+  >
+    <span class="min-w-0 truncate">
+      <th:block th:replace="~{modules/layout :: promptHost}" /><span th:text="${path}"></span
+      ><span class="terminal-command-sigil">$</span>
+    </span>
+    <span class="terminal-list-command shrink-0" th:if="${unixLayout}">ll</span>
+    <span
+      th:unless="${unixLayout}"
+      class="terminal-list-command typing-effect shrink-0 whitespace-nowrap"
+      x-data="typewriter('ls', 50)"
+      x-text="display"
+      >ls</span
+    >
+  </div>
+
+  <div
+    th:fragment="gridHeader(metaLabel, ownerLabel)"
+    th:unless="${theme.config.appearance?.terminal_layout == 'unix'}"
+    class="home-file-grid home-file-header mb-1 text-xs font-bold md:mb-2"
+    aria-hidden="true"
+  >
+    <span>NAME</span>
+    <span class="justify-self-end md:justify-self-start" th:text="${metaLabel}">DATE</span>
+    <span th:if="${ownerLabel != null}" class="hidden md:block" th:text="${ownerLabel}">USER</span>
+    <span th:if="${ownerLabel != null}" class="hidden md:block">PERMISSIONS</span>
+  </div>
+
+  <li
+    th:fragment="directoryRow(url, name, linkId, owner, postCount)"
+    data-nav-item
+    :class="{ 'is-selected': isSelected($el) }"
+    class="terminal-directory-row home-file-grid home-file-row min-h-10 items-center"
+  >
+    <a th:id="${linkId}" th:href="@{${url}}" class="home-file-title flex min-h-10 min-w-0 items-center py-1 md:min-h-0">
+      <span class="min-w-0" th:text="${name}">../</span>
+    </a>
+    <span
+      class="home-file-meta home-file-meta-main justify-self-end whitespace-nowrap md:justify-self-start"
+      th:text="${postCount == null ? '—' : postCount + ' posts'}"
+      >—</span
+    >
+    <span th:if="${owner != null}" class="home-file-meta home-file-owner hidden truncate md:block" th:text="${owner}"
+      >root</span
+    >
+    <span th:if="${owner != null}" class="home-file-meta home-file-permissions hidden whitespace-nowrap md:block"
+      >drwxr-xr-x</span
+    >
+  </li>
+
+  <div th:fragment="context(label, title, total)" class="terminal-list-context">
+    <span th:text="${label}"></span>
+    <h1 th:text="${title}"></h1>
+    <span class="ml-auto tabular-nums">Posts: <span th:text="${total}"></span></span>
+  </div>
+
+  <ul th:fragment="parentShortcut(url, owner)" class="terminal-file-shortcuts font-mono text-xs md:text-sm">
+    <th:block th:replace="~{modules/file-list :: directoryRow(${url}, '../', null, ${owner}, null)}"></th:block>
+  </ul>
+
+  <th:block th:fragment="directories(entries, prefix)">
+    <th:block th:replace="~{modules/file-list :: gridHeader('POSTS', null)}"></th:block>
+    <th:block th:replace="~{modules/file-list :: parentShortcut('/', null)}"></th:block>
+    <ul
+      th:unless="${#lists.isEmpty(entries)}"
+      class="terminal-file-entries font-mono text-xs md:space-y-1 md:text-sm"
+      aria-label="Directories"
+    >
+      <th:block th:each="entry : ${entries}">
+        <th:block
+          th:replace="~{modules/file-list :: directoryRow(${entry.status.permalink}, |${prefix}${entry.spec.displayName}/|, null, null, ${entry.postCount})}"
+        ></th:block>
+      </th:block>
+    </ul>
+  </th:block>
+
+  <ul
+    th:fragment="postList(entries, showDetails)"
+    th:unless="${#lists.isEmpty(entries)}"
+    th:with="datePattern=${showDetails and theme.config.appearance?.terminal_layout != 'unix' ? 'MMM dd HH:mm' : 'MM-dd HH:mm'}"
+    class="terminal-file-entries font-mono text-xs md:space-y-1 md:text-sm"
+    aria-label="Articles"
+  >
+    <li
+      th:each="post : ${entries}"
+      data-nav-item
+      data-post-record
+      th:data-post-name="${post.metadata.name}"
+      th:data-post-created-at="${post.metadata.creationTimestamp}"
+      th:data-post-title="${post.spec.title}"
+      th:data-post-slug="${post.spec.slug}"
+      th:data-post-owner="${post.spec.owner}"
+      th:data-post-published-at="${post.spec.publishTime}"
+      th:data-post-permalink="${post.status.permalink}"
+      :class="{ 'is-selected': isSelected($el) }"
+      class="home-file-grid home-file-row min-h-10 items-center"
+    >
+      <a
+        th:href="@{${post.status.permalink}}"
+        data-navigation="full"
+        class="home-file-title flex min-h-10 min-w-0 items-center py-1 md:min-h-0"
+      >
+        <span class="min-w-0" th:text="${post.spec.title}">Post Title</span>
+      </a>
+      <time
+        class="home-file-meta home-file-meta-main justify-self-end whitespace-nowrap md:justify-self-start"
+        th:datetime="${post.spec.publishTime}"
+        th:text="${#dates.format(post.spec.publishTime, datePattern)}"
+        >Jan 01 00:00</time
+      >
+      <span
+        th:if="${showDetails}"
+        class="home-file-meta home-file-owner hidden truncate md:block"
+        th:text="${post.spec.owner}"
+        th:title="${post.spec.owner}"
+        >user</span
+      >
+      <span
+        th:if="${showDetails}"
+        class="home-file-meta home-file-permissions hidden whitespace-nowrap md:block"
+        th:text="${#authentication.name == post.spec.owner ? '-rwxr-xr-x' : '-rw-r--r--'}"
+      ></span>
+    </li>
+  </ul>
+
+  <p
+    th:fragment="emptyPage(result, firstUrl, emptyText, outOfRangeText)"
+    th:if="${#lists.isEmpty(result.items)}"
+    class="text-terminal-dim mt-4 text-sm"
+  >
+    <span th:if="${result.total == 0}" th:text="${emptyText}">No posts yet.</span>
+    <span th:if="${result.total > 0}" data-empty-page>
+      <span th:text="${outOfRangeText}">No posts on this page.</span>
+      <a th:href="@{${firstUrl}}" class="text-terminal-green underline decoration-dotted underline-offset-4"
+        >Return to the first page</a
+      >.
+    </span>
+  </p>
+
+  <div
+    th:fragment="pagination(result, label)"
+    th:if="${!#lists.isEmpty(result.items) and result.totalPages > 0}"
+    class="file-list-pagination mt-4 flex flex-wrap items-center gap-3 text-sm md:mt-8"
+  >
+    <nav
+      th:if="${result.hasPrevious() or result.hasNext()}"
+      th:aria-label="${label}"
+      class="flex flex-wrap items-center gap-3"
+    >
+      <a
+        th:if="${result.hasPrevious()}"
+        th:href="@{${result.prevUrl}}"
+        class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black border-terminal-green inline-flex min-h-10 items-center border px-3 py-2 transition-colors md:min-h-0 md:px-2 md:py-0"
+        data-nav-item
+        :class="{ '!bg-terminal-green !text-terminal-black': isSelected($el) }"
+        >&lt; PREV</a
+      >
+      <a
+        th:if="${result.hasNext()}"
+        th:href="@{${result.nextUrl}}"
+        class="text-terminal-green hover:bg-terminal-green hover:text-terminal-black border-terminal-green inline-flex min-h-10 items-center border px-3 py-2 transition-colors md:min-h-0 md:px-2 md:py-0"
+        data-nav-item
+        :class="{ '!bg-terminal-green !text-terminal-black': isSelected($el) }"
+        >NEXT &gt;</a
+      >
+    </nav>
+    <span class="home-file-meta tabular-nums" data-current-page>
+      <span class="sr-only">Page</span>
+      <span aria-current="page" th:text="|${result.page} / ${result.totalPages}|">1 / 1</span>
+    </span>
+  </div>
+
+  <div
+    th:fragment="summary(result, label, showTotal)"
+    th:if="${showTotal or !#lists.isEmpty(result.items)}"
+    class="terminal-list-summary"
+  >
+    <th:block th:replace="~{modules/file-list :: pagination(${result}, ${label})}"></th:block>
+    <p th:if="${showTotal}" class="terminal-list-total"><span th:text="${result.total}">0</span> files found.</p>
+  </div>
+</html>

@@ -1,19 +1,11 @@
 <!doctype html>
 <html xmlns:th="https://www.thymeleaf.org" th:replace="~{modules/layout :: html(content = ~{::content})}">
   <th:block th:fragment="content">
-    <div class="min-w-0 px-2 md:px-0" x-data="postViewer">
+    <div class="terminal-reader" x-data="postViewer">
       <!-- Command Input Simulation -->
-      <div
-        class="text-terminal-green mb-3 flex min-w-0 flex-col items-start gap-1 md:mb-4 md:flex-row md:items-center md:gap-2"
-      >
-        <span class="text-terminal-dim min-w-0 break-all" th:if="${#authentication.name == 'anonymousUser'}"
-          >guest@<span th:text="${site.title}"></span>:~/blog$</span
-        >
-        <span class="text-terminal-dim min-w-0 break-all" th:if="${#authentication.name != 'anonymousUser'}">
-          <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
-            th:text="${site.title}"
-          ></span
-          >:~/blog$
+      <div class="text-terminal-green mb-2 flex min-w-0 items-baseline gap-2 text-sm md:mb-4 md:text-base">
+        <span class="text-terminal-dim hidden min-w-0 break-all md:inline">
+          <th:block th:replace="~{modules/layout :: promptHost}" />~/blog<span class="terminal-command-sigil">$</span>
         </span>
         <span
           class="typing-effect min-w-0 break-words"
@@ -21,74 +13,65 @@
           th:data-filename="'&quot;' + ${post.spec.title} + '.md&quot;'"
           x-text="display"
         ></span>
+        <button
+          type="button"
+          data-terminal-action="source-back"
+          th:data-home-url="@{/}"
+          class="requires-theme-runtime reader-back hidden shrink-0 items-center md:ml-auto md:inline-flex"
+        >
+          [BACK]
+        </button>
       </div>
 
       <article class="prose prose-invert max-w-none min-w-0">
         <h1
           th:text="${post.spec.title}"
-          class="border-terminal-green mb-4 border-b-2 border-dashed pb-4 text-3xl break-words md:mb-6"
+          class="reader-title border-terminal-green mb-2 border-b-2 border-dashed pb-2 text-2xl break-words md:mb-6 md:pb-4 md:text-3xl"
         ></h1>
 
-        <!-- Reading Progress -->
-        <div class="border-terminal-dim text-terminal-dim mb-4 border border-dashed p-2 font-mono text-xs">
-          <div class="mb-1 flex items-center justify-between">
-            <span>READ_PROGRESS</span>
-            <span><span x-text="readingProgress"></span>%</span>
-          </div>
-          <div class="bg-terminal-green/10 h-1 overflow-hidden">
-            <div class="bg-terminal-green h-full transition-[width]" :style="`width: ${readingProgress}%`"></div>
-          </div>
-        </div>
-
-        <!-- File Metadata Header -->
-        <div
-          class="border-terminal-green bg-terminal-green/20 relative mb-4 overflow-hidden border p-3 font-mono text-xs md:mb-6 md:p-4"
-        >
-          <div class="bg-terminal-green animate-scanline absolute top-0 left-0 h-1 w-full opacity-20"></div>
-          <div class="grid grid-cols-1 gap-2 break-words sm:grid-cols-2">
-            <div><span class="text-terminal-dim">File:</span> <span th:text="${post.spec.title} + '.md'"></span></div>
-            <div>
-              <span class="text-terminal-dim">Characters:</span>
-              <span th:text="${#strings.length(post.content.content)}"></span>
-            </div>
-            <div th:with="author = ${contributorFinder.getContributor(post.spec.owner)}">
-              <span class="text-terminal-dim">Author:</span>
-              <span th:text="${author != null ? author.displayName : post.spec.owner}"></span>
-            </div>
-            <div>
-              <span class="text-terminal-dim">Published:</span>
+        <div class="reader-meta border-terminal-dim mb-2 border-b border-dashed pb-2 font-mono text-xs md:mb-4">
+          <div class="flex flex-wrap items-baseline gap-x-4 gap-y-1 break-words">
+            <span th:with="author = ${contributorFinder.getContributor(post.spec.owner)}">
+              Author: <span th:text="${author != null ? author.displayName : post.spec.owner}"></span>
+            </span>
+            <span
+              >Published:
               <time
                 th:datetime="${post.spec.publishTime}"
-                th:text="${#dates.format(post.spec.publishTime, 'yyyy-MM-dd HH:mm:ss')}"
-              ></time>
+                th:text="${#dates.format(post.spec.publishTime, 'yyyy-MM-dd')}"
+              ></time
+            ></span>
+          </div>
+          <div class="requires-theme-runtime mt-2 flex items-center gap-2">
+            <span>READ_PROGRESS</span>
+            <div class="bg-terminal-green/10 h-1 grow overflow-hidden" aria-hidden="true">
+              <div class="bg-terminal-green h-full" :style="`width: ${readingProgress}%`"></div>
             </div>
+            <span class="min-w-[4ch] text-right tabular-nums"><span x-text="readingProgress"></span>%</span>
           </div>
         </div>
 
         <!-- Article TOC -->
         <details
+          class="reader-toc requires-theme-runtime border-terminal-dim mb-3 border border-dashed px-3 font-mono text-xs md:mb-5 md:px-4"
           x-show="tocItems.length > 0"
-          x-init="$el.open = window.matchMedia('(min-width: 768px)').matches"
-          class="border-terminal-dim text-terminal-dim mb-4 border border-dashed px-4 font-mono text-xs md:mb-6"
         >
           <summary
             class="text-terminal-green hover:text-terminal-green inline-flex min-h-10 cursor-pointer items-center py-2 md:min-h-0"
             aria-label="Article table of contents"
           >
-            [TOC]
+            <span aria-hidden="true" class="reader-toc-marker"></span> [TOC]
           </summary>
           <nav aria-label="Article table of contents">
-            <ol class="space-y-1 pb-3">
-              <template x-for="(item, index) in tocItems" :key="item.id">
-                <li :class="{ 'pl-4': item.level > 2 }">
-                  <button
-                    type="button"
+            <ol>
+              <template x-for="item in tocItems" :key="item.id">
+                <li :data-toc-level="item.level">
+                  <a
+                    :href="'#' + encodeURIComponent(item.id)"
                     class="hover:text-terminal-green inline-flex min-h-10 cursor-pointer items-center bg-transparent p-0 text-left font-mono text-inherit transition-colors md:min-h-0"
-                    @click="jumpToHeading(item.id)"
                   >
-                    <span x-text="String(index + 1).padStart(2, '0')"></span>.
                     <span x-text="item.text"></span>
-                  </button>
+                  </a>
                 </li>
               </template>
             </ol>
@@ -102,7 +85,7 @@
       </article>
 
       <!-- EOF Marker -->
-      <div class="text-terminal-dim mt-12 mb-8 animate-pulse text-center">*** END OF FILE ***</div>
+      <div class="text-terminal-dim mt-12 mb-8 text-center">*** END OF FILE ***</div>
 
       <!-- Comments -->
       <section
@@ -120,7 +103,7 @@
           type="button"
           data-terminal-action="source-back"
           th:data-home-url="@{/}"
-          class="border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black inline-flex min-h-10 cursor-pointer items-center border bg-transparent px-4 py-1 font-mono transition-colors"
+          class="requires-theme-runtime border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black inline-flex min-h-10 cursor-pointer items-center border bg-transparent px-4 py-1 font-mono transition-colors"
         >
           [BACK]
         </button>

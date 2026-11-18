@@ -25,3 +25,14 @@ test("theme setting font options stay aligned with the canonical manifest", () =
   assert.equal(values[0], "Standard");
   assert.deepEqual([...new Set(values.slice(1))].sort(), [...fontManifest].sort());
 });
+
+test("the desktop title reserves the row count of each supported Figlet font", async () => {
+  const styles = await readFile(new URL("src/styles/base.css", root), "utf8");
+  const rules = [...styles.matchAll(/(\.terminal-ascii-title[^{]*)\{\s*min-block-size:\s*(\d+)lh;/g)];
+  for (const font of fontManifest) {
+    const flf = await readFile(new URL(`templates/assets/fonts/${font}.flf`, root), "utf8");
+    const expectedRows = Number(flf.match(/^flf2a\S*\s+(\d+)\s/)[1]);
+    const rule = rules.find(([, selector]) => selector.includes(`[data-font="${font}"]`)) ?? rules[0];
+    assert.equal(Number(rule?.[2]), expectedRows, font);
+  }
+});

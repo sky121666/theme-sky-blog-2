@@ -2,7 +2,7 @@
 <th:block th:with="authPageType='login'">
   <html
     xmlns:th="https://www.thymeleaf.org"
-    th:replace="~{gateway_fragments/layout :: layout(title = 'System Login - ' + ${site.title}, head = null, body = ~{::body})}"
+    th:replace="~{gateway_fragments/layout :: layout(title = ${(#locale.language == 'zh' ? '登录' : 'Sign in') + ' - ' + site.title}, head = null, body = ~{::body})}"
   >
     <th:block th:fragment="body">
       <div class="terminal-login-wrapper w-full">

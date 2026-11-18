@@ -10,7 +10,7 @@ import {
 } from "../common/runtime-events";
 import { syncPathWithUrl } from "../common/virtual-fs";
 import { getSuggestions } from "./autocomplete";
-import { type CommandResult, dispatchCommand, LIST_HELP, POST_HELP } from "./commands";
+import { type CommandResult, dispatchCommand, getCommandHelp, isListingCommand } from "./commands";
 
 // ── Alpine component ───────────────────────────────────────────────
 
@@ -39,24 +39,70 @@ export function registerTerminalInputComponent() {
     pageReadyHandler: null as ((event: CustomEvent<PageReadyDetail>) => void) | null,
     runtimeStatusHandler: null as ((event: CustomEvent<RuntimeStatusDetail>) => void) | null,
     showHelp: false,
+    toolsOpen: false,
+    viewportResizeHandler: null as (() => void) | null,
+
+    closeReaderTools(event: KeyboardEvent) {
+      if (
+        this.toolsOpen &&
+        !event.isComposing &&
+        event.keyCode !== 229 &&
+        window.matchMedia("(width < 48rem)").matches
+      ) {
+        event.preventDefault();
+        this.toolsOpen = false;
+        (this.$refs.toolsToggle as HTMLButtonElement).focus({ preventScroll: true });
+      }
+    },
+
+    syncKeyboardHeight() {
+      const viewport = window.visualViewport;
+      if (
+        viewport &&
+        viewport.scale === 1 &&
+        document.activeElement === this.$refs.cmdInput &&
+        window.matchMedia("(width < 48rem)").matches
+      ) {
+        document.body.style.setProperty("--terminal-keyboard-height", `${viewport.height}px`);
+      } else {
+        this.clearKeyboardHeight();
+      }
+    },
+
+    clearKeyboardHeight() {
+      document.body.style.removeProperty("--terminal-keyboard-height");
+    },
 
     // ── Tab completion ───────────────────────────────────────────
 
     autoComplete() {
       const currentInput = this.command;
-      const lastSuggestion = this.completionState.candidates[this.completionState.index];
-      const isCycling = this.completionState.candidates.length > 0 && currentInput === lastSuggestion;
-
-      if (!isCycling) {
-        this.completionState.candidates = getSuggestions(currentInput, String(this.currentPath), this.isPostPage());
-        this.completionState.index = 0;
-      } else {
-        this.completionState.index = (this.completionState.index + 1) % this.completionState.candidates.length;
+      if (!currentInput.trim()) {
+        return false;
       }
 
-      if (this.completionState.candidates.length > 0) {
-        this.command = this.completionState.candidates[this.completionState.index];
+      if (currentInput !== this.completionState.candidates[this.completionState.index]) {
+        const candidates = [...new Set(getSuggestions(currentInput, String(this.currentPath)))];
+        const exactIndex = candidates.indexOf(currentInput);
+        if (exactIndex !== -1) {
+          candidates.splice(exactIndex, 1);
+          if (candidates.length > 0) {
+            candidates.push(currentInput);
+          }
+        }
+        this.completionState.candidates = candidates;
+        this.completionState.index = -1;
       }
+
+      const index = this.completionState.index + 1;
+      const next = this.completionState.candidates[index];
+      if (next === undefined) {
+        return false;
+      }
+
+      this.completionState.index = index;
+      this.command = next;
+      return true;
     },
 
     // ── Command execution ────────────────────────────────────────
@@ -84,9 +130,12 @@ export function registerTerminalInputComponent() {
 
       try {
         // Show loading for ls
-        if (command.toLowerCase() === "ls" || command.toLowerCase() === "ll") {
+        if (isListingCommand(command)) {
           this.output = "Loading...";
           await new Promise((resolve) => window.setTimeout(resolve, 50));
+          if (executionId !== this.executionId) {
+            return;
+          }
         }
 
         const result: CommandResult = await dispatchCommand(command, args, String(this.currentPath));
@@ -123,13 +172,13 @@ export function registerTerminalInputComponent() {
     // ── Getters ──────────────────────────────────────────────────
 
     get helpText() {
-      return this.isPostPage() ? POST_HELP : LIST_HELP;
+      return this.showHelp ? getCommandHelp() : "";
     },
 
     // ── Keyboard handler ─────────────────────────────────────────
 
     handleKeydown(event: KeyboardEvent) {
-      if (event.isComposing) {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229) {
         return;
       }
 
@@ -148,14 +197,18 @@ export function registerTerminalInputComponent() {
           break;
         case "Escape":
           event.preventDefault();
+          this.executionId += 1;
+          this.historyIndex = this.history.length;
+          this.completionState.candidates = [];
           this.command = "";
           this.output = "";
           this.showHelp = false;
           (this.$refs.cmdInput as HTMLInputElement | undefined)?.blur();
           break;
         case "Tab":
-          event.preventDefault();
-          this.autoComplete();
+          if (!event.shiftKey && !event.ctrlKey && !event.altKey && !event.metaKey && this.autoComplete()) {
+            event.preventDefault();
+          }
           break;
         default:
           break;
@@ -167,6 +220,11 @@ export function registerTerminalInputComponent() {
     destroy() {
       this.executionId += 1;
 
+      if (this.viewportResizeHandler) {
+        window.visualViewport?.removeEventListener("resize", this.viewportResizeHandler);
+        this.viewportResizeHandler = null;
+        this.clearKeyboardHeight();
+      }
       if (this.pageReadyHandler) {
         document.removeEventListener(PAGE_READY_EVENT, this.pageReadyHandler);
         this.pageReadyHandler = null;
@@ -181,8 +239,14 @@ export function registerTerminalInputComponent() {
     init() {
       this.currentPath = syncPathWithUrl();
 
+      this.viewportResizeHandler = () => this.syncKeyboardHeight();
+      window.visualViewport?.addEventListener("resize", this.viewportResizeHandler);
+
       this.pageReadyHandler = (event) => {
+        this.toolsOpen = false;
         this.currentPath = syncPathWithUrl();
+        this.completionState.candidates = [];
+        this.showHelp = false;
 
         if (READER_PAGE_TYPES.has(event.detail.pageType)) {
           (this.$refs.cmdInput as HTMLInputElement | undefined)?.blur();
@@ -201,10 +265,6 @@ export function registerTerminalInputComponent() {
           (this.$refs.cmdInput as HTMLInputElement | undefined)?.focus();
         }
       });
-    },
-
-    isPostPage() {
-      return window.haloData?.pageType === "post";
     },
 
     navigateHistory(direction: number) {

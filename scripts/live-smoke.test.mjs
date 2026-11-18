@@ -2,8 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  BROWSER_RESOURCE_BUDGETS,
-  HTTP_RESOURCE_BUDGETS,
+  assertNavigationEvidence,
   accessibilitySnapshotIssues,
   isExecutableFile,
   isManagedChromeExecutablePath,
@@ -11,25 +10,12 @@ import {
   mergePluginSurfaceObservations,
   orderChromeExecutableCandidates,
   pluginSurfaceObservationIssues,
-  resourceBudgetIssues,
+  resourceMetricIssues,
   runChromeCandidateFallback,
   selectManagedChromeCandidates,
   smokeCompletionIssues,
   visualSnapshotIssues,
 } from "./live-smoke.mjs";
-
-test("live resource budget policy stays aligned with packaged core assets", () => {
-  assert.deepEqual(HTTP_RESOURCE_BUDGETS, {
-    coreCssBytes: 80 * 1024,
-    coreScriptBytes: 128 * 1024,
-    htmlBytes: 256 * 1024,
-  });
-  assert.deepEqual(BROWSER_RESOURCE_BUDGETS, {
-    domNodes: 1500,
-    resourceCount: 100,
-    resourceTransferBytes: 3 * 1024 * 1024,
-  });
-});
 
 test("CHROME_PATH stays first while duplicate browser candidates are removed", () => {
   const candidates = orderChromeExecutableCandidates({
@@ -104,13 +90,62 @@ test("startup failure falls through to the next discovered browser without hidin
   );
 });
 
-test("resource budgets reject missing metrics and meaningful overruns", () => {
-  const budgets = { domNodes: 100, resourceTransferBytes: 1000 };
-  assert.deepEqual(resourceBudgetIssues({ domNodes: 99, resourceTransferBytes: 1000 }, budgets), []);
-  assert.deepEqual(resourceBudgetIssues({ domNodes: 101 }, budgets), [
-    "domNodes=101 exceeds 100",
-    "resourceTransferBytes is missing or invalid",
-  ]);
+test("resource observations accept large and zero readings and flag missing or invalid data", () => {
+  const names = ["domNodes", "resourceCount", "resourceTransferBytes"];
+  assert.deepEqual(
+    resourceMetricIssues({ domNodes: 10000, resourceCount: 500, resourceTransferBytes: 2 ** 28 }, names),
+    [],
+  );
+  assert.deepEqual(resourceMetricIssues({ domNodes: 1, resourceCount: 0, resourceTransferBytes: 0 }, names), []);
+  assert.deepEqual(
+    resourceMetricIssues({ domNodes: NaN, resourceTransferBytes: -1 }, names),
+    names.map((name) => `${name} is missing or invalid`),
+  );
+});
+
+test("partial and full navigation need matching top-level network, response and DOM evidence", () => {
+  for (const mode of ["partial", "full"]) {
+    const partial = mode === "partial";
+    const targetUrl = partial ? "https://theme.test/categories" : "https://theme.test/login";
+    const request = { frameId: "top", requestId: "visit", type: partial ? "Fetch" : "Document", url: targetUrl };
+    const response = {
+      ...request,
+      status: 200,
+      mimeType: "text/html",
+      fromDiskCache: false,
+      fromPrefetchCache: false,
+      fromServiceWorker: false,
+    };
+    const evidence = {
+      mode,
+      targetUrl,
+      frameId: "top",
+      requests: [request, { ...request, frameId: "iframe", type: "Document" }],
+      responses: [response],
+      sameDocument: partial,
+      sameInput: partial,
+      cacheRequestIds: new Set(),
+    };
+    assert.deepEqual(assertNavigationEvidence(evidence), {
+      targetUrl,
+      documents: partial ? 0 : 1,
+      fetches: partial ? 1 : 0,
+    });
+    for (const change of [
+      { sameDocument: !partial },
+      { sameInput: !partial },
+      { requests: [{ ...request, frameId: "iframe" }] },
+      { requests: [request, { ...request, requestId: "duplicate" }] },
+      { requests: [request, { ...request, type: partial ? "Document" : "XHR" }] },
+      { requests: [{ ...request, url: targetUrl + "?wrong-query" }] },
+      { responses: [{ ...response, requestId: "another-request" }] },
+      { responses: [{ ...response, status: 404 }] },
+      { responses: [{ ...response, mimeType: "application/json" }] },
+      { cacheRequestIds: new Set(["visit"]) },
+    ]) {
+      assert.throws(() => assertNavigationEvidence({ ...evidence, ...change }), assert.AssertionError);
+    }
+  }
 });
 
 test("basic accessibility checks stay narrow and deterministic", () => {

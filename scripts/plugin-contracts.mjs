@@ -425,8 +425,14 @@ function validateVersionAndEvidenceContract(files, issues) {
   if (!parseMinimumRange(themeRequires)) {
     addIssue(issues, "halo-version", `theme.yaml spec.requires 必须是 >=x.y.z，当前为 ${themeRequires || "空"}`);
   }
-  if (!parseSemver(themeVersion)) {
-    addIssue(issues, "theme-version", `theme.yaml spec.version 必须是 x.y.z，当前为 ${themeVersion || "空"}`);
+  // Theme artifacts may carry SemVer prerelease identifiers and build metadata.
+  const number = "(?:0|[1-9][0-9]*)";
+  const prerelease = `(?:${number}|[0-9]*[A-Za-z-][0-9A-Za-z-]*)`;
+  const themeVersionPattern = new RegExp(
+    `^${number}\\.${number}\\.${number}(?:-${prerelease}(?:\\.${prerelease})*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$`,
+  );
+  if (!themeVersionPattern.test(themeVersion)) {
+    addIssue(issues, "theme-version", `theme.yaml spec.version 必须是有效的 SemVer，当前为 ${themeVersion || "空"}`);
   }
   if (
     !satisfiesMinimum(versionContext.context.runtimeHaloVersion ?? "", versionContext.context.themeHaloRequires ?? "")
@@ -681,29 +687,29 @@ function validateSearchContract(files, issues) {
   const actionSource = files["src/common/ui-actions.ts"];
   const commandSource = files["src/features/commands.ts"];
   const settings = files["settings.yaml"];
-  const searchActionIndex = layout.indexOf('data-terminal-action="search"');
-  const searchButtonStart = layout.lastIndexOf("<button", searchActionIndex);
-  const searchButtonEnd = layout.indexOf(">", searchActionIndex);
-  const searchButton =
-    searchActionIndex >= 0 && searchButtonStart >= 0 && searchButtonEnd >= 0
-      ? layout.slice(searchButtonStart, searchButtonEnd + 1)
-      : "";
+  const searchButtons = [...layout.matchAll(/<button\b[^>]*\bdata-terminal-action="search"[^>]*>/g)].map(
+    ([button]) => button,
+  );
 
-  expectPattern(
-    issues,
-    "search-template",
-    searchButton,
-    /th:if="\$\{[^"]*show_search\s*!=\s*false[^"]*pluginFinder\.available\('PluginSearchWidget'\)[^"]*\}"/,
-    "搜索按钮必须同时受 show_search 和 PluginSearchWidget 可用性 guard 保护",
-  );
-  expectIncludes(issues, "search-template", searchButton, 'type="button"', "搜索入口必须是 button");
-  expectIncludes(
-    issues,
-    "search-template",
-    searchButton,
-    'data-terminal-action="search"',
-    "搜索入口必须绑定 terminal search action",
-  );
+  if (searchButtons.length === 0) {
+    expectIncludes(
+      issues,
+      "search-template",
+      "",
+      'data-terminal-action="search"',
+      "搜索入口必须绑定 terminal search action",
+    );
+  }
+  for (const searchButton of searchButtons) {
+    expectPattern(
+      issues,
+      "search-template",
+      searchButton,
+      /th:if="\$\{[^"]*show_search\s*!=\s*false[^"]*pluginFinder\.available\('PluginSearchWidget'\)[^"]*\}"/,
+      "搜索按钮必须同时受 show_search 和 PluginSearchWidget 可用性 guard 保护",
+    );
+    expectIncludes(issues, "search-template", searchButton, 'type="button"', "搜索入口必须是 button");
+  }
   expectPattern(
     issues,
     "search-action",
@@ -862,23 +868,30 @@ function validatePartialNavigationScriptContract(files, issues) {
   expectIncludes(
     issues,
     "partial-navigation",
+    navigation,
+    'hooks.replace("content:replace"',
+    "swup 的内容替换必须经过主题的插件生命周期守卫",
+  );
+  expectIncludes(
+    issues,
+    "partial-navigation",
     runtime,
     "querySelectorAll<HTMLScriptElement>('script[type=\"module\"][data-pjax]')",
-    "原生局部导航只允许重放显式 data-pjax 的 module script",
+    "主题局部导航只允许重放显式 data-pjax 的 module script",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     'script.getAttribute("src")',
-    "原生局部导航脚本重放必须区分外部与内联模块",
+    "主题局部导航脚本重放必须区分外部与内联模块",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     "clone.textContent = script.textContent",
-    "原生局部导航必须重放 CommentWidget 显式 opt-in 的内联 module script",
+    "主题局部导航必须重放 CommentWidget 显式 opt-in 的内联 module script",
   );
   expectIncludes(
     issues,
@@ -936,18 +949,18 @@ function validatePartialNavigationScriptContract(files, issues) {
     'THEME_NAVIGATION_STYLE_ATTRIBUTE = "data-theme-navigation-style"',
     "主题声明式内联样式必须纳入 head 生命周期契约",
   );
-  expectIncludes(
-    issues,
-    "partial-navigation",
-    themeStyle,
-    "data-theme-navigation-style",
-    "主题声明式样式必须带有 head 生命周期标记",
-  );
+  const appearanceTags = themeStyle.match(/<style\b[^>]*>/g) ?? [];
+  if (
+    appearanceTags.length === 0 ||
+    appearanceTags.some((tag) => !/\sdata-theme-navigation-style(?=[\s=>])/.test(tag))
+  ) {
+    addIssue(issues, "partial-navigation", "主题声明式样式必须带有 head 生命周期标记");
+  }
   expectIncludes(
     issues,
     "partial-navigation",
     navigation,
-    "headNavigationContractChanged(parsedDocument, finalTarget)",
+    "headNavigationContractChanged(parsedDocument, finalTarget, this.displayedUrl)",
     "head 生命周期契约变化时必须切换为整页导航",
   );
   expectIncludes(
@@ -990,49 +1003,49 @@ function validatePartialNavigationScriptContract(files, issues) {
     "partial-navigation",
     runtime,
     "new URL(source, window.location.href)",
-    "原生局部导航脚本重放必须标准化脚本 URL",
+    "主题局部导航脚本重放必须标准化脚本 URL",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     "sourceUrl.origin !== window.location.origin",
-    "原生局部导航脚本重放必须拒绝跨源脚本",
+    "主题局部导航脚本重放必须拒绝跨源脚本",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     '["http:", "https:"]',
-    "原生局部导航脚本重放必须限制 http / https 协议",
+    "主题局部导航脚本重放必须限制 http / https 协议",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     'document.createElement("script")',
-    "原生局部导航脚本重放必须创建新的 script 节点",
+    "主题局部导航脚本重放必须创建新的 script 节点",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     'clone.type = "module"',
-    "原生局部导航重放的新脚本必须保留 module 类型",
+    "主题局部导航重放的新脚本必须保留 module 类型",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     "clone.src = sourceUrl.toString()",
-    "原生局部导航重放的新脚本必须使用已校验 URL",
+    "主题局部导航重放的新脚本必须使用已校验 URL",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     'sourceUrl.searchParams.set("_theme_navigation"',
-    "原生局部导航必须为外部 module script 生成逐次求值的唯一 URL",
+    "主题局部导航必须为外部 module script 生成逐次求值的唯一 URL",
   );
   for (const attribute of ["crossorigin", "integrity", "nonce", "referrerpolicy"]) {
     expectIncludes(
@@ -1040,7 +1053,7 @@ function validatePartialNavigationScriptContract(files, issues) {
       "partial-navigation",
       runtime,
       `"${attribute}"`,
-      `原生局部导航脚本重放必须保留 ${attribute}`,
+      `主题局部导航脚本重放必须保留 ${attribute}`,
     );
   }
   expectPattern(
@@ -1048,28 +1061,28 @@ function validatePartialNavigationScriptContract(files, issues) {
     "partial-navigation",
     runtime,
     /\[\s*"crossorigin",\s*"integrity",\s*"nonce",\s*"referrerpolicy"\s*\]/,
-    "原生局部导航脚本重放必须保留 nonce",
+    "主题局部导航脚本重放必须保留 nonce",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     "script.replaceWith(clone)",
-    "原生局部导航脚本重放必须替换原脚本节点",
+    "主题局部导航脚本重放必须替换原脚本节点",
   );
   expectPattern(
     issues,
     "partial-navigation",
     runtime,
     /async function initializeReplacedPage[\s\S]*?await replayNavigationScripts\(main\)[\s\S]*?Alpine\.initTree\(main\)/,
-    "原生局部导航必须等待模块重放完成后再初始化 Alpine",
+    "主题局部导航必须等待模块重放完成后再初始化 Alpine",
   );
   expectIncludes(
     issues,
     "partial-navigation",
     runtime,
     "await Promise.all(pendingScripts)",
-    "原生局部导航必须等待全部 opt-in 模块完成",
+    "主题局部导航必须等待全部 opt-in 模块完成",
   );
 }
 

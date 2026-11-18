@@ -198,8 +198,8 @@ function inferTaxonomyRoot(items: HaloTaxonomyRecord[], fallback: string) {
   return normalizedPermalink.slice(0, normalizedPermalink.length - slug.length - 1);
 }
 
-function readPageDataScript() {
-  const element = document.getElementById(PAGE_DATA_ID);
+export function readPageDataFromDocument(root: ParentNode = document) {
+  const element = root.querySelector<HTMLScriptElement>(`#${PAGE_DATA_ID}`);
   if (!(element instanceof HTMLScriptElement)) {
     return null;
   }
@@ -229,8 +229,7 @@ function normalizeCurrentRef(ref: HaloCurrentRef | null | undefined) {
   return ref;
 }
 
-export function syncHaloDataFromDocument() {
-  const payload = readPageDataScript();
+export function syncHaloDataFromDocument(payload = readPageDataFromDocument()) {
   if (!payload) {
     window.haloData = undefined;
     return undefined;

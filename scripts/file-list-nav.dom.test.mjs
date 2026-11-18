@@ -14,7 +14,8 @@ const environment = installDom(`<!doctype html><html><head></head><body>
 </body></html>`);
 
 const Alpine = (await import("../src/common/alpine.ts")).default;
-const { NAVIGATION_COMPLETE_EVENT, NAVIGATION_START_EVENT } = await import("../src/common/navigation.ts");
+const { NAVIGATION_COMPLETE_EVENT, NAVIGATION_FULL_RELOAD_EVENT, NAVIGATION_START_EVENT, startPartialNavigation } =
+  await import("../src/common/navigation.ts");
 const { RUNTIME_STATUS_EVENT } = await import("../src/common/runtime-events.ts");
 const { registerFileListNavComponent } = await import("../src/features/file-list-nav.ts");
 
@@ -131,6 +132,26 @@ test("Enter delegates selected links to the safe navigation policy", async () =>
     statusEvent.detail.message,
     "Navigation was blocked because the target URL is invalid or uses an unsupported protocol.",
   );
+});
+
+test("Enter on a full-navigation link skips the partial request", async (t) => {
+  const link = document.getElementById("second");
+  link.setAttribute("data-navigation", "full");
+  link.focus();
+  const fetch = t.mock.method(globalThis, "fetch", () => new Promise(() => {}));
+  const reloads = [];
+  const onReload = (event) => reloads.push(event.detail.targetUrl);
+  document.addEventListener(NAVIGATION_FULL_RELOAD_EVENT, onReload);
+  t.after(() => document.removeEventListener(NAVIGATION_FULL_RELOAD_EVENT, onReload));
+  startPartialNavigation();
+
+  const enter = new KeyboardEvent("keydown", { bubbles: true, cancelable: true, key: "Enter" });
+  link.dispatchEvent(enter);
+  await new Promise((resolve) => window.requestAnimationFrame(resolve));
+
+  assert.equal(enter.defaultPrevented, true);
+  assert.equal(fetch.mock.callCount(), 0);
+  assert.deepEqual(reloads, ["https://blog.example.com/second"]);
 });
 
 test("an empty navigation component leaves unrelated global keys untouched", () => {

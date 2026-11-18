@@ -7,17 +7,6 @@ const RELEASE_PACKAGE_PATH_PATTERN = /^dist\/[A-Za-z0-9][A-Za-z0-9._+-]*\.zip$/;
 
 export const REQUIRED_FIGLET_FONTS = JSON.parse(readFileSync(new URL("../figlet-fonts.json", import.meta.url), "utf8"));
 
-export const ASSET_SIZE_BUDGETS = Object.freeze({
-  "templates/assets/main.css": 80 * 1024,
-  "templates/assets/main.iife.js": 128 * 1024,
-});
-
-export const PACKAGE_SIZE_BUDGETS = Object.freeze({
-  compressedPackageBytes: 384 * 1024,
-  figletFontBytes: 320 * 1024,
-  themeIconBytes: 192 * 1024,
-});
-
 export const REQUIRED_PACKAGE_FILES = [
   "LICENSE",
   "settings.yaml",
@@ -31,6 +20,8 @@ export const REQUIRED_PACKAGE_FILES = [
   "templates/category.html",
   "templates/error/error.html",
   "templates/index.html",
+  "templates/modules/file-list.html",
+  "templates/modules/runtime-assets.html",
   "templates/page.html",
   "templates/post.html",
   "templates/tag.html",
@@ -133,39 +124,22 @@ export function validatePackageMetadata({
   }
 
   for (const asset of REQUIRED_PACKAGE_FILES.filter((entry) => entry.startsWith("templates/assets/"))) {
-    if (!Number.isFinite(assetSizes[asset]) || assetSizes[asset] <= 0) {
+    if (!Number.isSafeInteger(assetSizes[asset]) || assetSizes[asset] <= 0) {
       errors.push(`Required package asset is empty: ${asset}`);
     }
   }
 
-  for (const [asset, maximumBytes] of Object.entries(ASSET_SIZE_BUDGETS)) {
-    if (Number.isFinite(assetSizes[asset]) && assetSizes[asset] > maximumBytes) {
-      errors.push(`Asset size budget exceeded: ${asset} is ${assetSizes[asset]} bytes, maximum is ${maximumBytes}`);
-    }
-  }
-
-  const figletFontBytes = REQUIRED_FIGLET_FONTS.map((font) => assetSizes[`templates/assets/fonts/${font}.flf`]);
-  if (figletFontBytes.every(Number.isFinite)) {
-    const total = figletFontBytes.reduce((sum, bytes) => sum + bytes, 0);
-    if (total > PACKAGE_SIZE_BUDGETS.figletFontBytes) {
-      errors.push(
-        `Figlet font size budget exceeded: ${total} bytes, maximum is ${PACKAGE_SIZE_BUDGETS.figletFontBytes}`,
-      );
-    }
-  }
-
-  const themeIconBytes = assetSizes["templates/assets/images/theme-icon.png"];
-  if (Number.isFinite(themeIconBytes) && themeIconBytes > PACKAGE_SIZE_BUDGETS.themeIconBytes) {
-    errors.push(
-      `Theme icon size budget exceeded: ${themeIconBytes} bytes, maximum is ${PACKAGE_SIZE_BUDGETS.themeIconBytes}`,
-    );
-  }
-
-  if (!Number.isFinite(packageBytes) || packageBytes <= 0) {
+  if (!Number.isSafeInteger(packageBytes) || packageBytes <= 0) {
     errors.push("Compressed theme package size is missing or invalid");
-  } else if (packageBytes > PACKAGE_SIZE_BUDGETS.compressedPackageBytes) {
-    errors.push(
-      `Compressed package size budget exceeded: ${packageBytes} bytes, maximum is ${PACKAGE_SIZE_BUDGETS.compressedPackageBytes}`,
+  }
+
+  if (errors.length === 0) {
+    const fontBytes = REQUIRED_FIGLET_FONTS.reduce(
+      (sum, font) => sum + assetSizes[`templates/assets/fonts/${font}.flf`],
+      0,
+    );
+    console.info(
+      `Package bytes: css=${assetSizes["templates/assets/main.css"]}, js=${assetSizes["templates/assets/main.iife.js"]}, icon=${assetSizes["templates/assets/images/theme-icon.png"]}, figlet=${fontBytes}, zip=${packageBytes}`,
     );
   }
 

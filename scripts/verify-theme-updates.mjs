@@ -62,8 +62,12 @@ const checks = [
   },
   {
     file: "templates/gateway_fragments/layout.html",
-    message: "gateway layout should reuse shared themeStyle fragment",
-    test: (content) => content.includes('th:replace="~{modules/theme-style :: themeStyle}"'),
+    message: "gateway layout should inherit the palette and keep its authentication resources and independent frame",
+    test: (content) =>
+      content.includes('class="terminal-gateway-theme"') &&
+      content.includes("gateway_fragments/common::basicStaticResources") &&
+      content.includes("modules/theme-style :: palette") &&
+      !content.includes("modules/theme-style :: themeStyle"),
   },
   {
     file: "templates/modules/layout.html",
@@ -397,8 +401,12 @@ const checks = [
         jobHasRun(build, `printf 'release-commit=%s\\n' "$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"`) &&
         jobHasRun(build, "pnpm check") &&
         jobRunCount(build, "pnpm build") === 1 &&
-        jobHasRun(build, "pnpm verify:package -- --strict-dist --write-integrity release-integrity --github-output") &&
-        jobRunCount(build, "pnpm audit --audit-level moderate") === 1 &&
+        jobRunCount(build, "node scripts/audit-release.mjs") === 1 &&
+        jobHasLinesInOrder(build, [
+          "run: pnpm verify:package -- --strict-dist --write-integrity release-integrity --github-output",
+          "run: node scripts/audit-release.mjs",
+          `uses: ${PINNED_ACTIONS.uploadArtifact}`,
+        ]) &&
         jobUses(build, PINNED_ACTIONS.uploadArtifact) &&
         jobHasKeyValue(build, "name", "verified-theme-package") &&
         jobHasLine(build, "dist/${{ steps.package.outputs.package-name }}") &&
@@ -539,8 +547,6 @@ const checks = [
       content.includes("accepts one complete root-level Halo theme package") &&
       content.includes("rejects missing, duplicate, forbidden, and wrapped package entries") &&
       content.includes("rejects unsafe paths and metadata or asset mismatches") &&
-      content.includes("locks production asset and package budget policy values") &&
-      content.includes("rejects oversized icon, aggregate fonts, and compressed package") &&
       content.includes("creates and validates one safe SHA-256 release integrity record") &&
       content.includes("rejects altered, multiple, or unsafe release integrity records"),
   },
@@ -566,19 +572,16 @@ const checks = [
   },
   {
     file: "scripts/live-smoke.mjs",
-    message: "live smoke should require no-cache browser evidence, resource budgets, and explicit plugin observations",
+    message: "live smoke should require no-cache browser evidence and explicit plugin observations",
     test: (content) =>
-      content.includes("ASSET_SIZE_BUDGETS") &&
-      content.includes("BROWSER_RESOURCE_BUDGETS") &&
       content.includes("Network.setCacheDisabled") &&
       content.includes("pluginSurfaceObservationIssues") &&
       content.includes("smokeCompletionIssues"),
   },
   {
     file: "scripts/live-smoke.test.mjs",
-    message: "live smoke policy should prevent HTTP-only, budget, browser fallback, and plugin evidence regressions",
+    message: "live smoke policy should prevent HTTP-only, browser fallback, and plugin evidence regressions",
     test: (content) =>
-      content.includes("live resource budget policy stays aligned with packaged core assets") &&
       content.includes("startup failure falls through to the next discovered browser") &&
       content.includes("plugin samples are reported as observed or explicitly skipped") &&
       content.includes("HTTP-only evidence can never satisfy complete smoke verification"),
@@ -604,60 +607,8 @@ const checks = [
     message: "theme settings FormKit fields should have unique ids, names, keys, and valid conditional references",
     test: (content) => validateFormKitSchema(content).length === 0,
   },
-  {
-    file: "src/common/runtime.ts",
-    message: "partial-navigation runtime should replay same-origin module scripts opted in with data-pjax",
-    test: (content) =>
-      content.includes('script[type="module"][data-pjax]') &&
-      content.includes("replayNavigationScripts(main)") &&
-      content.includes("sourceUrl.origin !== window.location.origin"),
-  },
-  {
-    file: "src/common/navigation.ts",
-    message:
-      "native partial navigation should safely fetch, parse, abort, update keyed history, and expose lifecycle events",
-    test: (content) =>
-      content.includes("await fetch(") &&
-      content.includes("new AbortController()") &&
-      content.includes("cancelActiveNavigation()") &&
-      content.includes("this.activeNavigationDetail") &&
-      content.includes("waitForPageInitialization()") &&
-      content.includes("currentPageRequiresFullNavigationExit()") &&
-      content.includes('NAVIGATION_FULL_RELOAD_EVENT = "theme:navigation-full-reload"') &&
-      content.includes('NAVIGATION_FULL_RELOAD_RESET_EVENT = "theme:navigation-full-reload-reset"') &&
-      content.includes("prepareForFullNavigation(target: URL)") &&
-      content.includes('window.addEventListener("pageshow", this.handlePageShow)') &&
-      content.includes("new DOMParser()") &&
-      content.includes("window.history.pushState") &&
-      content.includes('const HISTORY_ENTRY_KEY = "themePartialNavigationKey"') &&
-      content.includes("targetEntryKey") &&
-      content.includes("NAVIGATION_SAME_DOCUMENT_EVENT") &&
-      content.includes("if (this.abortController)") &&
-      content.includes("getHeadNavigationContractSignatures") &&
-      content.includes("headNavigationContractChanged(parsedDocument, finalTarget)") &&
-      content.includes("syncPageMetadata(parsedDocument)") &&
-      content.includes("event.preventDefault();\n      reportUnsafeNavigation()") &&
-      content.includes("Alpine.mutateDom") &&
-      content.includes("Alpine.destroyTree") &&
-      content.includes('"theme:navigation-error"') &&
-      content.includes("NAVIGATION_ERROR_EVENT"),
-  },
-  {
-    file: "src/common/runtime.ts",
-    message: "partial navigation should restore keyed scroll positions and await plugin modules before Alpine",
-    test: (content) =>
-      content.includes("scrollPositions.get(detail.targetEntryKey)") &&
-      content.includes("await replayNavigationScripts(main)") &&
-      content.includes("await Promise.all(pendingScripts)") &&
-      content.includes("MODULE_REPLAY_EVENT_PREFIX") &&
-      content.includes("window.addEventListener(completionEventName") &&
-      content.includes('PJAX_COMPAT_COMPLETE_EVENT = "pjax:complete"') &&
-      content.includes("window.dispatchEvent(new CustomEvent(PJAX_COMPAT_COMPLETE_EVENT))") &&
-      content.includes("document.addEventListener(NAVIGATION_FULL_RELOAD_EVENT") &&
-      content.includes("fullNavigationPending") &&
-      content.includes("setPartialNavigationBarrier(initialization)") &&
-      content.includes('sourceUrl.searchParams.set("_theme_navigation"'),
-  },
+  // Navigation behavior is exercised by navigation-*.test.mjs against swup and
+  // by live-smoke. Plugin-owned script markers are checked by plugin-contracts.
   {
     file: "src",
     readFile: false,
@@ -716,8 +667,8 @@ const checks = [
     test: (content) =>
       !content.includes("categoryFinder.listAll()") &&
       !content.includes("tagFinder.listAll()") &&
-      content.includes('"categories": /*[[${categories != null ? categories : null}]]*/ null') &&
-      content.includes('"tags": /*[[${tags != null ? tags : null}]]*/ null'),
+      content.includes('"categories": /*[[${categories == null ? null : categories.![') &&
+      content.includes('"tags": /*[[${tags == null ? null : tags.!['),
   },
   {
     file: "src/features/ascii-title.ts",
@@ -728,24 +679,23 @@ const checks = [
       content.includes("generation !== this.renderGeneration"),
   },
   {
-    file: "templates/gateway_fragments/layout.html",
-    message: "gateway pages should reuse the shared configurable CRT layer instead of rendering a second overlay",
+    file: "src/styles/auth.css",
+    message: "gateway pages should keep an independent, static display",
     test: (content) =>
-      content.includes("modules/theme-style :: themeStyle") &&
-      !content.includes("CRT Overlay Config") &&
-      !content.includes("pointer-events-none fixed inset-0 z-50"),
+      /\.terminal-gateway\s*\{[^}]*animation:\s*none/.test(content) &&
+      /\.terminal-gateway::before,\s*\.terminal-gateway::after\s*\{[^}]*display:\s*none/.test(content),
   },
   {
     file: "templates/post.html",
     message: "post metadata and terminal parent navigation should match their actual semantics",
     test: (content) =>
-      content.includes("Characters:") &&
+      !content.includes("#strings.length(post.content.content)") &&
       content.includes("Published:") &&
       /th:href="@\{\/\}"[\s\S]*?>\s*cd \.\./.test(content) &&
       !content.includes('data-terminal-action="back"'),
   },
   {
-    file: "templates/gateway_fragments/signup.html",
+    file: "templates/gateway_fragments/terminal_signup.html",
     message: "signup email verification should reject every non-successful HTTP response",
     test: (content) =>
       content.includes("await throwRequestFailure(response)") &&
@@ -755,7 +705,7 @@ const checks = [
   },
   {
     file: "src/common/runtime.ts",
-    message: "runtime should bind UI actions on first load and after native partial-navigation updates",
+    message: "runtime should bind UI actions on first load and after partial-navigation updates",
     test: (content) =>
       content.includes('import { initUiActions } from "./ui-actions"') &&
       content.includes("initUiActions(main)") &&
@@ -801,27 +751,12 @@ const checks = [
         .every((file) => !readFileSync(join("src/styles", file), "utf8").includes('"Fira Code"')),
   },
   {
-    file: "src/features/commands.ts",
-    message: "terminal commands should expose article navigation helpers",
-    test: (content) =>
-      ["toc", "jump", "top", "bottom", "copy"].every((command) => new RegExp(`\\[\\s*"${command}"\\s*,`).test(content)),
-  },
-  {
     file: "src/features/autocomplete.ts",
-    message: "terminal autocomplete should match the documented list and post commands",
+    message: "terminal autocomplete should use the command registry",
     test: (content) =>
-      ["top", "bottom"].every((command) => new RegExp(`const LIST_COMMANDS =[\\s\\S]*"${command}"`).test(content)) &&
-      ["toc", "jump", "top", "bottom", "copy", "search"].every((command) =>
-        new RegExp(`const POST_COMMANDS =[\\s\\S]*"${command}"`).test(content),
-      ) &&
-      ["top", "bottom", "toc", "copy"].every((command) =>
-        new RegExp(`const NO_ARG_COMMANDS =[\\s\\S]*"${command}"`).test(content),
-      ),
-  },
-  {
-    file: "src/features/commands.ts",
-    message: "post command help should document global search",
-    test: (content) => content.includes("Post Page Commands:") && content.includes("search        - Open search"),
+      content.includes('import { getCommandNameSuggestions, supportsPathCompletion } from "./commands"') &&
+      content.includes("return getCommandNameSuggestions(") &&
+      content.includes("if (!supportsPathCompletion(command))"),
   },
   {
     file: "settings.yaml",

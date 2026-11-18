@@ -294,6 +294,40 @@
     </div>
   </div>
 
+  <div class="form-item-compact my-3 w-full" th:if="${agreementPages != null and !#lists.isEmpty(agreementPages)}">
+    <input
+      type="checkbox"
+      id="agreedToTerms"
+      name="agreedToTerms"
+      value="true"
+      class="terminal-checkbox"
+      th:checked="*{agreedToTerms}"
+      th:attr="aria-invalid=${#fields.hasErrors('agreedToTerms') ? 'true' : null},aria-describedby=${#fields.hasErrors('agreedToTerms') ? 'signup-agreement-error' : null}"
+      required
+    />
+    <label for="agreedToTerms">
+      <span th:text="${#locale.language == 'zh' ? '我已阅读并同意' : 'I have read and agree to'}"></span>
+      <th:block th:each="page, status : ${agreementPages}">
+        <a
+          th:if="${page.permalink != null}"
+          th:href="@{${page.permalink}}"
+          th:text="${page.title}"
+          target="_blank"
+          rel="noopener noreferrer"
+        ></a>
+        <span th:if="${page.permalink == null}" th:text="${page.title}"></span>
+        <span th:unless="${status.last}">, </span>
+      </th:block>
+    </label>
+    <p
+      id="signup-agreement-error"
+      class="mt-1 font-mono text-xs text-red-500"
+      role="alert"
+      th:if="${#fields.hasErrors('agreedToTerms')}"
+      th:errors="*{agreedToTerms}"
+    ></p>
+  </div>
+
   <!-- Altcha Captcha -->
   <div halo:captcha class="form-item-compact my-3 w-full"></div>
 

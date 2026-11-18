@@ -47,6 +47,55 @@ test("article TOC assigns deterministic Unicode slugs and preserves existing ids
   assert.equal(formatArticleToc(), "01. Hello 世界!\n02.   Details");
 });
 
+test("generated TOC ids avoid existing ids inside and outside the article", () => {
+  setPostData();
+  const content = document.querySelector(".terminal-content");
+  content.innerHTML = '<h2>Guide</h2><h3 id="toc-guide-1-2">Existing heading</h3>';
+  const shell = document.createElement("div");
+  shell.id = "toc-guide-1";
+  content.before(shell);
+
+  try {
+    const [generated, existing] = getArticleToc();
+    const heading = content.querySelector("h2");
+    assert.equal(document.getElementById(generated.id), heading);
+    assert.equal(existing.id, "toc-guide-1-2");
+  } finally {
+    shell.remove();
+  }
+});
+
+test("article TOC reuses the index until the content changes or is replaced", () => {
+  setPostData();
+  const content = document.querySelector(".terminal-content");
+  content.innerHTML = "<h2>Original</h2>";
+  const index = getArticleToc();
+  assert.equal(getArticleToc(), index);
+
+  content.querySelector("h2").firstChild.data = "Updated";
+  assert.equal(formatArticleToc(), "01. Updated");
+  assert.notEqual(getArticleToc(), index);
+
+  const replacement = content.cloneNode(false);
+  replacement.innerHTML = "<h2>New page</h2>";
+  content.replaceWith(replacement);
+  assert.equal(formatArticleToc(), "01. New page");
+});
+
+test("mutations unrelated to headings leave the cached TOC intact", async () => {
+  setPostData();
+  const content = document.querySelector(".terminal-content");
+  content.innerHTML = "<h2>Heading</h2><p>Body</p>";
+  const index = getArticleToc();
+  const paragraph = content.querySelector("p");
+  paragraph.id = "body";
+  paragraph.firstChild.data = "Updated";
+  paragraph.append(document.createElement("span"));
+  await Promise.resolve();
+
+  assert.equal(getArticleToc(), index);
+});
+
 test("TOC and jump commands return stable messages outside valid post headings", () => {
   document.querySelector(".terminal-content").innerHTML = "<p>No headings</p>";
   window.haloData = { pageType: "page" };

@@ -4,16 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title th:text="|${error.status} - ${site.title}|">Error</title>
-    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+    <th:block th:replace="~{modules/runtime-assets :: stylesheet}" />
     <th:block th:replace="~{modules/theme-style :: themeStyle}" />
   </head>
 
-  <body class="bg-terminal-black text-terminal-green flex min-h-screen items-center justify-center p-4 py-8 font-mono">
-    <main
-      class="border-terminal-green/60 bg-terminal-black w-full max-w-2xl min-w-0 border shadow-[0_0_30px_var(--terminal-glow)]"
-    >
+  <body class="terminal-frame terminal-system-frame bg-terminal-black text-terminal-green font-mono">
+    <main class="terminal-panel min-w-0">
       <div
-        class="bg-terminal-green text-terminal-black flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs font-bold tracking-wider"
+        class="terminal-panel-bar flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-xs font-bold tracking-wider"
       >
         <span class="flex items-center gap-2"
           ><span aria-hidden="true" class="bg-terminal-black h-2 w-2 rounded-full"></span>SYSTEM RESPONSE</span
@@ -21,9 +19,13 @@
         <span>HTTP <span th:text="${error.status}">404</span></span>
       </div>
 
-      <div class="min-w-0 p-5 sm:p-8">
+      <div class="terminal-panel-content min-w-0">
         <p class="text-terminal-dim mb-8 text-xs break-all">
-          guest@<span th:text="${site.title}">blog</span>:~$ status --code <span th:text="${error.status}">404</span>
+          <span class="terminal-prompt-host">guest@<span th:text="${site.title}">blog</span>:</span>~<span
+            class="terminal-command-sigil"
+            >$</span
+          >
+          status --code <span th:text="${error.status}">404</span>
         </p>
 
         <section aria-labelledby="error-heading" class="border-terminal-dim border-l-2 pl-4 sm:pl-6">

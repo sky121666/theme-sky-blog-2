@@ -6,10 +6,27 @@ import { installDom } from "./dom-test-helpers.mjs";
 const environment = installDom(`<!doctype html><html><head></head><body>
   <main id="main"><article x-data="postViewer">
     <span id="progress" x-text="readingProgress"></span>
-    <div class="terminal-content"><h2>Heading</h2></div>
+    <h1>Page title</h1>
+    <div class="terminal-content"><h1>Introduction</h1><h2>Heading</h2></div>
   </article></main>
   <input id="editor" />
 </body></html>`);
+
+const resizeObservers = new Set();
+window.ResizeObserver = class {
+  constructor(callback) {
+    this.callback = callback;
+    this.targets = new Set();
+    resizeObservers.add(this);
+  }
+  observe(target) {
+    this.targets.add(target);
+  }
+  disconnect() {
+    this.targets.clear();
+    resizeObservers.delete(this);
+  }
+};
 
 const Alpine = (await import("../src/common/alpine.ts")).default;
 const { NAVIGATION_COMPLETE_EVENT, NAVIGATION_START_EVENT } = await import("../src/common/navigation.ts");
@@ -24,6 +41,17 @@ test.after(async () => {
   Alpine.stopObservingMutations();
   await new Promise((resolve) => window.setTimeout(resolve, 0));
   environment.restore();
+});
+
+test("the viewer TOC indexes body H1 headings and skips the page title", () => {
+  const viewer = document.querySelector('[x-data="postViewer"]');
+  assert.deepEqual(
+    Alpine.$data(viewer).tocItems.map(({ level, text }) => [level, text]),
+    [
+      [1, "Introduction"],
+      [2, "Heading"],
+    ],
+  );
 });
 
 test("cancelled navigation restores post keyboard and progress listeners", () => {
@@ -129,21 +157,67 @@ test("focused reader landmark keeps shortcuts while nested controls keep their o
   }
 });
 
-test("scroll events update and clamp reading progress through one animation frame", async () => {
+test("reading progress ends at the body, including after scrolling into long comments", async () => {
   const main = document.getElementById("main");
+  const content = main.querySelector(".terminal-content");
+  main.getBoundingClientRect = () => ({ top: 40 });
   Object.defineProperty(main, "clientHeight", { configurable: true, value: 500 });
-  Object.defineProperty(main, "scrollHeight", { configurable: true, value: 1500 });
-  Object.defineProperty(main, "scrollTop", { configurable: true, value: 500, writable: true });
+  Object.defineProperty(main, "scrollHeight", { configurable: true, value: 8000 });
+  let top = 540;
+  content.getBoundingClientRect = () => ({ top, bottom: top + 1000, height: 1000 });
 
-  main.dispatchEvent(new Event("scroll"));
-  main.dispatchEvent(new Event("scroll"));
-  await new Promise((resolve) => window.requestAnimationFrame(resolve));
-  await Promise.resolve();
-  assert.equal(document.getElementById("progress").textContent, "50");
+  for (const [nextTop, expected] of [
+    [540, "0"],
+    [40, "50"],
+    [-459, "99"],
+    [-460, "100"],
+    [-3000, "100"],
+  ]) {
+    top = nextTop;
+    main.scrollTop = 540 - top;
+    main.dispatchEvent(new Event("scroll"));
+    main.dispatchEvent(new Event("scroll"));
+    await nextFrame();
+    assert.equal(document.getElementById("progress").textContent, expected);
+  }
+});
 
-  main.scrollTop = 5000;
-  main.dispatchEvent(new Event("scroll"));
-  await new Promise((resolve) => window.requestAnimationFrame(resolve));
-  await Promise.resolve();
-  assert.equal(document.getElementById("progress").textContent, "100");
+function nextFrame() {
+  return new Promise((resolve) => window.requestAnimationFrame(resolve));
+}
+
+test("body growth, expanded TOC and viewport resizing update progress without scrolling", async () => {
+  const main = document.getElementById("main");
+  const content = main.querySelector(".terminal-content");
+  const viewer = main.querySelector("[x-data]");
+  main.getBoundingClientRect = () => ({ top: 80 });
+  let viewportHeight = 500;
+  Object.defineProperty(main, "clientHeight", { configurable: true, get: () => viewportHeight });
+  let top = 180;
+  let height = 400;
+  content.getBoundingClientRect = () => ({ top, bottom: top + height, height });
+  main.scrollTop = 0;
+
+  async function afterResize(target, expected) {
+    for (const observer of resizeObservers) {
+      if (observer.targets.has(target)) observer.callback([{ target }]);
+    }
+    await nextFrame();
+    assert.equal(document.getElementById("progress").textContent, expected);
+  }
+
+  await afterResize(viewer, "100");
+  height = 800;
+  await afterResize(content, "50");
+  top = 380;
+  await afterResize(viewer, "25");
+  viewportHeight = 1100;
+  await afterResize(main, "100");
+
+  document.dispatchEvent(new CustomEvent(NAVIGATION_START_EVENT));
+  assert.equal(resizeObservers.size, 0);
+  document.dispatchEvent(new CustomEvent(NAVIGATION_COMPLETE_EVENT));
+  assert.equal(resizeObservers.size, 1);
+  Alpine.destroyTree(viewer);
+  assert.equal(resizeObservers.size, 0);
 });

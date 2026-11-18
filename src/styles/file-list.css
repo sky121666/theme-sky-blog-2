@@ -1,0 +1,264 @@
+:root {
+  --terminal-file-date-width: 7.25rem;
+  --terminal-file-owner-width: 5.75rem;
+  --terminal-file-permissions-width: 6.25rem;
+}
+
+.terminal-file-list {
+  --terminal-file-columns: minmax(0, 1fr) auto;
+  --terminal-row-gutter: 1.25rem;
+}
+
+.home-file-grid {
+  display: grid;
+  grid-template-columns: var(--terminal-file-columns);
+  column-gap: 0.75rem;
+  padding-inline: var(--terminal-row-gutter) 0.5rem;
+}
+
+.home-file-header {
+  border-block: 1px var(--terminal-rule-style) var(--terminal-rule-color);
+  padding-block: 0.5rem;
+  color: var(--terminal-secondary);
+}
+
+.home-file-header > :first-child {
+  padding-inline-start: 0.375rem;
+}
+
+.home-file-row {
+  position: relative;
+  transition:
+    background-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.home-file-title {
+  padding-inline: 0.375rem;
+  color: var(--terminal-reading-text);
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+  text-shadow: none;
+}
+
+.home-file-meta {
+  color: var(--terminal-secondary);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.terminal-directory-row .home-file-title {
+  color: var(--terminal-text);
+}
+
+.home-file-row:not(.is-selected, :focus-within):hover .home-file-title {
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.home-file-row:is(.is-selected, :focus-within) {
+  background: var(--terminal-selection-color);
+  box-shadow: inset 2px 0 var(--terminal-text);
+}
+
+.home-file-row:is(.is-selected, :focus-within)::before {
+  position: absolute;
+  inset-inline-start: 0.375rem;
+  color: var(--terminal-text);
+  content: ">" / "";
+  pointer-events: none;
+}
+
+.home-file-row:is(.is-selected, :focus-within) .home-file-title {
+  align-self: stretch;
+  background: color-mix(in srgb, var(--terminal-text) 76%, var(--terminal-reading-text));
+  color: var(--terminal-bg);
+}
+
+.home-file-title:focus-visible {
+  outline: 1px solid var(--terminal-text);
+  outline-offset: -2px;
+}
+
+.terminal-file-entries .home-file-title:focus-visible {
+  outline: none;
+}
+
+.terminal-file-shortcuts:has(+ .terminal-file-entries) {
+  margin-block-end: 0.375rem;
+  border-block-end: 1px var(--terminal-rule-style) var(--terminal-rule-color);
+  padding-block-end: 0.375rem;
+}
+
+.terminal-list-context {
+  display: flex;
+  min-block-size: var(--terminal-control-height);
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.75rem;
+  margin-block-end: 1rem;
+  border-block: 1px var(--terminal-rule-style) var(--terminal-rule-color);
+  padding: 0.5rem;
+  color: var(--terminal-secondary);
+  font-size: 0.875rem;
+}
+
+.terminal-list-context h1 {
+  min-inline-size: 0;
+  color: var(--terminal-reading-heading);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-shadow: none;
+}
+
+.terminal-list-prompt {
+  display: flex;
+  min-inline-size: 0;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-block-end: 0.75rem;
+  color: var(--terminal-text);
+}
+
+.terminal-list-command {
+  color: var(--terminal-reading-text);
+}
+
+.terminal-list-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-block: 1rem 0.25rem;
+}
+
+.terminal-list-summary .file-list-pagination {
+  margin-block-start: 0;
+}
+
+.terminal-list-total {
+  color: var(--terminal-secondary);
+  font-size: 0.75rem;
+}
+
+:root:has(> head > style[data-terminal-layout="unix"]) {
+  .terminal-file-list {
+    --terminal-row-gutter: 1.5rem;
+  }
+
+  .terminal-file-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 0.5rem;
+    margin-block-end: 0.5rem;
+    border: 0;
+    padding-block-end: 0;
+
+    .home-file-row {
+      display: block;
+      margin: 0;
+      padding-inline: 0;
+    }
+
+    .home-file-row::before,
+    .home-file-meta {
+      display: none;
+    }
+
+    .home-file-title {
+      padding-inline: 0.5rem;
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 0.25em;
+    }
+  }
+
+  .terminal-file-entries .home-file-owner {
+    display: none;
+  }
+
+  .home-file-row:is(.is-selected, :focus-within) .home-file-title {
+    background: transparent;
+    color: var(--terminal-text);
+  }
+
+  .terminal-file-entries .home-file-row:is(.is-selected, :focus-within)::before {
+    display: grid;
+    inset-block-start: 50%;
+    inline-size: 1rem;
+    block-size: 1rem;
+    place-content: center;
+    translate: 0 -50%;
+    background: var(--terminal-text);
+    color: var(--terminal-bg);
+  }
+
+  .terminal-list-summary {
+    flex-direction: row-reverse;
+  }
+}
+
+@media (width >= 48rem) {
+  .terminal-file-list {
+    --terminal-file-columns: minmax(0, 1fr) var(--terminal-file-date-width) var(--terminal-file-owner-width)
+      var(--terminal-file-permissions-width);
+  }
+
+  .terminal-file-list--lean {
+    --terminal-file-columns: minmax(0, 1fr) var(--terminal-file-date-width);
+  }
+
+  .home-file-title {
+    font-size: 1rem;
+  }
+
+  .terminal-list-prompt {
+    margin-block-end: 1.5rem;
+  }
+
+  .terminal-list-summary {
+    margin-block-start: 1.5rem;
+  }
+
+  :root:has(> head > style[data-terminal-layout="unix"]) {
+    .terminal-file-list {
+      --terminal-file-columns: var(--terminal-file-permissions-width) var(--terminal-file-date-width) minmax(0, 1fr);
+      --terminal-file-areas: "permissions date title";
+    }
+
+    .terminal-file-list--lean {
+      --terminal-file-columns: var(--terminal-file-date-width) minmax(0, 1fr);
+      --terminal-file-areas: "date title";
+    }
+
+    .terminal-list-prompt,
+    .terminal-file-shortcuts {
+      margin-block-end: 0.75rem;
+    }
+
+    .terminal-file-entries .home-file-grid {
+      grid-template-areas: var(--terminal-file-areas);
+    }
+
+    .terminal-file-entries {
+      .home-file-title {
+        grid-area: title;
+      }
+
+      .home-file-meta-main {
+        grid-area: date;
+      }
+
+      .home-file-permissions {
+        grid-area: permissions;
+      }
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  .terminal-file-entries .home-file-title:focus-visible {
+    outline: 1px solid Highlight;
+  }
+}

@@ -16,7 +16,51 @@ const { NAVIGATION_SAME_DOCUMENT_EVENT, NAVIGATION_START_EVENT, navigateToUrl } 
   await import("../src/common/navigation.ts");
 const { bootstrapRuntime } = await import("../src/common/runtime.ts");
 
-bootstrapRuntime();
+// These cases all exercise an already-rendered article and its in-document links.
+window.history.replaceState({}, "", "/article");
+
+test("a direct reply permalink stays visible when the article grows after the plugin positions it", async (t) => {
+  const { main, replies, reply, scrolled } = mountedCommentDetail();
+  const hash = "#halo-comment=comment-1&reply=reply-1";
+  window.history.replaceState({}, "", "/article" + hash);
+  let replyTop = 400;
+  let checked = 0;
+  const view = (top, bottom) => ({ top, bottom });
+  main.getBoundingClientRect = () => view(0, 700);
+  reply.getClientRects = () => [view(replyTop, replyTop + 100)];
+  reply.getBoundingClientRect = () => {
+    checked++;
+    return view(replyTop, replyTop + 100);
+  };
+  reply.scrollIntoView = (options) => {
+    scrolled.push({ target: reply, options });
+    replyTop = 400;
+  };
+
+  reply.remove();
+  bootstrapRuntime();
+  replies.shadowRoot.append(reply);
+
+  try {
+    await t.waitFor(() => assert.ok(checked), { timeout: 750 });
+    assert.deepEqual(scrolled, [], "The widget's scroll was sufficient before the layout changed.");
+
+    replyTop += 400;
+    await t.waitFor(() => assert.equal(scrolled.length, 1), { timeout: 750 });
+    assert.equal(scrolled[0].target, reply);
+    assert.equal(document.activeElement, document.body);
+    assert.equal(location.hash, hash);
+
+    const lastCheck = checked;
+    window.dispatchEvent(new Event("wheel"));
+    replyTop += 400;
+    await new Promise((resolve) => window.setTimeout(resolve, 150));
+    assert.equal(checked, lastCheck, "Reader input stops checking the reply position.");
+    assert.equal(scrolled.length, 1);
+  } finally {
+    navigateToUrl("/article");
+  }
+});
 
 test.after(async () => {
   Alpine.destroyTree(document.body);
@@ -66,7 +110,7 @@ test("comment anchors leave scrolling to the widget before and after its lazy mo
     '<section class="terminal-comments"><comment-widget group="content.halo.run" kind="Post" name="post-1"></comment-widget></section>',
   ]) {
     for (const hash of ["#halo-comment", "#halo-comment=comment-1", "#halo-comment=comment-1&reply=reply-1"]) {
-      window.history.replaceState({}, "", "/article");
+      navigateToUrl("/article");
       main.innerHTML = content;
       const restored = [];
       main.scrollTo = (options) => restored.push(options);
@@ -87,7 +131,7 @@ test("repeated comment anchors return to the public container without replacing 
   const main = document.getElementById("main");
 
   for (const hash of ["#halo-comment", "#halo-comment=comment-1&reply=reply-1"]) {
-    window.history.replaceState({}, "", "/article");
+    navigateToUrl("/article");
     main.innerHTML =
       '<section class="terminal-comments"><div id="comment-content-halo-run-Post-post-1"></div></section>';
     const container = main.querySelector(".terminal-comments > div");
@@ -174,7 +218,7 @@ test("repeated mounted comment permalinks scroll and focus the exact item while 
   for (const wrapped of [false, true]) {
     for (const replyName of ["reply-1", undefined]) {
       const hash = replyName ? "#halo-comment=comment-1&reply=reply-1" : "#halo-comment=comment-1";
-      window.history.replaceState({}, "", "/article");
+      navigateToUrl("/article");
       const fixture = mountedCommentDetail({ wrapped, replyName: replyName ?? "" });
       const { widget, detail, item, replies, reply, draft, replyDraft, scrolled } = fixture;
       const target = replyName ? reply : item;
@@ -227,7 +271,7 @@ test("repeated comment permalinks safely fall back when the rendered target cann
     ({ detail }) => detail.shadowRoot.replaceChildren(),
     ({ widget }) => widget.shadowRoot.replaceChildren(),
   ]) {
-    window.history.replaceState({}, "", "/article");
+    navigateToUrl("/article");
     const fixture = mountedCommentDetail();
     alter(fixture);
     const url = "/article#halo-comment=comment-1&reply=reply-1";
@@ -256,7 +300,7 @@ test("ordinary, invalid and unavailable comment anchors retain normal scroll res
     ["#reply=reply-1", commentContainer],
     ["#missing-heading", commentContainer],
   ]) {
-    window.history.replaceState({}, "", "/article");
+    navigateToUrl("/article");
     main.innerHTML = content;
     const restored = [];
     main.scrollTo = (options) => restored.push(options);
@@ -267,7 +311,7 @@ test("ordinary, invalid and unavailable comment anchors retain normal scroll res
     assert.deepEqual(restored, [{ behavior: "auto", top: 0 }], `${hash}: ${content}`);
   }
 
-  window.history.replaceState({}, "", "/article");
+  navigateToUrl("/article");
   main.innerHTML = `${commentContainer}<h2 id="details">Details</h2>`;
   const heading = document.getElementById("details");
   const scrolled = [];
@@ -279,4 +323,44 @@ test("ordinary, invalid and unavailable comment anchors retain normal scroll res
 
   assert.deepEqual(scrolled, [{ behavior: "auto", block: "start" }]);
   assert.equal(document.activeElement, heading);
+});
+
+test("Back and Forward restore each hash entry's reading position, including zero and comment entries", async () => {
+  const main = document.getElementById("main");
+  navigateToUrl("/article");
+  main.innerHTML =
+    '<h2 id="saved">Heading</h2><section class="terminal-comments"><comment-widget></comment-widget></section>';
+  const heading = document.getElementById("saved");
+  let jumps = 0;
+  heading.scrollIntoView = () => {
+    jumps++;
+    main.scrollTop = 200;
+  };
+  main.scrollTo = ({ top }) => {
+    main.scrollTop = top;
+  };
+  const frame = () => new Promise((resolve) => window.requestAnimationFrame(resolve));
+  async function traverse(action) {
+    const popped = new Promise((resolve) => window.addEventListener("popstate", resolve, { once: true }));
+    history[action]();
+    await popped;
+    await frame();
+  }
+
+  navigateToUrl("#saved");
+  await frame();
+  assert.equal(main.scrollTop, 200);
+  main.scrollTop = 900;
+  navigateToUrl("#halo-comment=reply");
+  await frame();
+  main.scrollTop = 0;
+
+  await traverse("back");
+  assert.equal(location.hash, "#saved");
+  assert.equal(main.scrollTop, 900);
+  assert.equal(jumps, 1);
+  assert.equal(document.activeElement, main);
+  await traverse("forward");
+  assert.equal(location.hash, "#halo-comment=reply");
+  assert.equal(main.scrollTop, 0);
 });

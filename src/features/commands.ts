@@ -6,14 +6,15 @@ import {
   scrollToArticleHeading,
 } from "./article-tools";
 import {
-  getCurrentUser,
   getCurrentIndexPageContent,
+  getCurrentUser,
   getDirectoryContent,
   getParentPath,
   resolvePath,
   virtualPathToUrl,
 } from "../common/virtual-fs";
 import { ensureHomePostsLoaded } from "../common/page-data";
+import type { DirectoryEntry } from "../common/types";
 import { openSearchWidget } from "../common/ui-actions";
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -25,49 +26,11 @@ export interface CommandResult {
   showHelp?: boolean;
 }
 
-// ── Help text ──────────────────────────────────────────────────────
-
-export const LIST_HELP = `
-List Page Commands:
-  ls            - List directory contents
-  cd <path>     - Navigate to path
-  pd / npage    - Next page
-  pu / ppage    - Previous page
-  back          - Browser back
-  help          - Show this help
-  clear         - Clear output
-  top           - Scroll to top
-  bottom        - Scroll to bottom
-  search        - Open search
-
-Navigation:
-  ↑/↓           - Command history
-  Tab           - Auto-complete
-  Enter         - Execute
-`.trim();
-
-export const POST_HELP = `
-Post Page Commands:
-  cd ..         - Go back to list
-  next          - Next article
-  prev          - Previous article
-  back          - Browser back
-  toc           - Show article table of contents
-  jump <n>      - Jump to TOC item number
-  top           - Scroll to top
-  bottom        - Scroll to bottom
-  copy          - Copy article link
-  search        - Open search
-  help          - Show this help
-  clear         - Clear output
-
-Navigation:
-  ↑/↓           - Command history
-  Tab           - Auto-complete
-  Enter         - Execute
-`.trim();
-
 // ── Command implementations ────────────────────────────────────────
+
+function shouldLoadHomePostsForLookup(path: string) {
+  return path.startsWith("/") || path.startsWith("~/") || window.haloData?.pageType !== "index";
+}
 
 async function handleCd(path: string, currentPath: string): Promise<CommandResult> {
   if (!path || path === ".") {
@@ -83,9 +46,8 @@ async function handleCd(path: string, currentPath: string): Promise<CommandResul
   const targetPath = resolvePath(path, currentPath);
   let url = virtualPathToUrl(targetPath);
 
-  const directRootEntry = targetPath.startsWith("~/blog/") && !targetPath.slice("~/blog/".length).includes("/");
-  const builtInDirectory = ["~/blog/archives", "~/blog/categories", "~/blog/tags"].includes(targetPath);
-  if (!url && directRootEntry && !builtInDirectory && window.haloData?.pageType !== "index") {
+  const directRootEntry = targetPath.startsWith("~/blog/") && getParentPath(targetPath) === "~/blog";
+  if (!url && directRootEntry && shouldLoadHomePostsForLookup(path)) {
     await ensureHomePostsLoaded({ waitForRefresh: true });
     url = virtualPathToUrl(targetPath);
   }
@@ -143,12 +105,16 @@ async function handleLs(args: string, currentPath: string): Promise<string> {
   if (content === null && args) {
     const parentPath = getParentPath(targetPath);
     const segment = targetPath.slice(parentPath.length + 1);
-    const parentContent = getDirectoryContent(parentPath) ?? [];
+    const matchesSegment = (item: DirectoryEntry) => (item.slug || item.name) === segment;
     const currentPageFiles =
       parentPath === "~/blog" && window.haloData?.pageType === "index"
         ? getCurrentIndexPageContent().filter((entry) => entry.type === "file")
         : [];
-    const entry = [...currentPageFiles, ...parentContent].find((item) => (item.slug || item.name) === segment);
+    let entry = currentPageFiles.find(matchesSegment) ?? getDirectoryContent(parentPath)?.find(matchesSegment);
+    if (!entry && parentPath === "~/blog" && targetPath.startsWith("~/blog/") && shouldLoadHomePostsForLookup(args)) {
+      await ensureHomePostsLoaded({ waitForRefresh: true });
+      entry = getDirectoryContent(parentPath)?.find(matchesSegment);
+    }
 
     if (entry?.type === "file") {
       content = [entry];
@@ -234,53 +200,155 @@ function handleJump(args: string): CommandResult {
   return output ? { output } : {};
 }
 
-// ── Command registry (Map pattern) ─────────────────────────────────
+// ── Command definitions ───────────────────────────────────────────
 
 type CommandHandler = (args: string, currentPath: string) => CommandResult | Promise<CommandResult>;
 
-const commandRegistry = new Map<string, CommandHandler>([
-  [
-    "back",
-    () => {
+interface CommandDefinition {
+  names: string[];
+  handler: CommandHandler;
+  description: string;
+  page?: "list" | "post";
+  argument?: "path" | "optional-path" | "value";
+  usage?: string;
+  postHelp?: { usage: string; description: string };
+}
+
+const listDirectory: CommandHandler = async (args, path) => ({ output: await handleLs(args, path) });
+
+const commands: CommandDefinition[] = [
+  {
+    names: ["cd"],
+    handler: handleCd,
+    description: "Navigate to path",
+    argument: "path",
+    usage: "cd <path>",
+    postHelp: { usage: "cd ..", description: "Go back to list" },
+  },
+  {
+    names: ["ls", "ll"],
+    handler: listDirectory,
+    description: "List directory contents",
+    page: "list",
+    argument: "optional-path",
+    usage: "ls",
+  },
+  { names: ["pd", "npage"], handler: () => handlePage(true), description: "Next page", page: "list" },
+  { names: ["pu", "ppage"], handler: () => handlePage(false), description: "Previous page", page: "list" },
+  { names: ["next"], handler: () => handleNavPost("next"), description: "Next article", page: "post" },
+  { names: ["prev"], handler: () => handleNavPost("prev"), description: "Previous article", page: "post" },
+  {
+    names: ["back"],
+    handler: () => {
       window.history.back();
       return {};
     },
-  ],
-  ["cd", (args, path) => handleCd(args, path)],
-  ["clear", () => ({})],
-  [
-    "bottom",
-    () => {
-      scrollMainToBottom();
-      return {};
-    },
-  ],
-  ["copy", async () => ({ output: await copyArticleLink() })],
-  ["help", () => ({ showHelp: true })],
-  ["jump", (args) => handleJump(args)],
-  ["ll", async (args, path) => ({ output: await handleLs(args, path) })],
-  ["ls", async (args, path) => ({ output: await handleLs(args, path) })],
-  ["next", () => handleNavPost("next")],
-  ["npage", () => handlePage(true)],
-  ["pd", () => handlePage(true)],
-  ["ppage", () => handlePage(false)],
-  ["prev", () => handleNavPost("prev")],
-  ["pu", () => handlePage(false)],
-  ["search", (args) => handleSearch(args)],
-  ["toc", () => ({ output: formatArticleToc() })],
-  [
-    "top",
-    () => {
+    description: "Browser back",
+  },
+  {
+    names: ["toc"],
+    handler: () => ({ output: formatArticleToc() }),
+    description: "Show article table of contents",
+    page: "post",
+  },
+  {
+    names: ["jump"],
+    handler: handleJump,
+    description: "Jump to TOC item number",
+    page: "post",
+    argument: "value",
+    usage: "jump <n>",
+  },
+  {
+    names: ["top"],
+    handler: () => {
       scrollMainToTop();
       return {};
     },
-  ],
-]);
+    description: "Scroll to top",
+  },
+  {
+    names: ["bottom"],
+    handler: () => {
+      scrollMainToBottom();
+      return {};
+    },
+    description: "Scroll to bottom",
+  },
+  {
+    names: ["copy"],
+    handler: async () => ({ output: await copyArticleLink() }),
+    description: "Copy article link",
+    page: "post",
+  },
+  { names: ["help"], handler: () => ({ showHelp: true }), description: "Show this help" },
+  { names: ["clear"], handler: () => ({}), description: "Clear output" },
+  { names: ["search"], handler: handleSearch, description: "Open search", argument: "value" },
+];
+
+const commandRegistry = new Map(commands.flatMap((command) => command.names.map((name) => [name, command] as const)));
+const listCommands = commands.filter((command) => command.page !== "post");
+const postCommands = commands.filter((command) => command.page !== "list");
+const standaloneCommands = commands.filter((command) => !command.page);
+
+const navigationHelp = `
+
+Navigation:
+  ↑/↓           - Command history
+  Tab           - Auto-complete
+  Enter         - Execute`;
+
+function formatHelp(title: string, availableCommands: CommandDefinition[], isPost = false) {
+  const lines = availableCommands.map((command) => {
+    const postHelp = isPost ? command.postHelp : undefined;
+    const usage = postHelp?.usage ?? command.usage ?? command.names.join(" / ");
+    return `  ${usage.padEnd(13)} - ${postHelp?.description ?? command.description}`;
+  });
+  return `${title}\n${lines.join("\n")}${navigationHelp}`;
+}
+
+export const LIST_HELP = formatHelp("List Page Commands:", listCommands);
+export const POST_HELP = formatHelp("Post Page Commands:", postCommands, true);
+const commandContexts = {
+  list: { commands: listCommands, help: LIST_HELP },
+  post: { commands: postCommands, help: POST_HELP },
+  standalone: {
+    commands: standaloneCommands,
+    help: formatHelp("Standalone Page Commands:", standaloneCommands),
+  },
+};
+
+function getCommandContext(isPost = window.haloData?.pageType === "post") {
+  if (isPost) {
+    return commandContexts.post;
+  }
+  return window.haloData?.pageType === "page" ? commandContexts.standalone : commandContexts.list;
+}
+
+export function getCommandHelp(): string {
+  return getCommandContext().help;
+}
+
+export function getCommandNameSuggestions(prefix: string, isPost?: boolean): string[] {
+  return getCommandContext(isPost).commands.flatMap(({ names, argument }) => {
+    const suffix = argument === "path" || argument === "value" ? " " : "";
+    return names.filter((name) => name.startsWith(prefix)).map((name) => name + suffix);
+  });
+}
+
+export function supportsPathCompletion(command: string): boolean {
+  const argument = commandRegistry.get(command)?.argument;
+  return argument === "path" || argument === "optional-path";
+}
+
+export function isListingCommand(command: string): boolean {
+  return commandRegistry.get(command.toLowerCase())?.handler === listDirectory;
+}
 
 // ── Command dispatcher ─────────────────────────────────────────────
 
 export async function dispatchCommand(command: string, args: string, currentPath: string): Promise<CommandResult> {
-  const handler = commandRegistry.get(command.toLowerCase());
+  const handler = commandRegistry.get(command.toLowerCase())?.handler;
 
   if (handler) {
     return handler(args, currentPath);

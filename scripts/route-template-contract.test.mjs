@@ -6,7 +6,7 @@ function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-const CONTENT_ROUTES = [
+const LIST_ROUTES = [
   "templates/index.html",
   "templates/categories.html",
   "templates/category.html",
@@ -14,9 +14,9 @@ const CONTENT_ROUTES = [
   "templates/tag.html",
   "templates/archives.html",
   "templates/author.html",
-  "templates/post.html",
-  "templates/page.html",
 ];
+
+const CONTENT_ROUTES = [...LIST_ROUTES, "templates/post.html", "templates/page.html"];
 
 test("public layout accepts plugin head and content without relying on content-route variables", () => {
   const layout = read("templates/layout.html");
@@ -24,7 +24,7 @@ test("public layout accepts plugin head and content without relying on content-r
   assert.match(layout, /<title th:if="\$\{head == null\}" th:text="\$\{site\.title\}"/);
   assert.match(layout, /th:replace="\$\{head\}"/);
   assert.match(layout, /th:replace="\$\{content\}"/);
-  assert.match(layout, /th:href="@\{\/assets\/main\.css\?v=/);
+  assert.match(layout, /th:replace="~\{modules\/runtime-assets :: stylesheet\}"/);
   assert.match(layout, /modules\/theme-style :: themeStyle/);
   assert.match(layout, /<halo:footer\s*\/>/);
   assert.doesNotMatch(layout, /\$\{(?:post|singlePage)\./);
@@ -39,16 +39,20 @@ test("every content route delegates to the shared layout with one content fragme
 });
 
 test("list and article routes retain their keyboard-navigation component contracts", () => {
-  for (const path of [
-    "templates/index.html",
-    "templates/categories.html",
-    "templates/category.html",
-    "templates/tags.html",
-    "templates/tag.html",
-    "templates/archives.html",
-    "templates/author.html",
-  ]) {
-    assert.match(read(path), /x-data="fileListNav"/, path);
+  for (const path of LIST_ROUTES) {
+    const template = read(path);
+    assert.match(template, /x-data="fileListNav"/, path);
+    assert.match(template, /modules\/file-list :: prompt\(/, path);
+    assert.match(template, /<h1\b|modules\/file-list :: context\(/, path);
+  }
+
+  const list = read("templates/modules/file-list.html");
+  assert.match(list, /x-data="typewriter\('ls', 50\)"[^>]*>ls<\/span\s*>/);
+  assert.match(list, /th:if="\$\{unixLayout\}">ll<\/span>/);
+  assert.match(list, /th:fragment="context\(label, title, total\)"[\s\S]*?<h1 th:text="\$\{title\}">/);
+  const index = read("templates/index.html");
+  for (const setting of ["show_ls_simulation", "show_pinned_folders"]) {
+    assert.ok(index.includes(setting), setting);
   }
 
   const post = read("templates/post.html");
@@ -58,19 +62,54 @@ test("list and article routes retain their keyboard-navigation component contrac
   assert.match(read("templates/page.html"), /class="[^"]*terminal-content[^"]*"/);
 });
 
-test("every paginated route exposes a named navigation landmark", () => {
-  const expectedLabels = new Map([
-    ["templates/index.html", "Posts pagination"],
-    ["templates/category.html", "Category posts pagination"],
-    ["templates/tag.html", "Tag posts pagination"],
-    ["templates/archives.html", "Archives pagination"],
-    ["templates/author.html", "Author posts pagination"],
-  ]);
+test("each article list uses shared rows, a named pager and a route-specific empty state", () => {
+  const routes = [
+    ["index", "posts", "posts.items", "Posts pagination", "'/'"],
+    ["category", "posts", "posts.items", "Category posts pagination", "${category.status.permalink}"],
+    ["tag", "posts", "posts.items", "Tag posts pagination", "${tag.status.permalink}"],
+    ["author", "posts", "posts.items", "Author posts pagination", "${author.status.permalink}"],
+    ["archives", "archives", "month.posts", "Archives pagination", "${site.routes.archivesUri}"],
+  ];
 
-  for (const [path, label] of expectedLabels) {
-    const template = read(path);
-    assert.match(template, new RegExp(`<nav[\\s\\S]*?aria-label="${label}"`), path);
+  for (const [route, result, entries, label, firstUrl] of routes) {
+    const template = read(`templates/${route}.html`);
+    assert.ok(template.includes(`modules/file-list :: postList(\${${entries}},`), route);
+    assert.ok(template.includes(`modules/file-list :: summary(\${${result}}, '${label}',`), route);
+    assert.ok(template.includes(`modules/file-list :: emptyPage(\${${result}}, ${firstUrl},`), route);
   }
+
+  const list = read("templates/modules/file-list.html");
+  assert.match(
+    list,
+    /th:fragment="pagination\(result, label\)"\s+th:if="\$\{!#lists\.isEmpty\(result\.items\) and result\.totalPages > 0\}"/,
+  );
+  assert.match(list, /<nav\b[^>]*th:aria-label="\$\{label\}"/);
+  assert.match(
+    list,
+    /data-current-page[\s\S]*?aria-current="page" th:text="\|\$\{result\.page\} \/ \$\{result\.totalPages\}\|"/,
+  );
+  assert.match(list, /th:if="\$\{result\.total > 0\}" data-empty-page/);
+  assert.match(list, /th:href="@\{\$\{firstUrl\}\}"/);
+  for (const url of ["prevUrl", "nextUrl"]) {
+    const link = list.match(new RegExp(`<a\\b[^>]*th:href="@\\{\\$\\{result\\.${url}\\}\\}"[^>]*>`))?.[0];
+    assert.ok(link, url);
+    assert.match(link, /\bdata-nav-item\b/);
+    assert.match(link, /\bmin-h-10\b/);
+    assert.doesNotMatch(link, /data-navigation="full"/);
+  }
+});
+
+test("archives keep year and month headings and directories keep distinct labels", () => {
+  const archives = read("templates/archives.html");
+  assert.match(archives, /<section th:each="archive : \$\{archives\.items\}"[^>]*>\s*<h2\b[^>]*archive\.year/);
+  assert.match(archives, /<section th:each="month : \$\{archive\.months\}"[^>]*>\s*<h3\b[^>]*month\.month/);
+
+  const categories = read("templates/categories.html");
+  const tags = read("templates/tags.html");
+  assert.ok(categories.includes("directories(${categories}, '')"));
+  assert.ok(tags.includes("directories(${tags}, '#')"));
+  assert.match(categories, /directories found\./);
+  assert.match(tags, /tags found\./);
 });
 
 test("layout page-data payload contains every runtime field exactly once", () => {
@@ -124,11 +163,13 @@ test("reader routes expose a visible and keyboard-focusable reading region", () 
   );
   assert.match(layout, /:tabindex="readerMode \? 0 : -1"/);
   assert.match(layout, /'scrollbar-terminal': readerMode/);
-  assert.match(layout, /Last login:[\s\S]*#dates\.format\(#dates\.createNow\(\)/);
+  assert.doesNotMatch(layout, /Last login:/);
   assert.doesNotMatch(layout, /new Date\(\)\.toDateString\(\)/);
 
   assert.match(post, /<h1[\s\S]*?READ_PROGRESS/);
-  assert.match(post, /<details[\s\S]*?window\.matchMedia\('\(min-width: 768px\)'\)\.matches/);
+  const toc = post.match(/<details\b[^>]*class="reader-toc[^>]*>/)?.[0];
+  assert.ok(toc);
+  assert.doesNotMatch(toc, /\bopen(?:\s|=)|x-init=/);
   assert.match(post, /<time[\s\S]*?th:datetime="\$\{post\.spec\.publishTime\}"/);
   assert.match(post, /Article table of contents/);
 });
@@ -142,7 +183,10 @@ test("public mobile controls retain practical touch targets", () => {
     assert.match(layout, new RegExp(`class="[^"]*min-h-10[^"]*"[\\s\\S]*?${escapedLabel}`), label);
   }
 
-  assert.match(post, /class="[^"]*min-h-10[^"]*"[\s\S]*?@click="jumpToHeading/);
+  const tocLink = post.match(/<nav aria-label="Article table of contents">[\s\S]*?(<a\s[^>]+>)/)?.[1];
+  assert.ok(tocLink);
+  assert.match(tocLink, /:href=/);
+  assert.match(tocLink, /class="[^"]*\bmin-h-10\b/);
 });
 
 test("comment routes retain the opt-in guard and full-navigation cleanup boundary", () => {

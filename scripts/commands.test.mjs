@@ -4,7 +4,7 @@ import test from "node:test";
 import { installDom } from "./dom-test-helpers.mjs";
 
 const environment = installDom("<!doctype html><html><head></head><body><main id=main></main></body></html>");
-const { dispatchCommand } = await import("../src/features/commands.ts");
+const { dispatchCommand, LIST_HELP, POST_HELP } = await import("../src/features/commands.ts");
 const { getSuggestions } = await import("../src/features/autocomplete.ts");
 const { syncHaloDataFromDocument } = await import("../src/common/page-data.ts");
 
@@ -40,6 +40,11 @@ test("command registry handles help, aliases, clear, and unknown commands", asyn
   const ls = await dispatchCommand("ll", "", "~/blog");
   assert.match(ls.output, /^Showing 2 entries on this page\n/);
   assert.match(ls.output, /categories\//);
+  assert.match(LIST_HELP, /pd \/ npage\s+- Next page/);
+  assert.match(POST_HELP, /cd \.\.\s+- Go back to list/);
+  assert.match(POST_HELP, /search\s+- Open search/);
+  assert.deepEqual(getSuggestions("p", "~/blog", false), ["pd", "pu", "ppage"]);
+  assert.deepEqual(getSuggestions("c", "~/blog", true), ["cd ", "copy", "clear"]);
 });
 
 test("list and change-directory commands preserve unloaded, missing, and navigation outcomes", async () => {
@@ -66,6 +71,20 @@ test("list and change-directory commands preserve unloaded, missing, and navigat
   assert.match((await dispatchCommand("ls", "categories", "~/blog")).output, /is not loaded on this page/);
 });
 
+test("cd prefers an exact slug across both post lists before trying a title", async () => {
+  window.haloData.currentPost = { title: "guide", permalink: "/current" };
+  window.haloData.homePosts = [
+    { spec: { title: "guide" }, status: { permalink: "/title-only" } },
+    { spec: { slug: "first", title: "guide" }, status: { permalink: "/first" } },
+  ];
+  window.haloData.currentPosts = [{ spec: { slug: "guide", title: "Guide to Halo" }, status: { permalink: "/guide" } }];
+
+  assert.deepEqual(await dispatchCommand("cd", "guide", "~/blog"), { navigate: "/guide" });
+  assert.deepEqual(await dispatchCommand("cd", "Guide to Halo", "~/blog"), { navigate: "/guide" });
+  window.haloData.currentPosts = [];
+  assert.deepEqual(await dispatchCommand("cd", "guide", "~/blog"), { navigate: "/current" });
+});
+
 test("ls and ll can list completed article paths from the current page and recent cache", async () => {
   window.haloData.currentPosts = [{ spec: { slug: "second-page", title: "Second page" } }];
   window.haloData.homePosts = [{ spec: { slug: "first-page", title: "First page" } }];
@@ -88,6 +107,34 @@ test("ls and ll can list completed article paths from the current page and recen
   assert.match(nested.output, /^Showing 1 entry in ~\/blog\/categories\/halo\/category-post\n/);
   assert.match(nested.output, /Category post/);
 });
+
+for (const [pageType, currentPath, ref] of [
+  ["category", "~/blog/categories/1panel", { currentCategory: { slug: "1panel" } }],
+  ["tag", "~/blog/tags/halo", { currentTag: { slug: "halo" } }],
+  ["archives", "~/blog/archives", {}],
+  ["author", "~/blog/authors/sky", { currentAuthor: { slug: "sky" } }],
+]) {
+  test(`cd opens an article completed from the current ${pageType} listing`, async () => {
+    Object.assign(window.haloData, ref, {
+      currentPosts: [
+        { spec: { slug: "jeco9MwB", title: "Panel guide" }, status: { permalink: "/archives/panel-guide" } },
+      ],
+      homePosts: [{ spec: { slug: "jeco9MwB" }, status: { permalink: "/outdated-guide" } }],
+      pageType,
+    });
+
+    assert.match((await dispatchCommand("ls", "", currentPath)).output, /Panel guide/);
+    const [completion] = getSuggestions("cd jeco", currentPath, false);
+    assert.equal(completion, "cd jeco9MwB");
+    assert.deepEqual(await dispatchCommand("cd", completion.slice(3), currentPath), {
+      navigate: "/archives/panel-guide",
+    });
+    assert.deepEqual(await dispatchCommand("cd", `${currentPath}/jeco9MwB`, "~/blog"), {
+      navigate: "/archives/panel-guide",
+    });
+    assert.match((await dispatchCommand("cd", "missing", currentPath)).output, /no such file or directory/);
+  });
+}
 
 test("ls reports an existing but unopened archives directory as unloaded", async () => {
   assert.deepEqual(getSuggestions("ls arc", "~/blog", false), ["ls archives/"]);
@@ -176,6 +223,37 @@ test("an explicit virtual-root ls waits for recent posts without changing the cu
     globalThis.fetch = originalFetch;
   }
 });
+
+for (const [command, path] of [
+  ["cd", "~/blog/recent-cd"],
+  ["ls", "/recent-ls"],
+]) {
+  test(`explicit root ${command} loads a missing entry from the recent-post cache on an index page`, async (t) => {
+    const slug = `recent-${command}`;
+    syncHaloDataFromDocument({
+      currentPosts: [{ spec: { slug: `visible-${command}`, title: "Visible post" } }],
+      pageType: "index",
+    });
+    const fetchPosts = t.mock.method(globalThis, "fetch", async () =>
+      Response.json({
+        items: [{ spec: { slug, title: "Recent post" }, status: { permalink: "/posts/recent" } }],
+      }),
+    );
+
+    assert.match((await dispatchCommand(command, slug, "~/blog")).output, /no such file or directory/i);
+    assert.equal(fetchPosts.mock.callCount(), 0);
+
+    const result = await dispatchCommand(command, path, "~/blog");
+    if (command === "cd") {
+      assert.deepEqual(result, { navigate: "/posts/recent" });
+    } else {
+      assert.match(result.output, /Recent post/);
+    }
+    assert.equal(fetchPosts.mock.callCount(), 1);
+    assert.deepEqual(await dispatchCommand(command, path, "~/blog"), result);
+    assert.equal(fetchPosts.mock.callCount(), 1);
+  });
+}
 
 test("pagination and adjacent-post commands distinguish absent, boundary, and navigable states", async () => {
   assert.equal((await dispatchCommand("pd", "", "~/blog")).output, "Pagination not available on this page.");

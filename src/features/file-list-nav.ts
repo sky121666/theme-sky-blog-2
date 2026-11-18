@@ -2,7 +2,12 @@ import Alpine from "../common/alpine";
 
 import { isInteractiveEventTarget, shouldIgnoreGlobalKeyboardEvent } from "../common/keyboard";
 import { getPreferredScrollBehavior } from "../common/motion";
-import { NAVIGATION_COMPLETE_EVENT, NAVIGATION_START_EVENT, navigateToUrl } from "../common/navigation";
+import {
+  NAVIGATION_COMPLETE_EVENT,
+  NAVIGATION_START_EVENT,
+  navigateToUrl,
+  navigateWithFullReload,
+} from "../common/navigation";
 
 export function registerFileListNavComponent() {
   Alpine.data("fileListNav", () => ({
@@ -113,7 +118,11 @@ export function registerFileListNavComponent() {
         return;
       }
 
-      navigateToUrl(link.href);
+      if (link.closest('[data-navigation="full"]')) {
+        navigateWithFullReload(link.href);
+      } else {
+        navigateToUrl(link.href);
+      }
     },
 
     init() {
@@ -133,7 +142,7 @@ export function registerFileListNavComponent() {
     },
 
     isSelected(item: HTMLElement) {
-      return this.selectedIndex === this.items.indexOf(item);
+      return this.items[this.selectedIndex] === item;
     },
 
     scrollToSelected() {

@@ -8,7 +8,7 @@ function escapeRegExp(value) {
 
 export function collectAssetVersions(html, themeName) {
   const safeThemeName = escapeRegExp(themeName);
-  const pattern = new RegExp(`/themes/${safeThemeName}/assets/main\\.(?:css|iife\\.js)\\?v=([^"']+)`, "g");
+  const pattern = new RegExp(`/themes/${safeThemeName}/assets/main\\.(?:css|iife\\.js)\\?v=([^"'&]+)`, "g");
   return [...html.matchAll(pattern)].map((match) => match[1]);
 }
 

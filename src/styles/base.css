@@ -10,6 +10,12 @@
   --terminal-bg: var(--theme-color-bg, #0d0d0d);
   --terminal-text: var(--theme-color-primary, #00ff00);
   --terminal-dim: color-mix(in srgb, var(--terminal-text) 70%, transparent);
+  --terminal-reading-text: var(--theme-reading-color, color-mix(in srgb, #e0e8e2 96%, var(--terminal-text)));
+  --terminal-reading-heading: var(--theme-reading-color, #f0f4f1);
+  --terminal-secondary: var(
+    --theme-reading-color,
+    color-mix(in srgb, var(--terminal-reading-text) 68%, var(--terminal-bg))
+  );
   --terminal-glow: color-mix(in srgb, var(--terminal-text) 60%, transparent);
   --scanline-color: color-mix(in srgb, var(--terminal-bg) 50%, transparent);
 }
@@ -19,8 +25,8 @@ html.terminal-theme.color-scheme-dark {
   --halo-search-widget-base-font-family: var(--terminal-font-family);
   --halo-search-widget-base-rounded: 0px;
   --halo-search-widget-primary-color: var(--terminal-text);
-  --halo-search-widget-muted-color: color-mix(in srgb, var(--terminal-text) 60%, transparent);
-  --halo-search-widget-content-color: color-mix(in srgb, var(--terminal-text) 90%, #fff);
+  --halo-search-widget-muted-color: var(--terminal-secondary);
+  --halo-search-widget-content-color: var(--terminal-reading-text);
   --halo-search-widget-base-bg-color: var(--terminal-bg);
   --halo-search-widget-modal-bg-color: color-mix(in srgb, var(--terminal-bg) 95%, var(--terminal-text));
   --halo-search-widget-modal-layer-color: rgba(0, 0, 0, 0.85);
@@ -53,8 +59,12 @@ html.terminal-theme.color-scheme-dark {
   --halo-cw-emoji-picker-color-border-over: color-mix(in srgb, var(--terminal-text) 45%, transparent);
 }
 
+html.terminal-theme,
 body {
   background-color: var(--terminal-bg);
+}
+
+body {
   color: var(--terminal-text);
   font-family: var(--terminal-font-family);
   overflow-x: hidden;
@@ -68,6 +78,131 @@ body {
 .terminal-viewport {
   height: 100vh;
   height: 100dvh;
+  height: var(--terminal-keyboard-height, 100dvh);
+  min-height: 0;
+}
+
+/* Reserve the Figlet font's rows while the desktop title is still loading. */
+.terminal-ascii-title {
+  min-block-size: 6lh;
+}
+
+.terminal-ascii-title:is(
+  [data-font="Banner"],
+  [data-font="Big"],
+  [data-font="Block"],
+  [data-font="Doom"],
+  [data-font="Lean"]
+) {
+  min-block-size: 8lh;
+}
+
+.terminal-ascii-title[data-font="Mini"] {
+  min-block-size: 4lh;
+}
+
+.terminal-ascii-title[data-font="Script"] {
+  min-block-size: 7lh;
+}
+
+.terminal-ascii-title:is([data-font="Shadow"], [data-font="Small"]) {
+  min-block-size: 5lh;
+}
+
+.reader-actions,
+.reader-fallback {
+  display: none;
+}
+
+.reader-back {
+  color: var(--terminal-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.reader-back:is(:hover, :focus-visible) {
+  color: var(--terminal-text);
+}
+
+@media (width < 48rem) {
+  [data-theme-ready] [data-reader-tools] .reader-actions,
+  html:not([data-theme-ready]) [data-reader-tools] .reader-fallback {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding-inline: 0.5rem;
+    border-top: 1px var(--terminal-rule-style) var(--terminal-rule-color);
+  }
+
+  .reader-fallback a {
+    min-height: 2.75rem;
+    font-size: 0.75rem;
+  }
+
+  .reader-actions button {
+    min-width: var(--terminal-control-height);
+    min-height: var(--terminal-control-height);
+    padding-inline: 0.25rem;
+    color: var(--terminal-text);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    cursor: pointer;
+  }
+
+  .reader-actions button:last-child {
+    margin-inline-start: auto;
+  }
+
+  .reader-actions button[aria-expanded="true"] {
+    background-color: var(--terminal-selection-color);
+  }
+
+  [data-reader-tools] .terminal-footer-search {
+    display: none;
+  }
+
+  [data-reader-tools="collapsed"] #terminal-tools {
+    display: none;
+  }
+
+  [data-reader-tools="expanded"] #terminal-tools {
+    max-height: calc(var(--terminal-keyboard-height, 100dvh) * 0.45);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  [data-reader-tools] .terminal-command-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  [data-reader-tools] .terminal-command-prompt {
+    max-width: 45%;
+  }
+
+  [data-reader-tools] .terminal-command-prompt > span {
+    flex-shrink: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  [data-reader-tools] .terminal-command-echo {
+    display: none;
+  }
+
+  [data-reader-tools] #terminal-command-input {
+    position: static;
+    flex: 1;
+    min-width: 0;
+    min-height: 2.75rem;
+    padding-inline: 0.375rem;
+    border-bottom: 1px solid var(--terminal-dim);
+    color: var(--terminal-text);
+    font-size: 1rem;
+    opacity: 1;
+  }
 }
 
 /* CRT Overlay Effect */
@@ -88,6 +223,7 @@ body::before {
       rgba(0, 0, 255, 0.06)
     );
   z-index: 999;
+  opacity: 0.25;
   background-size:
     100% 2px,
     3px 100%;
@@ -168,26 +304,55 @@ strong,
   scrollbar-color: color-mix(in srgb, var(--terminal-text) 30%, transparent) transparent;
 }
 
-/* Page Transition Animations */
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.3s ease;
+/* Keep the current page readable while swup fetches the next view. */
+.terminal-viewport > div:has(> #main) {
+  position: relative;
 }
 
-.fade-enter-from,
-.fade-leave-to {
+.terminal-viewport > div:has(> #main)::before {
+  position: absolute;
+  z-index: 1;
+  inset: var(--terminal-page-gutter) var(--terminal-page-gutter) auto;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--terminal-text) 60%, transparent),
+    transparent
+  );
+  content: "";
   opacity: 0;
+  pointer-events: none;
 }
 
-/* Main Content Transition Wrapper */
-#main {
-  transition: opacity 0.2s ease-in-out;
+.terminal-viewport > div:has(> #main[aria-busy="true"])::before {
   opacity: 1;
 }
 
-#main.loading {
-  opacity: 0.5;
-  filter: blur(2px);
+@media (prefers-reduced-motion: no-preference) {
+  .terminal-viewport > div:has(> #main)::before {
+    transition: opacity 120ms ease-out;
+  }
+
+  .terminal-viewport > div:has(> #main[aria-busy="true"])::before {
+    transition-delay: 160ms;
+  }
+
+  .terminal-viewport #main {
+    animation: page-enter 200ms cubic-bezier(0.2, 0.65, 0.3, 1);
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0.82;
+    translate: 0 4px;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
 }
 
 /* Terminal Cursor */

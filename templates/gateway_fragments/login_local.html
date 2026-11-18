@@ -2,7 +2,7 @@
   <!-- 隐藏的加密密码字段 (加密逻辑在 common.html) -->
   <input type="hidden" name="password" id="password" />
 
-  <!-- 用户名/邮箱 + 密码 (两列布局) -->
+  <!-- 用户名/邮箱和密码 -->
   <div class="login-row">
     <div class="form-item group">
       <label
@@ -17,7 +17,7 @@
         name="username"
         required
         autofocus
-        placeholder="请输入用户名或邮箱"
+        placeholder="Username or email"
         autocomplete="username"
       />
     </div>
@@ -46,7 +46,7 @@
           autocorrect="off"
           autocapitalize="off"
           maxlength="257"
-          placeholder="请输入密码"
+          placeholder="Enter your password"
         />
         <button
           type="button"
@@ -78,21 +78,6 @@
       </div>
     </div>
   </div>
-
-  <style>
-    .login-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-      margin-bottom: 0.5rem;
-    }
-
-    @media (max-width: 480px) {
-      .login-row {
-        grid-template-columns: 1fr;
-      }
-    }
-  </style>
 
   <script>
     (function () {

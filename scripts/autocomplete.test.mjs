@@ -32,6 +32,18 @@ test("command completion is case-insensitive and page-aware", () => {
   assert.deepEqual(getSuggestions("npage", "~/blog", true), []);
 });
 
+test("standalone page completion offers navigation and omits list and post commands", () => {
+  const path = "~/blog/pages/about";
+  installHaloData({ currentPage: { permalink: "/about", slug: "about" }, pageType: "page" });
+
+  for (const prefix of ["l", "p", "n", "toc"]) {
+    assert.deepEqual(getSuggestions(prefix, path, false), [], prefix);
+  }
+  assert.deepEqual(getSuggestions("c", path, false), ["cd ", "clear"]);
+  assert.deepEqual(getSuggestions("cd /cat", path, false), ["cd /categories/"]);
+  assert.deepEqual(getSuggestions("ls /cat", path, false), ["ls /categories/"]);
+});
+
 test("path completion preserves slugs, directory suffixes, and relative helpers", () => {
   installHaloData({
     categories: [{ spec: { displayName: "Halo Theme", slug: "halo-theme" } }],

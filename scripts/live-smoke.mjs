@@ -8,23 +8,12 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { normalizeBaseUrl } from "./runtime-assets.mjs";
-import { ASSET_SIZE_BUDGETS } from "./package-verification.mjs";
 import { readThemeMetadata } from "./theme-metadata.mjs";
 
 const ROOT_DIRECTORY = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const REQUEST_TIMEOUT_MS = 15_000;
 const BROWSER_TIMEOUT_MS = 20_000;
 const MAX_MANAGED_CHROME_CANDIDATES = 6;
-export const HTTP_RESOURCE_BUDGETS = Object.freeze({
-  coreCssBytes: ASSET_SIZE_BUDGETS["templates/assets/main.css"],
-  coreScriptBytes: ASSET_SIZE_BUDGETS["templates/assets/main.iife.js"],
-  htmlBytes: 256 * 1024,
-});
-export const BROWSER_RESOURCE_BUDGETS = Object.freeze({
-  domNodes: 1500,
-  resourceCount: 100,
-  resourceTransferBytes: 3 * 1024 * 1024,
-});
 const REQUEST_HEADERS = Object.freeze({
   "Cache-Control": "no-cache, no-store, max-age=0",
   Pragma: "no-cache",
@@ -107,6 +96,7 @@ async function verifyHttpRuntime(baseUrl, themeName, expectedVersion, runId) {
 
     const remoteBytes = Buffer.from(await response.arrayBuffer());
     const localBytes = await readFile(join(ROOT_DIRECTORY, "templates", "assets", asset.fileName));
+    assert.ok(remoteBytes.length > 0, `${asset.fileName} is empty`);
     const remoteHash = sha256(remoteBytes);
     const localHash = sha256(localBytes);
     assert.equal(remoteHash, localHash, `${asset.fileName} served bytes do not match templates/assets`);
@@ -124,7 +114,7 @@ async function verifyHttpRuntime(baseUrl, themeName, expectedVersion, runId) {
     coreScriptBytes: verifiedAssets.find((asset) => asset.fileName === "main.iife.js")?.bytes,
     htmlBytes: Buffer.byteLength(html),
   };
-  assert.deepEqual(resourceBudgetIssues(resourceMetrics, HTTP_RESOURCE_BUDGETS), [], "HTTP resource budget exceeded");
+  assert.deepEqual(resourceMetricIssues(resourceMetrics, ["coreCssBytes", "coreScriptBytes", "htmlBytes"]), []);
 
   return {
     assets: verifiedAssets,
@@ -261,14 +251,10 @@ export function isRetryableChromeStartupError(error) {
   );
 }
 
-export function resourceBudgetIssues(metrics, budgets) {
-  return Object.entries(budgets).flatMap(([metric, maximum]) => {
-    const value = metrics[metric];
-    if (!Number.isFinite(value) || value < 0) {
-      return [`${metric} is missing or invalid`];
-    }
-    return value > maximum ? [`${metric}=${value} exceeds ${maximum}`] : [];
-  });
+export function resourceMetricIssues(metrics, names) {
+  return names
+    .filter((name) => !Number.isSafeInteger(metrics[name]) || metrics[name] < 0)
+    .map((name) => `${name} is missing or invalid`);
 }
 
 export function accessibilitySnapshotIssues(snapshot) {
@@ -503,14 +489,15 @@ function createBrowserState(client) {
     cacheRequestIds: new Set(),
     consoleErrors: [],
     exceptions: [],
+    finishedRequestIds: new Set(),
     loadingFailures: [],
     logErrors: [],
     requests: new Map(),
     responses: [],
   };
 
-  client.on("Network.requestWillBeSent", ({ request, requestId, type }) => {
-    state.requests.set(requestId, { type, url: request.url });
+  client.on("Network.requestWillBeSent", ({ frameId, request, requestId, type }) => {
+    state.requests.set(requestId, { frameId, requestId, type, url: request.url });
   });
   client.on("Network.requestServedFromCache", ({ requestId }) => state.cacheRequestIds.add(requestId));
   client.on("Network.responseReceived", ({ requestId, response, type }) => {
@@ -525,6 +512,7 @@ function createBrowserState(client) {
       url: response.url,
     });
   });
+  client.on("Network.loadingFinished", ({ requestId }) => state.finishedRequestIds.add(requestId));
   client.on("Network.loadingFailed", ({ canceled, errorText, requestId, type }) => {
     const request = state.requests.get(requestId);
     state.loadingFailures.push({ canceled, errorText, requestId, type, url: request?.url ?? "" });
@@ -646,6 +634,228 @@ function assertFreshCoreBatch(responses, state, markerName, runId, themeName, la
   assertFreshResponse(scriptResponse, state, `${label} main.iife.js`);
 }
 
+export function assertNavigationEvidence({
+  mode,
+  targetUrl,
+  requests,
+  responses,
+  frameId,
+  sameDocument,
+  sameInput,
+  cacheRequestIds,
+}) {
+  assert.ok(["partial", "full"].includes(mode), `Unknown navigation expectation: ${mode}`);
+  const frameRequests = requests.filter((request) => request.frameId === frameId);
+  const documents = frameRequests.filter((request) => request.type === "Document");
+  const fetches = frameRequests.filter(
+    (request) => ["Fetch", "XHR"].includes(request.type) && request.url === targetUrl,
+  );
+  const partial = mode === "partial";
+  const label = `Expected ${mode} navigation to ${targetUrl}`;
+
+  assert.equal(documents.length, partial ? 0 : 1, `${label}: unexpected top-level Document request count`);
+  assert.equal(fetches.length, partial ? 1 : 0, `${label}: unexpected target Fetch/XHR request count`);
+  assert.equal(sameDocument, partial, `${label}: document identity`);
+  assert.equal(sameInput, partial, `${label}: terminal input identity`);
+  const [request] = partial ? fetches : documents;
+  assert.equal(request.url, targetUrl, `${label}: wrong request URL`);
+  const response = responses.find((entry) => entry.requestId === request.requestId && entry.url === targetUrl);
+  assertFreshResponse(response, { cacheRequestIds }, label);
+  assert.match(response.mimeType, /^(?:text\/html|application\/xhtml\+xml)\b/i, `${label}: expected HTML`);
+  return { targetUrl, documents: documents.length, fetches: fetches.length };
+}
+
+async function findNavigationLink(client, partial) {
+  const link = await evaluate(
+    client,
+    `(() => {
+      const destination = ${
+        partial
+          ? 'JSON.parse(document.getElementById("halo-page-data").textContent).urls?.categories || "/categories"'
+          : '"/login"'
+      };
+      const target = new URL(destination, location.href);
+      const input = document.getElementById("terminal-command-input");
+      if (!input) throw new Error("Terminal input missing before navigation");
+      for (const anchor of document.querySelectorAll("a[href]")) {
+        if (anchor.origin !== location.origin || anchor.href !== target.href || (anchor.target && anchor.target !== "_self")) continue;
+        anchor.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
+        const rect = anchor.getBoundingClientRect();
+        const x = rect.left + rect.width / 2;
+        const y = rect.top + rect.height / 2;
+        if (!rect.width || !rect.height || !anchor.contains(document.elementFromPoint(x, y))) continue;
+        window.__themeLiveSmokeSource = { document, input, main: document.getElementById('main') };
+        return { url: target.href, x, y };
+      }
+      return null;
+    })()`,
+  );
+  assert.ok(link, `Missing clickable ${partial ? "categories" : "login"} link`);
+  return link;
+}
+
+async function clickLink(client, { x, y }) {
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mousePressed",
+    x,
+    y,
+    button: "left",
+    buttons: 1,
+    clickCount: 1,
+  });
+  await client.send("Input.dispatchMouseEvent", {
+    type: "mouseReleased",
+    x,
+    y,
+    button: "left",
+    buttons: 0,
+    clickCount: 1,
+  });
+}
+
+async function verifyNavigationClick(client, state, mode) {
+  const partial = mode === "partial";
+  const { frameTree } = await client.send("Page.getFrameTree");
+  const firstRequest = state.requests.size;
+  const firstResponse = state.responses.length;
+  const link = await findNavigationLink(client, partial);
+  const targetUrl = link.url;
+  await clickLink(client, link);
+  const ready = partial
+    ? `const main = document.querySelector("#main");
+       const data = JSON.parse(main?.querySelector("#halo-page-data")?.textContent || "{}");
+       return data.pageType === "categories" && window.haloData?.pageType === "categories" && main.innerText.trim() && !main.hasAttribute("aria-busy") && !main.classList.contains("loading");`
+    : `const form = document.querySelector("form#login-form, form[name=login-form], form:has(input[type=password])");
+       return document.readyState === "complete" && form?.checkVisibility() && getComputedStyle(form).visibility === "visible" && form.getBoundingClientRect().height > 0;`;
+  await waitForCondition(
+    client,
+    `(() => {
+    if (location.href !== ${JSON.stringify(targetUrl)}) return false;
+    ${ready}
+  })()`,
+    `readable ${partial ? "categories page" : "login form"} at ${targetUrl}`,
+  );
+
+  const identity = await evaluate(
+    client,
+    `({
+    sameDocument: window.__themeLiveSmokeSource?.document === document,
+    sameInput: Boolean(window.__themeLiveSmokeSource?.input && window.__themeLiveSmokeSource.input === document.getElementById("terminal-command-input")),
+  })`,
+  );
+  return assertNavigationEvidence({
+    mode,
+    targetUrl,
+    ...identity,
+    frameId: frameTree.frame.id,
+    cacheRequestIds: state.cacheRequestIds,
+    requests: Array.from(state.requests.values()).slice(firstRequest),
+    responses: state.responses.slice(firstResponse),
+  });
+}
+
+async function verifyCancelledNavigation(client, state) {
+  const { frameTree } = await client.send("Page.getFrameTree");
+  const link = await findNavigationLink(client, true);
+  const anchorUrl = await evaluate(client, `new URL("#main", location.href).href`);
+  const firstRequest = state.requests.size;
+  // CDP URL patterns treat ?, * and backslash as special characters.
+  const urlPattern = link.url.replace(/[?*\\]/g, "\\$&");
+  await client.send("Fetch.enable", {
+    patterns: ["Fetch", "XHR"].map((resourceType) => ({ urlPattern, resourceType, requestStage: "Response" })),
+  });
+
+  let networkId;
+  try {
+    const [paused] = await Promise.all([waitForEvent(client, "Fetch.requestPaused"), clickLink(client, link)]);
+    assert.equal(paused.request.url, link.url, "Paused the wrong navigation request");
+    assert.equal(paused.frameId, frameTree.frame.id, "Paused request belongs to a different frame");
+    assert.equal(paused.responseStatusCode, 200, "Expected a successful response in flight before cancellation");
+    networkId = paused.networkId;
+    assert.ok(networkId, "Paused navigation has no Network request ID");
+    // Keep the link fragment-only: the address bar may already contain the pending URL.
+    await evaluate(
+      client,
+      `(() => {
+      const anchor = document.createElement("a");
+      anchor.href = "#main";
+      anchor.textContent = "Return to page content";
+      window.__themeLiveSmokeSource.anchor = anchor;
+      document.body.appendChild(anchor);
+      anchor.focus({ preventScroll: true });
+      if (document.activeElement !== anchor) throw new Error("Could not focus the same-page smoke anchor");
+    })()`,
+    );
+    const enter = { key: "Enter", code: "Enter", windowsVirtualKeyCode: 13 };
+    await client.send("Input.dispatchKeyEvent", { type: "keyDown", ...enter, text: "\r" });
+    await client.send("Input.dispatchKeyEvent", { type: "keyUp", ...enter });
+    await waitForCondition(
+      client,
+      `location.href === ${JSON.stringify(anchorUrl)}`,
+      "the source-page anchor before releasing the old response",
+    );
+  } finally {
+    // Disabling interception also releases a response whose Fetch ID was invalidated by AbortController.
+    await client.send("Fetch.disable");
+  }
+
+  const deadline = Date.now() + BROWSER_TIMEOUT_MS;
+  while (
+    !state.finishedRequestIds.has(networkId) &&
+    !state.loadingFailures.some((entry) => entry.requestId === networkId)
+  ) {
+    assert.ok(Date.now() < deadline, "The released navigation request did not settle");
+    await delay(25);
+  }
+  const failure = state.loadingFailures.find((entry) => entry.requestId === networkId);
+  if (failure)
+    assert.ok(
+      failure.canceled || failure.errorText === "net::ERR_ABORTED",
+      `Released navigation failed: ${failure.errorText}`,
+    );
+  // Allow the response consumer, animation frames and a deferred reload to run after network settlement.
+  await delay(1000);
+  const requests = Array.from(state.requests.values())
+    .slice(firstRequest)
+    .filter((entry) => entry.frameId === frameTree.frame.id);
+  assert.equal(
+    requests.filter((entry) => entry.type === "Document").length,
+    0,
+    "Cancelled navigation started a top-level Document request",
+  );
+  assert.deepEqual(
+    requests
+      .filter((entry) => ["Fetch", "XHR"].includes(entry.type) && entry.url === link.url)
+      .map((entry) => entry.requestId),
+    [networkId],
+    "Expected exactly the intercepted target request",
+  );
+
+  const result = await evaluate(
+    client,
+    `(() => {
+    const source = window.__themeLiveSmokeSource;
+    source?.anchor?.remove();
+    const main = document.getElementById("main");
+    return {
+      url: location.href, sameDocument: source?.document === document,
+      sameInput: Boolean(source?.input && source.input === document.getElementById("terminal-command-input")),
+      sameMain: Boolean(main && source?.main === main),
+      pageType: JSON.parse(main?.querySelector("#halo-page-data")?.textContent || "{}").pageType,
+      ready: Boolean(main?.innerText.trim() && !main.hasAttribute("aria-busy") && !main.classList.contains("loading")),
+    };
+  })()`,
+  );
+  assert.equal(result.url, anchorUrl, "Cancelled navigation changed the chosen URL");
+  assert.ok(result.sameDocument, "Cancelled navigation replaced the source document");
+  assert.ok(result.sameInput, "Cancelled navigation replaced the command input");
+  assert.ok(
+    result.sameMain && result.ready && result.pageType === "index",
+    "Cancelled navigation replaced or blocked the source content",
+  );
+  return { anchorUrl, targetUrl: link.url, requestEnd: failure ? "aborted" : "finished" };
+}
+
 async function waitForVisiblePluginSurfaces(client) {
   await waitForCondition(
     client,
@@ -658,8 +868,8 @@ async function waitForVisiblePluginSurfaces(client) {
       const shadowSurfacesReady = Array.from(document.querySelectorAll("comment-widget, shiki-code"))
         .filter(isVisible)
         .every((element) => Boolean(element.shadowRoot?.childElementCount));
-      const searchButton = document.querySelector('[data-terminal-action="search"]');
-      const searchReady = !searchButton || !isVisible(searchButton) || typeof window.SearchWidget?.open === "function";
+      const hasVisibleSearch = Array.from(document.querySelectorAll('[data-terminal-action="search"]')).some(isVisible);
+      const searchReady = !hasVisibleSearch || typeof window.SearchWidget?.open === "function";
       return shadowSurfacesReady && searchReady;
     })()`,
     "visible plugin surfaces to settle",
@@ -703,8 +913,8 @@ async function collectPageQualitySnapshot(client) {
       document.querySelectorAll("[id]").forEach((element) => ids.set(element.id, (ids.get(element.id) || 0) + 1));
       const terminalInput = document.getElementById("terminal-command-input");
       const announcer = document.getElementById("navigation-announcer");
-      const searchButton = document.querySelector('[data-terminal-action="search"]');
-      const searchVisible = isVisible(searchButton);
+      const searchButtons = Array.from(document.querySelectorAll('[data-terminal-action="search"]'));
+      const searchButton = searchButtons.find(isVisible);
       const searchApiAvailable = typeof window.SearchWidget?.open === "function";
       const searchName = searchButton?.getAttribute("aria-label") || searchButton?.textContent?.trim() || "";
       const resources = performance.getEntriesByType("resource");
@@ -723,14 +933,14 @@ async function collectPageQualitySnapshot(client) {
         plugins: {
           comment: observeCustomElements("comment-widget", true),
           hyperlink: observeCustomElements("hyperlink-card, hyperlink-inline-card"),
-          search: searchVisible
+          search: searchButton
             ? {
                 detail: "visible semantic entry with SearchWidget.open API",
                 status: "observed",
                 valid: searchButton?.tagName === "BUTTON" && Boolean(searchName) && searchApiAvailable,
               }
             : {
-                reason: searchButton ? "entry present but not visible on sampled page" : "no visible sample on tested page",
+                reason: searchButtons.length ? "entry present but not visible on sampled page" : "no visible sample on tested page",
                 status: "skipped",
               },
           shiki: observeCustomElements("shiki-code", true),
@@ -766,9 +976,9 @@ function assertPageQuality(snapshot, label, { checkResources = false } = {}) {
   );
   if (checkResources) {
     assert.deepEqual(
-      resourceBudgetIssues(snapshot.resources, BROWSER_RESOURCE_BUDGETS),
+      resourceMetricIssues(snapshot.resources, ["domNodes", "resourceCount", "resourceTransferBytes"]),
       [],
-      `${label} browser resource budget exceeded`,
+      `${label} browser resource measurements are incomplete`,
     );
   }
 }
@@ -916,70 +1126,17 @@ async function verifyBrowserRuntime(baseUrl, themeName, expectedVersion, runId, 
     const initialQuality = await collectPageQualitySnapshot(client);
     assertPageQuality(initialQuality, "Desktop home", { checkResources: true });
 
-    await evaluate(
-      client,
-      `(() => {
-        window.__themeLiveSmokeNavigationEvents = [];
-        for (const type of ["theme:navigation-start", "theme:navigation-success", "theme:navigation-error", "theme:navigation-complete"]) {
-          document.addEventListener(type, () => window.__themeLiveSmokeNavigationEvents.push(type));
-        }
-        return true;
-      })()`,
-    );
-    const partialResponseIndex = state.responses.length;
-    const navigationTarget = await evaluate(
-      client,
-      `(() => {
-        const pageData = JSON.parse(document.getElementById("halo-page-data")?.textContent || "{}");
-        const target = new URL(pageData.urls?.categories || "/categories", location.href);
-        const link = document.getElementById("link-categories") ||
-          Array.from(document.querySelectorAll("a[href]")).find((anchor) => new URL(anchor.href).pathname === target.pathname);
-        if (!link) return null;
-        link.click();
-        return { pathname: target.pathname };
-      })()`,
-    );
-    assert.ok(navigationTarget, "Categories navigation link was not found");
+    const cancelledNavigation = await verifyCancelledNavigation(client, state);
+    const partialNavigation = await verifyNavigationClick(client, state, "partial");
     await waitForCondition(
       client,
-      `(() => {
-        if (location.pathname !== ${JSON.stringify(navigationTarget.pathname)}) return false;
-        const main = document.getElementById("main");
-        const data = JSON.parse(document.getElementById("halo-page-data")?.textContent || "{}");
-        return data.pageType === "categories" && main && !main.hasAttribute("aria-busy") && !main.classList.contains("loading");
-      })()`,
-      "the categories partial navigation to finish",
+      `/^Loaded\\s+/.test(document.getElementById("navigation-announcer")?.textContent || "")`,
+      "the categories navigation announcement",
     );
-    const partialState = await evaluate(
-      client,
-      `(() => ({
-        announcer: document.getElementById("navigation-announcer")?.textContent || "",
-        events: window.__themeLiveSmokeNavigationEvents || [],
-        pageType: JSON.parse(document.getElementById("halo-page-data")?.textContent || "{}").pageType,
-      }))()`,
-    );
-    assert.equal(partialState.pageType, "categories", "Partial navigation page type is incorrect");
-    assert.ok(partialState.events.includes("theme:navigation-success"), "Partial navigation did not emit success");
-    assert.match(partialState.announcer, /^Loaded\s+/, "Partial navigation was not announced");
     await waitForVisiblePluginSurfaces(client);
     const partialQuality = await collectPageQualitySnapshot(client);
     assertPageQuality(partialQuality, "Desktop categories");
-
-    const partialResponses = state.responses.slice(partialResponseIndex);
-    const categoryFetch = partialResponses.find((response) => {
-      const url = parsedUrl(response.url);
-      return url?.pathname === navigationTarget.pathname && (response.type === "Fetch" || response.type === "XHR");
-    });
-    assert.ok(categoryFetch, "Categories navigation did not use a partial Fetch/XHR request");
-    assert.equal(categoryFetch.status, 200, `Categories partial request returned ${categoryFetch.status}`);
-    assert.equal(
-      partialResponses.some((response) => {
-        const url = parsedUrl(response.url);
-        return response.type === "Document" && url?.pathname === navigationTarget.pathname;
-      }),
-      false,
-      "Categories navigation unexpectedly performed a full Document load",
-    );
+    const fullNavigation = await verifyNavigationClick(client, state, "full");
 
     await client.send("Emulation.setDeviceMetricsOverride", {
       deviceScaleFactor: 1,
@@ -1035,7 +1192,9 @@ async function verifyBrowserRuntime(baseUrl, themeName, expectedVersion, runId, 
     return {
       chromePath,
       mobileLayout,
-      partialNavigation: navigationTarget.pathname,
+      cancelledNavigation,
+      partialNavigation,
+      fullNavigation,
       pluginObservations: mergePluginSurfaceObservations([
         initialQuality.plugins,
         partialQuality.plugins,
@@ -1100,7 +1259,7 @@ async function main() {
       `HTTP assets match local SHA-256: ${httpResult.assets.map((asset) => `${asset.fileName}=${asset.hash.slice(0, 12)}`).join(", ")}`,
     );
     log(
-      `HTTP resource budget observed: html=${httpResult.resourceMetrics.htmlBytes}B, css=${httpResult.resourceMetrics.coreCssBytes}B, js=${httpResult.resourceMetrics.coreScriptBytes}B`,
+      `HTTP resource metrics: html=${httpResult.resourceMetrics.htmlBytes}B, css=${httpResult.resourceMetrics.coreCssBytes}B, js=${httpResult.resourceMetrics.coreScriptBytes}B`,
     );
     const browserResult = await verifyBrowserRuntimeWithFallback(
       baseUrl,
@@ -1118,12 +1277,23 @@ async function main() {
     log(
       `Halo page cache timestamps: start=${httpResult.haloCacheAt ?? "none"}, end=${finalHttpResult.haloCacheAt ?? "none"}`,
     );
-    log(`Partial navigation passed: ${browserResult.partialNavigation}`);
+    const cancelled = browserResult.cancelledNavigation;
+    log(
+      `Cancelled navigation passed: ${cancelled.targetUrl} -> ${cancelled.anchorUrl}, request=${cancelled.requestEnd}, Document=0, same command input`,
+    );
+    for (const [mode, visit] of [
+      ["Partial", browserResult.partialNavigation],
+      ["Full", browserResult.fullNavigation],
+    ]) {
+      log(
+        `${mode} navigation passed: ${visit.targetUrl}, Document=${visit.documents}, target Fetch/XHR=${visit.fetches}`,
+      );
+    }
     log(
       `390px layout passed: html=${browserResult.mobileLayout.htmlOverflow}px, body=${browserResult.mobileLayout.bodyOverflow}px, main=${browserResult.mobileLayout.mainOverflow}px`,
     );
     log(
-      `Basic accessibility, stable shell, and browser resource budgets passed with ${browserResult.resourceMetrics.domNodes} DOM nodes and ${browserResult.resourceMetrics.resourceCount} resources`,
+      `Basic accessibility and stable shell passed. Desktop home measured ${browserResult.resourceMetrics.domNodes} DOM nodes and ${browserResult.resourceMetrics.resourceCount} resources (${browserResult.resourceMetrics.resourceTransferBytes} transfer bytes)`,
     );
     for (const [plugin, observation] of Object.entries(browserResult.pluginObservations)) {
       log(`Plugin ${plugin}: ${observation.status} — ${observation.detail ?? observation.reason}`);

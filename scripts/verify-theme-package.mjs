@@ -1,7 +1,18 @@
-import { execFileSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { appendFileSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { once } from "node:events";
+import {
+  appendFileSync,
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, join } from "node:path";
+import { text } from "node:stream/consumers";
 
 import {
   REQUIRED_PACKAGE_FILES,
@@ -56,9 +67,14 @@ function fail(errors) {
   process.exit(1);
 }
 
-function runArchiveCommand(command, arguments_, options = {}) {
+async function runArchiveCommand(command, args, readOutput) {
+  const child = spawn(command, args, { stdio: ["ignore", readOutput ? "pipe" : "inherit", "inherit"] });
   try {
-    return execFileSync(command, arguments_, options);
+    const [[code, signal], output] = await Promise.all([once(child, "close"), readOutput?.(child.stdout)]);
+    if (code !== 0) {
+      throw new Error(`${command} ${args.join(" ")} failed (${signal ?? `exit ${code}`})`);
+    }
+    return output;
   } catch (error) {
     if (error.code === "ENOENT") {
       throw new Error(`Missing ${command} command. Install unzip or run this check in CI.`, { cause: error });
@@ -67,12 +83,12 @@ function runArchiveCommand(command, arguments_, options = {}) {
   }
 }
 
-function listPackageEntries(path) {
-  return runArchiveCommand("zipinfo", ["-1", path], { encoding: "utf8" }).split(/\r?\n/).filter(Boolean);
-}
-
-function readPackageEntry(path, entry) {
-  return runArchiveCommand("unzip", ["-p", path, entry]);
+async function countBytes(stream) {
+  let bytes = 0;
+  for await (const chunk of stream) {
+    bytes += chunk.byteLength;
+  }
+  return bytes;
 }
 
 const distPackageNames = readdirSync("dist", { withFileTypes: true })
@@ -80,18 +96,19 @@ const distPackageNames = readdirSync("dist", { withFileTypes: true })
   .map((entry) => entry.name);
 fail(validatePackageSelection({ allowHistorical, distPackageNames, expectedPackageName: packageFileName }));
 
-runArchiveCommand("unzip", ["-tqq", packagePath], { stdio: "pipe" });
+await runArchiveCommand("unzip", ["-tqq", packagePath]);
 
-const entries = listPackageEntries(packagePath);
+const listing = await runArchiveCommand("zipinfo", ["-1", packagePath], text);
+const entries = listing.split(/\r?\n/).filter(Boolean);
 fail(validatePackageEntries(entries));
 
 const packagedTheme = parseThemeMetadata(
-  readPackageEntry(packagePath, "theme.yaml").toString("utf8"),
+  await runArchiveCommand("unzip", ["-p", packagePath, "theme.yaml"], text),
   `${packagePath}:theme.yaml`,
 );
 const assetSizes = {};
 for (const asset of REQUIRED_PACKAGE_FILES.filter((entry) => entry.startsWith("templates/assets/"))) {
-  assetSizes[asset] = readPackageEntry(packagePath, asset).byteLength;
+  assetSizes[asset] = await runArchiveCommand("unzip", ["-p", packagePath, asset], countBytes);
 }
 
 fail(
@@ -107,7 +124,11 @@ fail(
   }),
 );
 
-const packageSha256 = createHash("sha256").update(readFileSync(packagePath)).digest("hex");
+const packageHash = createHash("sha256");
+for await (const chunk of createReadStream(packagePath)) {
+  packageHash.update(chunk);
+}
+const packageSha256 = packageHash.digest("hex");
 const integrityRecord = createPackageIntegrityRecord({
   packagePath: `dist/${packageFileName}`,
   sha256: packageSha256,

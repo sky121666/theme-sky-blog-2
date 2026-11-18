@@ -2,20 +2,21 @@
 <th:block th:with="authPageType='signup'">
   <html
     xmlns:th="https://www.thymeleaf.org"
-    th:replace="~{gateway_fragments/layout :: layout(title = '注册 - ' + ${site.title}, head = ~{::head}, body = ~{::body})}"
+    th:replace="~{gateway_fragments/layout :: layout(title = '注册 - ' + ${site.title}, head = null, body = ~{::body})}"
   >
-    <th:block th:fragment="head">
-      <style>
-        .signup-page-wrapper {
-          max-width: 38em;
-        }
-      </style>
-    </th:block>
     <th:block th:fragment="body">
-      <div class="terminal-login-wrapper signup-page-wrapper w-full">
+      <div class="terminal-login-wrapper w-full">
         <!-- Form Container -->
-        <div class="terminal-form-box">
-          <form th:replace="~{gateway_fragments/signup::form}"></form>
+        <div
+          class="terminal-form-box"
+          th:with="nativeSignup=${globalInfo != null and (
+            (#strings.contains(globalInfo.toString(), 'mustVerifyPhoneOnRegistration=') and globalInfo.mustVerifyPhoneOnRegistration)
+            or (#strings.contains(globalInfo.toString(), 'restrictRegistrationDomain=') and globalInfo.restrictRegistrationDomain and globalInfo.mustVerifyEmailOnRegistration == true)
+          )}"
+        >
+          <form
+            th:replace="~{__${nativeSignup ? 'gateway_fragments/signup' : 'gateway_fragments/terminal_signup'}__::form}"
+          ></form>
           <div th:replace="~{gateway_fragments/common::socialAuthProviders}"></div>
         </div>
 

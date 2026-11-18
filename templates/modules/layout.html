@@ -8,7 +8,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content" />
     <title
       th:text="${
         post != null ? post.spec.title + ' - ' + site.title :
@@ -21,47 +21,46 @@
         (tags != null ? 'Tags - ' + site.title : site.title)))))))
       }"
     ></title>
-    <link rel="stylesheet" th:href="@{/assets/main.css?v={version}(version=${theme.spec.version})}" />
+    <meta
+      th:if="${(posts != null and posts.total > 0 and #lists.isEmpty(posts.items)) or (archives != null and archives.total > 0 and #lists.isEmpty(archives.items))}"
+      name="robots"
+      content="noindex, follow"
+    />
+    <th:block th:replace="~{modules/runtime-assets :: stylesheet}" />
     <th:block th:replace="~{modules/theme-style :: themeStyle}" />
-    <script th:src="@{/assets/main.iife.js?v={version}(version=${theme.spec.version})}" defer></script>
+    <th:block th:replace="~{modules/runtime-assets :: script}" />
   </head>
 
   <body
     th:with="
       showHeader=${theme.config.features?.show_header != null ? theme.config.features.show_header : true},
-      compactMode=${theme.config.features?.compact_mode != null ? theme.config.features.compact_mode : false},
       showScrollbar=${theme.config.features?.show_scrollbar != null ? theme.config.features.show_scrollbar : false},
       readerMode=${post != null or singlePage != null},
       currentUser=${#authentication.name != 'anonymousUser' ? contributorFinder.getContributor(#authentication.name) : null}"
     class="terminal-viewport flex w-full flex-col overflow-hidden font-mono"
-    th:classappend="${compactMode ? '' : ' mx-auto max-w-5xl p-4 md:p-6'}"
   >
     <div
       x-data="{ readerMode: ['post', 'page'].includes(window.haloData?.pageType ?? '') }"
       @theme:page-ready.document="readerMode = ['post', 'page'].includes($event.detail.pageType)"
-      class="mx-auto flex h-full w-full max-w-4xl min-w-0 flex-col"
+      class="terminal-frame terminal-shell flex h-full flex-col"
     >
       <!-- Terminal Header -->
       <header
         th:if="${showHeader}"
         x-show="!readerMode"
         th:style="${readerMode ? 'display: none' : null}"
-        class="mb-2 flex-shrink-0 select-none md:mb-4"
+        class="terminal-shell-header mb-2 flex-shrink-0 select-none md:mb-4"
       >
-        <div class="text-terminal-dim mb-2 text-xs">
-          Last login: <span th:text="${#dates.format(#dates.createNow(), 'EEE MMM dd yyyy')}"></span> on ttys001
-        </div>
-
         <!-- Auto-generated ASCII Art from config or site title -->
         <pre
           x-data="asciiTitle($el.getAttribute('data-title'), $el.getAttribute('data-font'))"
           th:data-title="${theme.config.basic.ascii_title_text != null and theme.config.basic.ascii_title_text != '' ? theme.config.basic.ascii_title_text : site.title}"
           th:data-font="${theme.config.basic.ascii_font != null ? theme.config.basic.ascii_font : 'Standard'}"
           x-text="asciiArt"
-          class="text-terminal-green hidden text-xs leading-none font-bold whitespace-pre opacity-80 md:block md:text-sm"
+          class="terminal-ascii-title text-terminal-green hidden text-xs leading-none font-bold whitespace-pre opacity-80 md:block md:text-sm"
         ></pre>
 
-        <div class="text-terminal-green mt-1 flex items-center gap-2 md:mt-4">
+        <div class="terminal-shell-header-meta text-terminal-green mt-1 flex items-center gap-2 md:mt-4">
           <!-- Login/User Info -->
           <div th:if="${theme.config.features?.show_login != false}" class="ml-auto flex gap-4 text-xs">
             <a
@@ -86,6 +85,9 @@
                 >[LOGOUT]</a
               >
             </div>
+          </div>
+          <div th:if="${theme.config.appearance?.terminal_layout == 'unix'}" class="terminal-header-navigation hidden">
+            <th:block th:replace="~{modules/layout :: siteNavigation}" />
           </div>
         </div>
       </header>
@@ -113,7 +115,12 @@
           th:with="postCursor=${post != null ? postFinder.cursor(post.metadata.name) : null}"
         >
           {
-            "categories": /*[[${categories != null ? categories : null}]]*/ null,
+            "categories": /*[[${categories == null ? null : categories.![{
+              'metadata': {'name': metadata.name, 'creationTimestamp': metadata.creationTimestamp},
+              'spec': {'displayName': spec.displayName, 'slug': spec.slug},
+              'status': {'permalink': status.permalink},
+              'postCount': postCount
+            }]}]]*/ null,
             "currentCategory": {
               "displayName": /*[[${category != null ? category.spec.displayName : null}]]*/ null,
               "permalink": /*[[${category != null ? category.status.permalink : null}]]*/ null,
@@ -149,7 +156,12 @@
               "nextUrl": /*[[${posts != null and !#lists.isEmpty(posts.items) and posts.hasNext() ? posts.nextUrl : (archives != null and !#lists.isEmpty(archives.items) and archives.hasNext() ? archives.nextUrl : null)}]]*/ null
             },
             "prevPost": /*[[${postCursor != null and postCursor.hasPrevious() ? postCursor.previous.status.permalink : null}]]*/ null,
-            "tags": /*[[${tags != null ? tags : null}]]*/ null,
+            "tags": /*[[${tags == null ? null : tags.![{
+              'metadata': {'name': metadata.name, 'creationTimestamp': metadata.creationTimestamp},
+              'spec': {'displayName': spec.displayName, 'slug': spec.slug},
+              'status': {'permalink': status.permalink},
+              'postCount': postCount
+            }]}]]*/ null,
             "urls": {
               "home": /*[[@{/}]]*/ "/",
               "categories": /*[[${site.routes.categoriesUri}]]*/ "/categories",
@@ -162,119 +174,168 @@
       </main>
 
       <!-- Terminal Command Input -->
-      <div x-data="terminalInput('~/blog')" class="border-terminal-dim mt-4 flex-shrink-0 border-t border-dashed pt-2">
-        <!-- Command Input Line -->
-        <div class="relative" @click="$refs.cmdInput.focus()">
-          <div class="text-terminal-green flex items-center gap-2 overflow-hidden text-sm">
-            <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name == 'anonymousUser'}"
-              >guest@<span th:text="${site.title}"></span>:<span x-text="currentPath"></span>$</span
-            >
-            <span class="text-terminal-dim flex-shrink-0" th:if="${#authentication.name != 'anonymousUser'}">
-              <span th:text="${currentUser != null ? currentUser.name : #authentication.name}"></span>@<span
-                th:text="${site.title}"
-              ></span
-              >:<span x-text="currentPath"></span>$
-            </span>
-
-            <!-- Visual Command & Cursor -->
-            <div class="flex items-center">
-              <span x-text="command" class="font-mono whitespace-pre"></span>
-              <span class="animate-cursor text-terminal-green">█</span>
-            </div>
-          </div>
-
-          <label for="terminal-command-input" class="sr-only">Terminal command</label>
-          <input
-            id="terminal-command-input"
-            x-ref="cmdInput"
-            x-model="command"
-            @keydown="handleKeydown($event)"
-            type="text"
-            class="absolute inset-0 h-full w-full cursor-text opacity-0"
-            autocomplete="off"
-            spellcheck="false"
-            aria-describedby="terminal-command-help"
-          />
-        </div>
-
-        <!-- Command Output -->
-        <div
-          x-show="output"
-          x-text="output"
-          class="text-terminal-dim mt-1 pl-4 font-mono text-xs whitespace-pre-wrap"
-          role="status"
-          aria-live="polite"
-          aria-atomic="true"
-        ></div>
-
-        <!-- Help Output -->
-        <pre
-          id="terminal-command-help"
-          x-show="showHelp"
-          x-text="helpText"
-          class="text-terminal-dim mt-2 pl-4 text-xs whitespace-pre-wrap"
-        ></pre>
-      </div>
-
-      <!-- Terminal Footer -->
-      <footer
-        class="border-terminal-dim text-terminal-dim mt-2 flex flex-shrink-0 flex-col justify-between border-t border-dashed py-2 text-xs md:flex-row"
+      <div
+        x-data="terminalInput('~/blog')"
+        th:attr="data-reader-tools=${readerMode ? 'collapsed' : null}"
+        :data-reader-tools="readerMode ? (toolsOpen ? 'expanded' : 'collapsed') : null"
+        @keydown.escape="closeReaderTools($event)"
+        class="terminal-shell-controls shrink-0"
       >
-        <div class="flex flex-wrap gap-x-4 gap-y-1">
-          <a
-            th:href="@{/}"
-            class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
-            >[INDEX]</a
-          >
-          <a
-            th:href="@{${site.routes.categoriesUri}}"
-            class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
-            >[CATEGORY]</a
-          >
-          <a
-            th:href="@{${site.routes.tagsUri}}"
-            class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
-            >[TAG]</a
-          >
-          <a
-            th:href="@{${site.routes.archivesUri}}"
-            class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
-            >[ARCHIVES]</a
-          >
+        <nav class="reader-actions" aria-label="Reading tools">
+          <button type="button" data-terminal-action="source-back" th:data-home-url="@{/}">[BACK]</button>
           <button
             th:if="${theme.config.features?.show_search != false and pluginFinder.available('PluginSearchWidget')}"
             type="button"
             data-terminal-action="search"
-            class="hover:text-terminal-green inline-flex min-h-10 cursor-pointer items-center bg-transparent p-0 font-mono text-inherit transition-colors md:min-h-0"
           >
             [SEARCH]
           </button>
-        </div>
-        <div class="flex flex-col text-right md:flex-row md:gap-4 md:text-left">
-          <div th:if="${theme.config.footer.icp}">
-            <a
-              href="https://beian.miit.gov.cn/"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
-              th:text="${theme.config.footer.icp}"
-            ></a>
+          <button
+            type="button"
+            x-ref="toolsToggle"
+            class="reader-tools-toggle"
+            aria-controls="terminal-tools"
+            aria-expanded="false"
+            :aria-expanded="toolsOpen"
+            @click="toolsOpen = !toolsOpen"
+          >
+            [TERMINAL <span aria-hidden="true" x-text="toolsOpen ? '−' : '+'"></span>]
+          </button>
+        </nav>
+        <nav class="reader-fallback" aria-label="Site navigation">
+          <th:block th:replace="~{modules/layout :: siteLinks}" />
+        </nav>
+        <div id="terminal-tools">
+          <div class="terminal-command-panel border-terminal-dim mt-4 border-t border-dashed pt-2">
+            <!-- Command Input Line -->
+            <div class="terminal-command-line relative" @click="$refs.cmdInput.focus()">
+              <div class="terminal-command-prompt text-terminal-green flex items-center gap-2 overflow-hidden text-sm">
+                <span class="terminal-command-path text-terminal-dim">
+                  <span
+                    th:fragment="promptHost"
+                    class="terminal-prompt-host"
+                    th:with="username=${#authentication.name == 'anonymousUser' ? 'guest' : (currentUser != null ? currentUser.name : #authentication.name)}"
+                    th:text="|${username}@${site.title}:|"
+                  ></span
+                  ><span x-text="currentPath">~/blog</span><span class="terminal-command-sigil">$</span>
+                </span>
+
+                <!-- Visual Command & Cursor -->
+                <div class="terminal-command-echo flex items-center">
+                  <span x-text="command" class="font-mono whitespace-pre"></span>
+                  <span class="terminal-command-caret animate-cursor text-terminal-green" aria-hidden="true">█</span>
+                </div>
+              </div>
+
+              <label for="terminal-command-input" class="sr-only">Terminal command</label>
+              <input
+                id="terminal-command-input"
+                x-ref="cmdInput"
+                x-model="command"
+                @keydown="handleKeydown($event)"
+                @focus="syncKeyboardHeight()"
+                @blur="clearKeyboardHeight()"
+                autocapitalize="none"
+                autocorrect="off"
+                enterkeyhint="go"
+                type="text"
+                class="absolute inset-0 h-full w-full cursor-text opacity-0"
+                autocomplete="off"
+                spellcheck="false"
+                aria-describedby="terminal-command-help"
+              />
+            </div>
+            <div class="terminal-command-keys hidden" aria-hidden="true">
+              <span class="terminal-command-keys-browse">↑↓ Move · Enter Open</span>
+              <span class="terminal-command-keys-type">Enter Run · Esc Browse</span>
+            </div>
+
+            <!-- Command Output -->
+            <div
+              x-show="output"
+              x-text="output"
+              class="terminal-command-output text-terminal-dim mt-1 pl-4 font-mono text-xs whitespace-pre-wrap"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            ></div>
+
+            <!-- Help Output -->
+            <pre
+              id="terminal-command-help"
+              x-show="showHelp"
+              x-text="helpText"
+              class="text-terminal-dim mt-2 pl-4 text-xs whitespace-pre-wrap"
+            ></pre>
           </div>
-          <div th:if="${theme.config.footer.police_icp}">
-            <a
-              href="http://www.beian.gov.cn/portal/registerSystemInfo"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+
+          <!-- Terminal Footer -->
+          <footer
+            class="terminal-shell-footer border-terminal-dim text-terminal-dim mt-2 flex flex-shrink-0 flex-col justify-between border-t border-dashed py-2 text-xs md:flex-row"
+          >
+            <nav
+              th:fragment="siteNavigation"
+              aria-label="Site navigation"
+              class="terminal-site-navigation flex flex-wrap gap-x-4 gap-y-1"
             >
-              <span th:text="${theme.config.footer.police_icp}"></span>
-            </a>
-          </div>
-          <div>
-            &copy; <span th:text="${#dates.year(#dates.createNow())}"></span> <span th:text="${site.title}"></span>
-          </div>
+              <th:block th:fragment="siteLinks">
+                <a
+                  th:href="@{/}"
+                  class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+                  >[INDEX]</a
+                >
+                <a
+                  th:href="@{${site.routes.categoriesUri}}"
+                  class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+                  >[CATEGORY]</a
+                >
+                <a
+                  th:href="@{${site.routes.tagsUri}}"
+                  class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+                  >[TAG]</a
+                >
+                <a
+                  th:href="@{${site.routes.archivesUri}}"
+                  class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+                  >[ARCHIVES]</a
+                >
+              </th:block>
+              <button
+                th:if="${theme.config.features?.show_search != false and pluginFinder.available('PluginSearchWidget')}"
+                type="button"
+                data-terminal-action="search"
+                class="terminal-footer-search hover:text-terminal-green inline-flex min-h-10 cursor-pointer items-center bg-transparent p-0 font-mono text-inherit transition-colors md:min-h-0"
+              >
+                [SEARCH]
+              </button>
+            </nav>
+            <div class="flex flex-col text-right md:flex-row md:gap-4 md:text-left">
+              <div th:if="${theme.config.footer.icp}">
+                <a
+                  href="https://beian.miit.gov.cn/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+                  th:text="${theme.config.footer.icp}"
+                ></a>
+              </div>
+              <div th:if="${theme.config.footer.police_icp}">
+                <a
+                  href="http://www.beian.gov.cn/portal/registerSystemInfo"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hover:text-terminal-green inline-flex min-h-10 items-center transition-colors md:min-h-0"
+                >
+                  <span th:text="${theme.config.footer.police_icp}"></span>
+                </a>
+              </div>
+              <div>
+                &copy; <span th:text="${#dates.year(#dates.createNow())}"></span> <span th:text="${site.title}"></span>
+              </div>
+            </div>
+          </footer>
         </div>
-      </footer>
+      </div>
     </div>
     <th:block th:if="${theme.config.footer.custom_head}">
       <th:block th:utext="${theme.config.footer.custom_head}"></th:block>

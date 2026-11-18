@@ -4,6 +4,109 @@
    password toggle, form helpers
    ======================================== */
 
+.terminal-gateway-theme {
+  --gateway-width: 30rem;
+  --gateway-panel-padding: clamp(1rem, 4vw, 2rem);
+  --gateway-surface: color-mix(in srgb, var(--terminal-bg) 95%, var(--terminal-text));
+  --gateway-rule: color-mix(in srgb, var(--terminal-bg) 76%, var(--terminal-reading-text));
+  --terminal-dim: color-mix(in srgb, var(--terminal-reading-text) 72%, var(--terminal-bg));
+  --terminal-glow: color-mix(in srgb, var(--terminal-text) 20%, transparent);
+
+  background: var(--terminal-bg);
+  color-scheme: dark;
+}
+
+.terminal-gateway {
+  display: flex;
+  min-block-size: 100svh;
+  flex-direction: column;
+  align-items: center;
+  justify-content: safe center;
+  padding: clamp(1rem, 3vw, 2.5rem);
+  color: var(--terminal-reading-text);
+  animation: none;
+}
+
+.terminal-gateway::before,
+.terminal-gateway::after {
+  display: none;
+}
+
+.terminal-gateway-panel {
+  inline-size: min(100%, var(--gateway-width));
+  min-inline-size: 0;
+  border: 1px solid var(--gateway-rule);
+  background: var(--gateway-surface);
+}
+
+.terminal-gateway-header,
+.terminal-gateway-content {
+  padding: var(--gateway-panel-padding);
+}
+
+.terminal-gateway-header {
+  border-block-end: 1px solid var(--gateway-rule);
+}
+
+.terminal-gateway-context {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-block-end: 0.75rem;
+  color: var(--terminal-dim);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+.terminal-gateway-context code {
+  color: var(--terminal-text);
+  font-family: var(--terminal-font-family);
+}
+
+.terminal-gateway-header h1 {
+  margin: 0;
+  font-size: clamp(1.625rem, 4vw, 2rem);
+  font-weight: 700;
+  line-height: 1.25;
+  text-shadow: none;
+}
+
+.terminal-gateway #login-form .login-row {
+  display: grid;
+  gap: 1.125rem;
+}
+
+.terminal-gateway #login-form .login-row > .form-item {
+  margin: 0;
+}
+
+.terminal-gateway #login-form .password-toggle-button {
+  min-inline-size: 2.75rem;
+  block-size: 2.75rem;
+}
+
+.terminal-gateway #login-form .form-input-stack input {
+  padding-inline-end: 2.75rem !important;
+}
+
+.terminal-gateway #login-form > .form-item > button[type="submit"] {
+  min-block-size: 2.75rem;
+  margin-block: 0 !important;
+  border-width: 1px !important;
+  background: var(--terminal-text) !important;
+  color: var(--terminal-bg) !important;
+}
+
+.terminal-gateway #login-form > .form-item > button[type="submit"]:hover {
+  background: color-mix(in srgb, var(--terminal-text) 84%, white) !important;
+}
+
+.terminal-gateway ::placeholder {
+  color: var(--terminal-dim);
+  opacity: 0.72;
+}
+
 /* Exclude checkboxes and radios from generic input styling */
 .auth-form-terminal input:not([type="checkbox"]):not([type="radio"]) {
   background: transparent !important;
@@ -252,8 +355,7 @@
    ======================================== */
 .terminal-form-box {
   width: 100%;
-  max-width: 400px;
-  margin: 1rem auto;
+  margin: 0 auto;
   position: relative;
 }
 
@@ -405,10 +507,6 @@
 }
 
 @media (max-width: 420px) {
-  .terminal-form-box {
-    margin-block: 0.5rem;
-  }
-
   .auth-form-terminal .signup-email-code-row {
     flex-direction: column;
     align-items: stretch;

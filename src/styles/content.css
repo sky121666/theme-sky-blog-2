@@ -7,9 +7,94 @@
 .terminal-content {
   min-width: 0;
   max-width: 100%;
-  font-family: var(--terminal-font-family);
+  font-family:
+    system-ui,
+    -apple-system,
+    "PingFang SC",
+    "Microsoft YaHei",
+    sans-serif;
+  color: var(--terminal-reading-text);
   line-height: 1.8;
   overflow-wrap: anywhere;
+}
+
+html:not([data-theme-ready]) .requires-theme-runtime {
+  display: none;
+}
+
+.reader-title,
+.terminal-content :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--terminal-reading-heading);
+  text-shadow: none;
+}
+
+.reader-meta,
+.reader-toc {
+  color: var(--terminal-secondary);
+}
+
+:is(.reader-title, .reader-meta, .reader-toc, .terminal-comments) {
+  border-color: var(--terminal-rule-color);
+  border-style: var(--terminal-rule-style);
+}
+
+.reader-toc summary {
+  gap: 0.5rem;
+}
+
+.reader-toc-marker {
+  width: 0.45rem;
+  aspect-ratio: 1;
+  border-inline-end: 1px solid currentColor;
+  border-block-end: 1px solid currentColor;
+  transform: rotate(-45deg);
+}
+
+.reader-toc[open] .reader-toc-marker {
+  transform: rotate(45deg);
+}
+
+.reader-toc nav {
+  max-block-size: min(18rem, 45dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin-block-end: 0.5rem;
+}
+
+.reader-toc ol {
+  margin: 0;
+  padding: 0 0.5rem 0 2.25rem;
+  list-style: decimal;
+}
+
+.reader-toc ol > li {
+  margin: 0;
+}
+
+.reader-toc [data-toc-level="3"],
+.reader-toc ol:has(> [data-toc-level="1"]) > [data-toc-level="2"] {
+  padding-inline-start: 1rem;
+}
+
+.reader-toc ol:has(> [data-toc-level="1"]) > [data-toc-level="3"] {
+  padding-inline-start: 2rem;
+}
+
+.reader-toc a {
+  text-shadow: none;
+}
+
+.terminal-content :is(code, pre, kbd, samp, shiki-code),
+.terminal-content :is(h1, h2, h3, h4, h5, h6)::before {
+  font-family: var(--terminal-font-family);
+}
+
+.terminal-content :is(h4, h5, h6)::before {
+  color: var(--terminal-dim);
+}
+
+.terminal-content :is(a, strong) {
+  text-shadow: none;
 }
 
 .terminal-content :where(p, li, blockquote, a, th, td, code:not(pre code)) {
@@ -21,7 +106,6 @@
 /* Headings with Terminal Decorators */
 .terminal-content h1 {
   font-size: 1.75rem;
-  color: var(--terminal-text);
   border-bottom: 2px dashed var(--terminal-text);
   padding-bottom: 0.5rem;
   margin: 2rem 0 1rem;
@@ -34,7 +118,6 @@
 
 .terminal-content h2 {
   font-size: 1.5rem;
-  color: var(--terminal-text);
   border-left: 4px solid var(--terminal-text);
   padding-left: 0.75rem;
   margin: 1.5rem 0 1rem;
@@ -47,7 +130,6 @@
 
 .terminal-content h3 {
   font-size: 1.25rem;
-  color: var(--terminal-text);
   border-left: 2px solid var(--terminal-dim);
   padding-left: 0.5rem;
   margin: 1.25rem 0 0.75rem;
@@ -62,7 +144,6 @@
 .terminal-content h5,
 .terminal-content h6 {
   font-size: 1.1rem;
-  color: var(--terminal-dim);
   margin: 1rem 0 0.5rem;
 }
 
@@ -81,7 +162,7 @@
 /* Paragraphs */
 .terminal-content p {
   margin: 0.75rem 0;
-  color: var(--terminal-text);
+  color: var(--terminal-reading-text);
 }
 
 /* Links */
@@ -90,14 +171,15 @@
   text-decoration: underline;
   text-decoration-style: dashed;
   text-underline-offset: 3px;
-  transition: all 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .terminal-content a:hover {
   background: var(--terminal-text);
   color: var(--terminal-bg);
   text-decoration: none;
-  padding: 0 2px;
 }
 
 /* Inline Code */
@@ -169,30 +251,37 @@
 }
 
 /* Lists */
-.terminal-content ul,
-.terminal-content ol {
+.terminal-content :is(ul, ol) {
   margin: 0.75rem 0;
-  padding-left: 1.5rem;
-}
-
-.terminal-content ul {
+  padding-inline-start: 2.25rem;
   list-style: none;
 }
 
-.terminal-content ul > li::before {
-  content: "├── ";
-  color: var(--terminal-dim);
-  margin-left: -1.5rem;
-  display: inline-block;
-  width: 1.5rem;
+.terminal-content :is(ul:not([data-type="taskList"]), ol) > li {
+  position: relative;
 }
 
-.terminal-content ul > li:last-child::before {
-  content: "└── ";
+.terminal-content :is(ul:not([data-type="taskList"]), ol) > li::before {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 100%;
+  padding-inline-end: 0.25rem;
+  color: var(--terminal-dim);
+  font-family: var(--terminal-font-family);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.terminal-content ul:not([data-type="taskList"]) > li::before {
+  content: "├──";
+}
+
+.terminal-content ul:not([data-type="taskList"]) > li:where(:last-child)::before {
+  content: "└──";
 }
 
 .terminal-content ol {
-  list-style: none;
+  padding-inline-start: 2.75rem;
   counter-reset: terminal-counter;
 }
 
@@ -201,29 +290,33 @@
 }
 
 .terminal-content ol > li::before {
-  content: "[" counter(terminal-counter) "] ";
-  color: var(--terminal-dim);
-  margin-left: -2rem;
-  display: inline-block;
-  width: 2rem;
+  content: "[" counter(terminal-counter) "]";
+}
+
+@media (width < 48rem) {
+  .terminal-content :is(ul, ol) :is(ul:not([data-type="taskList"]), ol) {
+    padding-inline-start: 1rem;
+  }
+
+  .terminal-content :is(ul, ol) ul:not([data-type="taskList"]) > li::before {
+    content: "·";
+  }
+
+  .terminal-content :is(ul, ol) ol > li::before {
+    content: counter(terminal-counter) ".";
+  }
 }
 
 /* Task Lists */
 .terminal-content ul[data-type="taskList"] {
-  list-style: none;
-  padding-left: 0;
-  margin: 0.75rem 0;
+  padding-inline-start: 0;
 }
 
-.terminal-content ul[data-type="taskList"] li {
+.terminal-content ul[data-type="taskList"] > li {
   display: flex;
   align-items: baseline;
   margin: 0.5rem 0;
   padding-left: 0;
-}
-
-.terminal-content ul[data-type="taskList"] li::before {
-  content: none !important;
 }
 
 .terminal-content ul[data-type="taskList"] li > label {
@@ -397,12 +490,12 @@
 
 /* Strong and Emphasis */
 .terminal-content strong {
-  color: var(--terminal-text);
+  color: var(--terminal-reading-heading);
   font-weight: 700;
 }
 
 .terminal-content em {
-  color: var(--terminal-dim);
+  color: inherit;
   font-style: italic;
 }
 

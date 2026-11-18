@@ -31,18 +31,17 @@ test("flex shells and rich content keep mobile intrinsic widths contained", () =
   const layout = read("templates/modules/layout.html");
   assertClassTokens(layout, /<body[\s\S]*?class="([^"]*)"/, ["terminal-viewport", "overflow-hidden"]);
   assert.doesNotMatch(layout, /class="[^"]*\bh-screen\b/);
-  assertClassTokens(layout, /<div[\s\S]*?class="([^"]*mx-auto[^"]*)"/, [
+  assertClassTokens(layout, /<div[\s\S]*?class="([^"]*terminal-shell[^"]*)"/, [
+    "terminal-frame",
     "flex",
     "h-full",
-    "w-full",
-    "max-w-4xl",
-    "min-w-0",
     "flex-col",
   ]);
   assertClassTokens(layout, /<main[^>]*\sclass="([^"]*)"/, ["relative", "min-w-0", "flex-1", "overflow-auto"]);
 
   for (const path of ["templates/post.html", "templates/page.html"]) {
     const template = read(path);
+    assertSomeClassContains(template, ["terminal-reader"]);
     assertClassTokens(template, /<article class="([^"]*)"/, ["prose", "prose-invert", "min-w-0", "max-w-none"]);
     assertClassTokens(template, /<div class="([^"]*terminal-content[^"]*)"/, [
       "terminal-content",
@@ -64,73 +63,100 @@ test("flex shells and rich content keep mobile intrinsic widths contained", () =
   assert.match(contentStyles, /\.terminal-content shiki-code[\s\S]*overflow-x: auto/);
 });
 
-test("public file lists use compact mobile rows and retain desktop grids", () => {
-  for (const path of [
-    "templates/category.html",
-    "templates/tag.html",
-    "templates/author.html",
-    "templates/categories.html",
-    "templates/tags.html",
-  ]) {
+test("content, plugins, and error pages use the same frame width and gutter", () => {
+  const styles = read("src/styles/layout.css");
+  assert.equal((styles.match(/--terminal-page-width:/g) ?? []).length, 1);
+  assert.match(styles, /\.terminal-frame\s*\{[^}]*max-inline-size:\s*var\(--terminal-page-width\)/);
+  assert.match(styles, /\.terminal-frame\s*\{[^}]*padding:\s*var\(--terminal-page-gutter\)/);
+  for (const path of ["templates/modules/layout.html", "templates/layout.html", "templates/error/error.html"]) {
     const template = read(path);
-    assertSomeClassContains(
-      template,
-      ["grid-cols-[minmax(0,1fr)_auto]", "items-center", "min-h-10", "md:grid-cols-12", "md:min-h-0"],
-      ["gap-y-1", "py-2"],
-    );
-    assertSomeClassContains(template, ["min-h-10", "break-words", "md:truncate"], ["truncate"]);
-    assertSomeClassContains(template, ["row-start-1", "whitespace-nowrap"]);
-    assertSomeClassContains(template, ["hidden", "whitespace-nowrap", "md:block"]);
-    assertSomeClassContains(template, ["font-mono", "text-xs", "md:space-y-1", "md:text-sm"], ["space-y-1"]);
-    assertSomeClassContains(template, ["mb-3", "min-w-0", "md:mb-6"]);
-    assertSomeClassContains(template, ["typing-effect", "flex-shrink-0", "whitespace-nowrap"]);
-    assert.match(template, /md:grid-cols-12/, `${path} must retain the 12-column desktop layout`);
+    assertSomeClassContains(template, ["terminal-frame"]);
+    assert.match(template, /modules\/theme-style :: themeStyle/, path);
+    assert.doesNotMatch(template, /\bmax-w-(?:md|[2-5]xl)\b/, path);
+  }
+});
+
+test("reader and error panels fill the same usable lane as file rows", () => {
+  const styles = read("src/styles/layout.css");
+  assert.match(styles, /:is\(\.terminal-reader, \.terminal-panel\)\s*\{[^}]*inline-size:\s*100%/);
+  assert.doesNotMatch(styles, /--terminal-(?:reading|form|notice|panel)-width/);
+  assert.doesNotMatch(read("src/styles/file-list.css"), /\.terminal-file-list\s*\{[^}]*padding-inline:/);
+});
+
+test("the gateway uses the selected palette with its own width and visible heading", () => {
+  const layout = read("templates/gateway_fragments/layout.html");
+  const styles = read("src/styles/auth.css");
+  assertSomeClassContains(layout, ["terminal-gateway-theme"]);
+  assertSomeClassContains(layout, ["terminal-gateway-panel"]);
+  assert.match(layout, /<main class="terminal-gateway-content auth-form-terminal">/);
+  assert.match(layout, /<h1 th:text="\$\{actionTitle\}">/);
+  assert.match(layout, /modules\/theme-style :: palette/);
+  assert.doesNotMatch(layout, /\bterminal-frame\b|modules\/theme-style :: themeStyle/);
+  assert.match(styles, /\.terminal-gateway-theme\s*\{[^}]*--gateway-width:/);
+  assert.doesNotMatch(styles, /--terminal-(?:bg|text)\s*:/);
+  assert.match(styles, /\.terminal-gateway-panel\s*\{[^}]*inline-size: min\(100%, var\(--gateway-width\)\)/);
+  assert.doesNotMatch(styles, /--terminal-page-(?:width|gutter)/);
+});
+
+test("blog and gateway use one palette fragment and only the blog declares layout markers", () => {
+  const appearance = read("templates/modules/theme-style.html");
+  assert.match(appearance, /th:fragment="themeStyle"[\s\S]*?modules\/theme-style :: palette/);
+  const palette = appearance.split('th:fragment="palette"')[1];
+  assert.ok(palette);
+  assert.match(palette, /data-theme-navigation-style/);
+  assert.match(palette, /--theme-color-primary:.*--theme-color-bg:/);
+  assert.doesNotMatch(palette, /data-terminal-layout|data-terminal-compact|animation:\s*none/);
+});
+
+test("shared file lists retain their grid, wrapping titles, and mobile touch targets", () => {
+  const list = read("templates/modules/file-list.html");
+  const listStyles = read("src/styles/file-list.css");
+
+  assertSomeClassContains(list, ["home-file-grid", "home-file-row", "items-center", "min-h-10"]);
+  assertSomeClassContains(list, ["home-file-meta", "whitespace-nowrap"]);
+  assertSomeClassContains(list, ["home-file-meta", "hidden", "md:block"]);
+  assertSomeClassContains(list, ["font-mono", "text-xs", "md:space-y-1", "md:text-sm"], ["space-y-1"]);
+  assertSomeClassContains(list, ["terminal-list-prompt"]);
+  assertSomeClassContains(list, ["typing-effect", "shrink-0", "whitespace-nowrap"]);
+
+  const titleLinks = [...list.matchAll(/<a\b[^>]*\sclass="[^"]*\bhome-file-title\b[^"]*"[^>]*>/g)];
+  assert.equal(titleLinks.length, 2);
+  for (const [link] of titleLinks) {
+    assertSomeClassContains(link, ["min-h-10", "min-w-0"], ["truncate", "md:truncate", "whitespace-nowrap"]);
   }
 
+  assert.match(listStyles, /\.home-file-grid\s*{[^}]*grid-template-columns: var\(--terminal-file-columns\);/);
+  assert.match(listStyles, /--terminal-file-columns: minmax\(0, 1fr\) auto;/);
+  assert.match(listStyles, /\.home-file-title\s*{[^}]*overflow-wrap:\s*anywhere;/);
+});
+
+test("individual list pages retain compact headers and archive groups", () => {
   for (const path of ["templates/category.html", "templates/tag.html", "templates/author.html"]) {
     const template = read(path);
-    assertSomeClassContains(template, ["mb-2", "min-h-10", "flex-wrap", "md:mb-4", "md:p-3"]);
-    assertSomeClassContains(template, ["mt-4", "md:mt-8"]);
+    assertSomeClassContains(template, ["terminal-file-list"]);
+    assert.match(template, /modules\/file-list :: context\(/, path);
+    assert.match(template, /modules\/file-list :: postList\(/, path);
   }
 
   const archives = read("templates/archives.html");
-  assertSomeClassContains(
-    archives,
-    ["grid-cols-[minmax(0,1fr)_auto]", "items-center", "min-h-10", "md:grid-cols-[8rem_minmax(0,1fr)]", "md:min-h-0"],
-    ["grid-cols-1", "gap-y-1", "py-2"],
-  );
-  assertSomeClassContains(archives, ["min-h-10", "break-words", "md:col-start-2", "md:truncate"], ["truncate"]);
-  assertSomeClassContains(archives, ["col-start-2", "row-start-1", "whitespace-nowrap", "md:col-start-1"]);
-  assertSomeClassContains(archives, ["font-mono", "text-xs", "md:space-y-1", "md:text-sm"], ["space-y-1"]);
-  assertSomeClassContains(archives, ["mb-3", "min-w-0", "md:mb-6"]);
   assertSomeClassContains(archives, ["mb-4", "md:mb-8"]);
   assertSomeClassContains(archives, ["mb-3", "md:mb-5"]);
-  assertSomeClassContains(archives, ["mt-4", "md:mt-8"]);
-  assert.match(archives, /<time[\s\S]*?:class="\{ '!text-terminal-black': isSelected/);
-});
+  assertSomeClassContains(archives, ["terminal-file-list", "terminal-file-list--lean"]);
 
-test("home list keeps a compact single-row mobile rhythm without shrinking touch targets", () => {
   const index = read("templates/index.html");
   const layout = read("templates/modules/layout.html");
-
-  assertSomeClassContains(
-    index,
-    ["grid-cols-[minmax(0,1fr)_auto]", "items-center", "min-h-10", "md:grid-cols-12", "md:min-h-0"],
-    ["gap-y-1", "py-2"],
-  );
-  assertSomeClassContains(index, ["min-h-10", "break-words", "md:truncate"]);
-  assertSomeClassContains(index, ["row-start-1", "whitespace-nowrap"]);
-  assertSomeClassContains(index, ["hidden", "whitespace-nowrap", "md:block"]);
   assertSomeClassContains(index, ["font-mono", "text-xs", "md:space-y-1", "md:text-sm"], ["space-y-1"]);
-  assertSomeClassContains(index, ["mb-3", "md:mb-6"]);
   assertClassTokens(layout, /<header[\s\S]*?class="([^"]*)"/, ["mb-2", "md:mb-4", "flex-shrink-0"]);
   assertSomeClassContains(layout, ["mt-1", "md:mt-4", "items-center"]);
   assert.doesNotMatch(index, /(?:min-)?h-(?:19|\[[^\]]+\])/);
-  assert.match(index, /md:grid-cols-12/, "home list must retain the 12-column desktop layout");
 });
 
-test("post rows expose the minimal runtime dataset", () => {
-  const expectedAttributes = [
+test("the shared post row exposes the runtime dataset and real article link", () => {
+  const template = read("templates/modules/file-list.html");
+  const postRow = template.match(/<li\b[^>]*th:each="post : \$\{entries\}"[^>]*>/)?.[0];
+  assert.ok(postRow);
+  for (const attribute of [
+    "data-nav-item",
     "data-post-record",
     "th:data-post-name",
     "th:data-post-created-at",
@@ -139,27 +165,37 @@ test("post rows expose the minimal runtime dataset", () => {
     "th:data-post-owner",
     "th:data-post-published-at",
     "th:data-post-permalink",
-  ];
-
-  for (const path of [
-    "templates/index.html",
-    "templates/category.html",
-    "templates/tag.html",
-    "templates/author.html",
-    "templates/archives.html",
   ]) {
-    const template = read(path);
-    const postRow = template.match(/<li[\s\S]*?th:each="post : \$\{[^"]+\}"[\s\S]*?>/)?.[0];
-    assert.ok(postRow, `${path} must render a post row`);
-    for (const attribute of expectedAttributes) {
-      assert.match(postRow, new RegExp(`\\b${attribute}(?:=|\\s|>)`), `${path} is missing ${attribute}`);
-    }
-    assert.equal(template.match(/\bdata-post-record\b/g)?.length, 1, `${path} must only mark actual post rows`);
+    assert.match(postRow, new RegExp("\\s" + attribute + "(?:=|\\s|>)"), attribute);
   }
+  assert.equal((template.match(/\bdata-post-record\b/g) ?? []).length, 1);
+  assert.match(template, /<a\s+th:href="@\{\$\{post\.status\.permalink\}\}"\s+data-navigation="full"/);
+  assert.match(template, /<time\b[^>]*th:datetime="\$\{post\.spec\.publishTime\}"/);
+  assert.equal((template.match(/\bdata-navigation="full"/g) ?? []).length, 1);
 });
 
-test("post command prompt stacks on mobile and returns to one row on desktop", () => {
+test("post command keeps cat visible and reserves the full user prompt for desktop", () => {
   const post = read("templates/post.html");
-  assertSomeClassContains(post, ["flex", "flex-col", "items-start", "md:flex-row", "md:items-center"]);
+  assertSomeClassContains(post, ["text-terminal-dim", "hidden", "md:inline"]);
   assertSomeClassContains(post, ["typing-effect", "min-w-0", "break-words"]);
+});
+
+test("the mobile reader menu is collapsed in server markup before Alpine starts", () => {
+  const layout = read("templates/modules/layout.html");
+  const panel = layout.match(/<div\s+x-data="terminalInput[^"]+"[^>]*>/)?.[0];
+  const toggle = layout.match(/<button\b[^>]*aria-controls="terminal-tools"[^>]*>/)?.[0];
+  assert.ok(panel);
+  assert.ok(toggle);
+  assert.ok(panel.includes("th:attr=\"data-reader-tools=${readerMode ? 'collapsed' : null}\""));
+  assert.match(toggle, /\saria-expanded="false"\s+:aria-expanded="toolsOpen"/);
+});
+
+test("post metadata identifies the file once in the cat prompt and retains author and date", () => {
+  const post = read("templates/post.html");
+  assert.doesNotMatch(post, />File:<\/span>/);
+  assert.match(post, /data-filename=/);
+  assert.match(post, /contributorFinder\.getContributor/);
+  assert.match(post, /Published:/);
+  assert.match(post, /datetime="\$\{post\.spec\.publishTime\}"/);
+  assert.doesNotMatch(post, /#strings\.length\(post\.content\.content\)/);
 });

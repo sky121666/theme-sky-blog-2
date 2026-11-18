@@ -1,6 +1,8 @@
 <form
   th:fragment="form"
   class="auth-form-terminal halo-form"
+  th:with="isChinese=${#locale.language == 'zh'},
+    delegatedPasskey=${authProvider.metadata.name == 'passkey' and pluginFinder.available('auth-passkey', '2.0.0')}"
   name="login-form"
   id="login-form"
   th:action="@{${authProvider.spec.authenticationUrl}}"
@@ -13,15 +15,25 @@
     th:if="${param.error != null and param.error.size() > 0}"
     th:with="error = ${param.error[0]}"
   >
-    <span class="mr-2 font-bold">[ERROR]</span>
-    <strong th:if="${error == 'invalid-credential'}"> Invalid username or password. </strong>
-    <strong th:if="${error == 'rate-limit-exceeded'}"> Too many attempts, please try again later. </strong>
-    <strong th:if="${error == 'account-disabled'}"> Account disabled. </strong>
+    <span class="mr-2 font-bold" th:text="${isChinese ? '[错误]' : '[ERROR]'}">[ERROR]</span>
+    <strong
+      th:if="${error == 'invalid-credential'}"
+      th:text="${isChinese ? '用户名或密码错误。' : 'Invalid username or password.'}"
+      >Invalid username or password.</strong
+    >
+    <strong
+      th:if="${error == 'rate-limit-exceeded'}"
+      th:text="${isChinese ? '尝试次数过多，请稍后再试。' : 'Too many attempts, please try again later.'}"
+      >Too many attempts, please try again later.</strong
+    >
+    <strong th:if="${error == 'account-disabled'}" th:text="${isChinese ? '账号已停用。' : 'Account disabled.'}"
+      >Account disabled.</strong
+    >
     <strong
       th:unless="${error == 'invalid-credential' or error == 'rate-limit-exceeded' or error == 'account-disabled'}"
+      th:text="${isChinese ? '登录失败，请重试。' : 'Login failed. Please try again.'}"
+      >Login failed. Please try again.</strong
     >
-      Login failed. Please try again.
-    </strong>
   </div>
 
   <!-- Success Messages -->
@@ -30,16 +42,32 @@
     role="alert"
     th:if="${param.logout != null and param.logout.size() > 0}"
   >
-    <span class="mr-2 font-bold">[INFO]</span>
-    <strong>Logged out successfully.</strong>
+    <span class="mr-2 font-bold" th:text="${isChinese ? '[提示]' : '[INFO]'}">[INFO]</span>
+    <strong th:text="${isChinese ? '已退出登录。' : 'Logged out successfully.'}">Logged out successfully.</strong>
   </div>
   <div
     class="terminal-alert border-terminal-green text-terminal-green bg-terminal-green/10 mb-6 border p-3 font-mono text-sm"
     role="alert"
     th:if="${param.signup != null and param.signup.size() > 0}"
   >
-    <span class="mr-2 font-bold">[INFO]</span>
-    <strong>Registration successful.</strong>
+    <span class="mr-2 font-bold" th:text="${isChinese ? '[提示]' : '[INFO]'}">[INFO]</span>
+    <strong th:text="${isChinese ? '注册成功。' : 'Registration successful.'}">Registration successful.</strong>
+  </div>
+  <div
+    class="terminal-alert border-terminal-green text-terminal-green bg-terminal-green/10 mb-6 border p-3 font-mono text-sm"
+    role="alert"
+    th:if="${param.password_reset != null and param.password_reset.size() > 0}"
+  >
+    <span class="mr-2 font-bold" th:text="${isChinese ? '[提示]' : '[INFO]'}">[INFO]</span>
+    <strong th:text="#{form.messages.passwordReset}">Password reset successfully.</strong>
+  </div>
+  <div
+    class="terminal-alert border-terminal-green text-terminal-green bg-terminal-green/10 mb-6 border p-3 font-mono text-sm"
+    role="alert"
+    th:if="${param.oauth2_bind != null and param.oauth2_bind.size() > 0}"
+  >
+    <span class="mr-2 font-bold" th:text="${isChinese ? '[提示]' : '[INFO]'}">[INFO]</span>
+    <strong th:text="#{form.messages.oauth2Bind}">Sign in to link your account.</strong>
   </div>
 
   <!-- Dynamic Form Fields Injection -->
@@ -56,21 +84,29 @@
       value="true"
       th:checked="${rememberMe}"
       class="terminal-checkbox"
-    /><label for="remember-me">REMEMBER_ME</label>
+    /><label for="remember-me" th:text="${isChinese ? '记住登录状态' : 'Remember me'}">Remember me</label>
   </div>
 
   <!-- Altcha Captcha (Halo Pro 自动注入) -->
   <div halo:captcha class="form-item-compact mb-6 w-full"></div>
 
-  <!-- Submit Button -->
-  <div class="form-item mt-8">
+  <!-- auth-passkey 2.0.0 can handle its delegated link on both login routes. -->
+  <div class="pill-items mt-8" th:if="${delegatedPasskey}">
+    <a
+      class="terminal-provider-choice"
+      th:href="@{/login(method=${authProvider.metadata.name})}"
+      th:text="${isChinese ? '使用通行密钥登录' : 'Sign in with a passkey'}"
+      >Sign in with a passkey</a
+    >
+  </div>
+  <div class="form-item mt-8" th:unless="${delegatedPasskey}">
     <button
       type="submit"
       class="group border-terminal-green text-terminal-green hover:bg-terminal-green hover:text-terminal-black relative flex w-full items-center justify-center overflow-hidden border-2 px-4 py-3 font-bold tracking-widest uppercase transition-all"
     >
       <span class="relative z-10 flex items-center justify-center gap-2 font-mono">
-        <span>LOGIN</span>
-        <span class="transition-transform group-hover:translate-x-1">-&gt;</span>
+        <span th:text="${isChinese ? '登录' : 'Sign in'}">Sign in</span>
+        <span aria-hidden="true" class="transition-transform group-hover:translate-x-1">-&gt;</span>
       </span>
     </button>
   </div>
@@ -80,7 +116,7 @@
   <th:block th:unless="${#lists.isEmpty(formAuthProviders)}">
     <div class="divider-wrapper text-terminal-dim my-6 flex items-center gap-2 font-mono text-xs">
       <span class="bg-terminal-green/20 h-px flex-1"></span>
-      <span>OTHER LOGIN METHODS</span>
+      <span>Other sign-in methods</span>
       <span class="bg-terminal-green/20 h-px flex-1"></span>
     </div>
     <ul class="pill-items terminal-provider-list">
