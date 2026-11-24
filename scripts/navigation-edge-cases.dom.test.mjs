@@ -712,6 +712,146 @@ test("head contract changes choose assign or reload and reset adapter rejection"
 
 const trackerScript =
   '<script src="/halo-tracker.js" data-group="content.halo.run" data-plural="posts" data-name="article"></script>';
+const lightGalleryHead = `<link rel="stylesheet" href="/plugins/PluginLightGallery/assets/static/css/lightgallery.min.css">
+<script defer src="/plugins/PluginLightGallery/assets/static/js/lightgallery.min.js"></script>
+<script defer src="/plugins/PluginLightGallery/assets/static/js/plugins/zoom/lg-zoom.min.js"></script>
+<script type="text/javascript">
+document.addEventListener("DOMContentLoaded", function () {
+  document.querySelectorAll(\`#article-content img\`)?.forEach(function (node) {
+    if (node) {
+      node.dataset.src = node.src;
+    }
+    const galleries = document.querySelectorAll(\`#article-content\`);
+    if (galleries.length > 0) {
+      galleries.forEach(function (node) {
+        lightGallery(node, { selector: "img", });
+      });
+    }
+  });
+});
+</script>`;
+const officialPostComments = `<section class="terminal-comments" data-navigation-exit="full">
+  <h2>[COMMENTS]</h2><div id="comment-article"></div>
+  <script type="module" data-pjax>
+    import { init } from "/plugins/PluginCommentWidget/assets/static/comment-widget.js?version=3.5.0";
+    init("#comment-article", { group: "content.halo.run", kind: "Post", name: "article" });
+  </script>
+</section>`;
+
+test("an eligible article and the list share a document while changed plugin versions still fall back", async () => {
+  resetPage("/");
+  document.querySelector("#main").innerHTML = '<a href="/posts/article">Article</a>';
+  const shell = document.body.appendChild(document.createElement("ncm-mini-player"));
+  const loads = [];
+  const navigator = createNavigator({
+    assign: (url) => (loads.push(url.pathname), true),
+    reload: (url) => (loads.push(url.pathname), true),
+  });
+  navigator.start();
+  let version = "1";
+  const path = "/plugins/plugin-ncm/assets/static/";
+  globalThis.fetch = async (url) => {
+    const target = new URL(url);
+    const index = target.pathname === "/";
+    const scripts = index
+      ? ""
+      : `<link rel="stylesheet" href="${path}card.css?v=${version}" data-ncm-card-css>` +
+        `<script src="${path}card.js?v=${version}" defer data-ncm-card-js data-endpoint="/music/card/"></script>`;
+    return responseWithUrl(
+      pageMarkup({
+        head: '<script src="/app.js"></script>' + scripts + (index ? "" : trackerScript + lightGalleryHead),
+        body: index ? '<main id="main">Home</main>' : '<main id="main">' + officialPostComments + "</main>",
+        pageData: index
+          ? '<script id="halo-page-data" type="application/json">{"pageType":"index"}</script>'
+          : '<script id="halo-page-data" type="application/json">{"pageType":"post","currentPost":{"name":"article"}}</script>',
+      }),
+      url,
+    );
+  };
+
+  const entered = once(document, NAVIGATION_SUCCESS_EVENT);
+  const enterFinished = once(document, NAVIGATION_COMPLETE_EVENT);
+  dispatchClick(document.querySelector("#main a"));
+  const { postVisit, postComments } = (await entered).detail;
+  await enterFinished;
+  assert.equal(postVisit.name, "article");
+  assert.equal(postComments.containerId, "comment-article");
+  assert.equal(postComments.name, "article");
+  assert.equal(document.querySelector(".terminal-comments script"), null);
+  assert.equal(document.querySelector(".terminal-comments").hasAttribute("data-navigation-exit"), false);
+  assert.equal(
+    document.querySelector("[data-ncm-card-js]").getAttribute("src"),
+    "https://blog.example.com" + path + "card.js?v=1",
+  );
+  assert.equal(document.querySelector('script[src="/halo-tracker.js"]'), null);
+  assert.equal(document.head.querySelector('script[src*="PluginLightGallery"]'), null);
+  assert.equal(document.querySelector("ncm-mini-player"), shell);
+
+  const back = once(document, NAVIGATION_COMPLETE_EVENT);
+  history.back();
+  assert.equal((await back).detail.history, true);
+  assert.equal(location.pathname, "/");
+  const forward = once(document, NAVIGATION_COMPLETE_EVENT);
+  history.forward();
+  assert.equal((await forward).detail.postVisit.name, "article");
+  assert.equal(document.querySelectorAll("[data-ncm-card-js]").length, 1);
+  assert.equal(document.querySelector("ncm-mini-player"), shell);
+  assert.deepEqual(loads, []);
+
+  version = "2";
+  await visitAndWait(navigator, "/posts/different-asset");
+  assert.deepEqual(loads, ["/posts/different-asset"]);
+});
+
+for (const [label, markup, galleryHead] of [
+  ["matching selector", '<div id="article-content"><img src="/image.webp"></div>', lightGalleryHead],
+  ["custom initializer", "<h1>Article</h1>", lightGalleryHead.replaceAll("#article-content", ".terminal-content")],
+  ["changed asset", "<h1>Article</h1>", lightGalleryHead.replace("lg-zoom.min.js", "lg-zoom-new.min.js")],
+]) {
+  test("LightGallery keeps full navigation with " + label, async () => {
+    resetPage("/");
+    const main = document.getElementById("main");
+    const reloads = [];
+    const navigator = createNavigator({ assign: () => false, reload: (url) => (reloads.push(url.pathname), true) });
+    navigator.start();
+    globalThis.fetch = async (url) =>
+      responseWithUrl(
+        pageMarkup({
+          head: '<script src="/app.js"></script>' + trackerScript + galleryHead,
+          body: '<main id="main">' + markup + "</main>",
+          pageData:
+            '<script id="halo-page-data" type="application/json">{"pageType":"post","currentPost":{"name":"article"}}</script>',
+        }),
+        url,
+      );
+
+    await visitAndWait(navigator, "/posts/article");
+    assert.deepEqual(reloads, ["/posts/article"]);
+    assert.equal(document.getElementById("main"), main);
+  });
+}
+
+test("an unfamiliar article comment initializer falls back before replacing the main content", async () => {
+  resetPage("/");
+  const main = document.getElementById("main");
+  const reloads = [];
+  const navigator = createNavigator({ assign: () => false, reload: (url) => (reloads.push(url.pathname), true) });
+  navigator.start();
+  globalThis.fetch = async (url) =>
+    responseWithUrl(
+      pageMarkup({
+        head: '<script src="/app.js"></script>' + trackerScript,
+        body: '<main id="main">' + officialPostComments.replace('name: "article"', 'name: "other"') + "</main>",
+        pageData:
+          '<script id="halo-page-data" type="application/json">{"pageType":"post","currentPost":{"name":"article"}}</script>',
+      }),
+      url,
+    );
+
+  await visitAndWait(navigator, "/posts/article");
+  assert.deepEqual(reloads, ["/posts/article"]);
+  assert.equal(document.getElementById("main"), main);
+});
 
 function trackerPage() {
   return pageMarkup({ head: '<script src="/app.js"></script>' + trackerScript });

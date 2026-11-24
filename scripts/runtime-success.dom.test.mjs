@@ -12,7 +12,7 @@ const environment = installDom(`<!doctype html><html><head><title>Categories</ti
   </main>
 </body></html>`);
 const Alpine = (await import("../src/common/alpine.ts")).default;
-const { NAVIGATION_SAME_DOCUMENT_EVENT, NAVIGATION_START_EVENT, navigateToUrl } =
+const { NAVIGATION_SAME_DOCUMENT_EVENT, NAVIGATION_START_EVENT, NAVIGATION_SUCCESS_EVENT, navigateToUrl } =
   await import("../src/common/navigation.ts");
 const { bootstrapRuntime } = await import("../src/common/runtime.ts");
 
@@ -161,6 +161,75 @@ test("repeated comment anchors return to the public container without replacing 
       window.removeEventListener("hashchange", onHashChange);
     }
   }
+});
+
+test("only a successfully initialized article reports its group, plural and name once", async (t) => {
+  history.replaceState(history.state, "", "/article");
+  const main = document.getElementById("main");
+  main.innerHTML = "<h1>Article</h1>";
+  main.scrollTo = () => {};
+  const endpoint = "https://blog.example.com/apis/api.halo.run/v1alpha1/trackers/counter";
+  const fetch = t.mock.method(globalThis, "fetch", async () => new Response(null, { status: 200 }));
+  const detail = {
+    ...navigationDetail("article"),
+    pageData: { pageType: "post" },
+    postVisit: { endpoint, name: "article-1" },
+  };
+  const ready = new Promise((resolve) => document.addEventListener("theme:page-ready", resolve, { once: true }));
+  document.dispatchEvent(new CustomEvent(NAVIGATION_SUCCESS_EVENT, { detail }));
+  await ready;
+  assert.equal(fetch.mock.callCount(), 1);
+  const [url, options] = fetch.mock.calls[0].arguments;
+  assert.equal(url, endpoint);
+  assert.equal(options.method, "POST");
+  assert.deepEqual(JSON.parse(options.body), { group: "content.halo.run", plural: "posts", name: "article-1" });
+
+  navigateToUrl("/article#section");
+  await new Promise((resolve) => window.requestAnimationFrame(resolve));
+  assert.equal(fetch.mock.callCount(), 1);
+});
+
+test("the next partial page disconnects the unread article's comment observer", async (t) => {
+  history.replaceState(history.state, "", "/article");
+  const main = document.getElementById("main");
+  main.innerHTML = '<section class="terminal-comments"><div id="comment-post-1"></div></section>';
+  const observations = [];
+  let disconnected = false;
+  window.IntersectionObserver = class {
+    observe(target) {
+      observations.push(target);
+    }
+    disconnect() {
+      disconnected = true;
+    }
+  };
+  t.after(() => delete window.IntersectionObserver);
+  class CommentWidget extends HTMLElement {}
+  window.customElements.define("comment-widget", CommentWidget);
+  const moduleUrl = "data:text/javascript,export class CommentWidget {}";
+  const initialized = new Promise((resolve) => document.addEventListener("theme:page-ready", resolve, { once: true }));
+  document.dispatchEvent(
+    new CustomEvent(NAVIGATION_SUCCESS_EVENT, {
+      detail: {
+        ...navigationDetail("article"),
+        pageData: { pageType: "post" },
+        postComments: { moduleUrl, containerId: "comment-post-1", name: "post-1" },
+      },
+    }),
+  );
+  await initialized;
+  assert.deepEqual(observations, [document.getElementById("comment-post-1")]);
+  assert.equal(disconnected, false);
+
+  main.innerHTML = "<h1>Home</h1>";
+  const returned = new Promise((resolve) => document.addEventListener("theme:page-ready", resolve, { once: true }));
+  document.dispatchEvent(
+    new CustomEvent(NAVIGATION_SUCCESS_EVENT, {
+      detail: { ...navigationDetail(""), pageData: { pageType: "index" } },
+    }),
+  );
+  await returned;
+  assert.equal(disconnected, true);
 });
 
 function mountedCommentDetail({ wrapped = true, replyName = "reply-1" } = {}) {

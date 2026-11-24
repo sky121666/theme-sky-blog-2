@@ -80,7 +80,7 @@
   </th:block>
 
   <ul
-    th:fragment="postList(entries, showDetails)"
+    th:fragment="postList(entries, showDetails, fullNavigation)"
     th:unless="${#lists.isEmpty(entries)}"
     th:with="datePattern=${showDetails and theme.config.appearance?.terminal_layout != 'unix' ? 'MMM dd HH:mm' : 'MM-dd HH:mm'}"
     class="terminal-file-entries font-mono text-xs md:space-y-1 md:text-sm"
@@ -102,7 +102,7 @@
     >
       <a
         th:href="@{${post.status.permalink}}"
-        data-navigation="full"
+        th:attr="data-navigation=${fullNavigation ? 'full' : null}"
         class="home-file-title flex min-h-10 min-w-0 items-center py-1 md:min-h-0"
       >
         <span class="min-w-0" th:text="${post.spec.title}">Post Title</span>

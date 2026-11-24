@@ -1,8 +1,18 @@
 import Swup, { Location as SwupLocation, updateHistoryRecord, type Visit } from "swup";
 import Alpine from "./alpine";
 import { findReusedContactFormLoader } from "./contact-form-navigation";
+import { findUnusedLightGalleryResources } from "./lightgallery-navigation";
 import { logWarn } from "./logger";
+import { loadMusicCardAssets, planMusicCardNavigation } from "./music-card-navigation";
 import { readPageDataFromDocument } from "./page-data";
+import {
+  findPostComments,
+  findPostTracker,
+  HALO_TRACKER_SELECTOR,
+  POST_COMMENT_SECTION_SELECTOR,
+  type PostComments,
+  type PostVisit,
+} from "./post-navigation";
 import type { HaloPageDataPayload } from "./types";
 
 import { dispatchRuntimeStatus } from "./runtime-events";
@@ -27,6 +37,8 @@ export interface NavigationEventDetail {
   fromEntryKey: string;
   history: boolean;
   pageData?: Partial<HaloPageDataPayload>;
+  postComments?: PostComments;
+  postVisit?: PostVisit;
   targetEntryKey: string;
   targetUrl: string;
   triggerElement?: Element;
@@ -212,7 +224,7 @@ function currentPageRequiresFullNavigationExit() {
   // Halo's counter binds the current resource to its History API listeners.
   // Leaving this document through swup would attribute the next URL to the old post.
   return Boolean(
-    document.head.querySelector('script[src="/halo-tracker.js"][data-plural][data-name]') ||
+    document.head.querySelector(HALO_TRACKER_SELECTOR) ||
     document.getElementById("main")?.querySelector(FULL_NAVIGATION_EXIT_SELECTOR),
   );
 }
@@ -267,10 +279,10 @@ function isInertInlineStyleElement(element: Element) {
   return element.tagName.toLowerCase() === "style" && !element.hasAttribute(THEME_NAVIGATION_STYLE_ATTRIBUTE);
 }
 
-export function getHeadNavigationContractSignatures(root: Document, baseUrl: URL, runtimeLoader?: Element) {
+export function getHeadNavigationContractSignatures(root: Document, baseUrl: URL, ignored: readonly Element[] = []) {
   return Array.from(root.head?.children ?? [])
     .filter(
-      (element) => element !== runtimeLoader && !isPageMetadataElement(element) && !isInertInlineStyleElement(element),
+      (element) => !ignored.includes(element) && !isPageMetadataElement(element) && !isInertInlineStyleElement(element),
     )
     .map((element) => normalizeHeadElementSignature(element, baseUrl));
 }
@@ -279,10 +291,12 @@ export function headNavigationContractChanged(
   nextDocument: Document,
   nextUrl: URL,
   currentUrl = new URL(window.location.href),
+  ignored = { current: [] as Element[], next: [] as Element[] },
 ) {
   const runtimeLoader = findReusedContactFormLoader(document.head, nextDocument.head, currentUrl.origin);
-  const currentSignatures = getHeadNavigationContractSignatures(document, currentUrl, runtimeLoader);
-  const nextSignatures = getHeadNavigationContractSignatures(nextDocument, nextUrl);
+  const ignoredCurrent = runtimeLoader ? [...ignored.current, runtimeLoader] : ignored.current;
+  const currentSignatures = getHeadNavigationContractSignatures(document, currentUrl, ignoredCurrent);
+  const nextSignatures = getHeadNavigationContractSignatures(nextDocument, nextUrl, ignored.next);
   return (
     currentSignatures.length !== nextSignatures.length ||
     currentSignatures.some((signature, index) => signature !== nextSignatures[index])
@@ -574,12 +588,34 @@ export class PartialPageNavigator {
       if (!pageData?.pageType) throw new Error("Missing Halo page data.");
       const finalTarget = new URL(visit.to.url, this.displayedUrl);
       finalTarget.hash = visit.to.hash || new URL(this.active.detail.targetUrl).hash;
-      if (headNavigationContractChanged(parsedDocument, finalTarget, this.displayedUrl)) {
+      const postName = pageData.pageType === "post" ? pageData.currentPost?.name : null;
+      const tracker = postName ? findPostTracker(parsedDocument.head, finalTarget, postName) : null;
+      const commentSection =
+        pageData.pageType === "post" ? nextMain.querySelector(POST_COMMENT_SECTION_SELECTOR) : null;
+      const comments = commentSection && postName ? findPostComments(commentSection, finalTarget, postName) : null;
+      const cards = planMusicCardNavigation(parsedDocument.head, this.displayedUrl, finalTarget, pageData.pageType);
+      const ignoredHead = tracker
+        ? [...cards.ignoreNext, tracker.script, ...findUnusedLightGalleryResources(parsedDocument, finalTarget)]
+        : cards.ignoreNext;
+      if (
+        (commentSection && !comments) ||
+        headNavigationContractChanged(parsedDocument, finalTarget, this.displayedUrl, {
+          current: cards.ignoreCurrent,
+          next: ignoredHead,
+        })
+      ) {
         this.navigateFully(finalTarget);
         return;
       }
       const detail = this.active.detail;
       detail.pageData = pageData;
+      detail.postVisit = tracker?.visit;
+      if (comments && commentSection) {
+        comments.script.remove();
+        commentSection.removeAttribute("data-navigation-exit");
+        detail.postComments = comments.options;
+      }
+      if (cards.toLoad) loadMusicCardAssets(cards.toLoad);
       const historyState = {
         ...readHistoryState(),
         url: finalTarget.pathname + finalTarget.search + finalTarget.hash,

@@ -37,6 +37,7 @@ export interface HaloPostRecord {
 
 export interface HaloCurrentRef {
   displayName?: string | null;
+  name?: string | null;
   permalink?: string | null;
   slug?: string | null;
   title?: string | null;

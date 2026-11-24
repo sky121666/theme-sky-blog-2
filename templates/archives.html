@@ -20,7 +20,7 @@
         </h2>
         <section th:each="month : ${archive.months}" class="mb-3 md:mb-5">
           <h3 class="text-terminal-dim mb-1 text-sm md:mb-2" th:text="|MONTH ${month.month}|">MONTH 01</h3>
-          <th:block th:replace="~{modules/file-list :: postList(${month.posts}, false)}"></th:block>
+          <th:block th:replace="~{modules/file-list :: postList(${month.posts}, false, true)}"></th:block>
         </section>
       </section>
 

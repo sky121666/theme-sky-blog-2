@@ -15,6 +15,7 @@ import {
   type NavigationEventDetail,
 } from "./navigation";
 import { syncHaloDataFromDocument } from "./page-data";
+import { loadPostCommentWidget, observePostComments, recordPostVisit } from "./post-navigation";
 import { dispatchPageReady, dispatchRuntimeStatus } from "./runtime-events";
 import { bindEntryScrollHistory, checkpointScrollPosition } from "./scroll-history";
 import { initTaskListInteraction } from "./task-list";
@@ -30,6 +31,7 @@ let moduleReplaySequence = 0;
 let scrollFrameId: number | null = null;
 let fullNavigationPending = false;
 let scrollOwner: NavigationEventDetail | null = null;
+let disposePostComments: (() => void) | undefined;
 // Only a newly inserted main waiting for plugin replay needs a fallback mount.
 let pendingMount: { main: HTMLElement; pageType: string; releaseVisit: () => void } | null = null;
 const scrollPositions = new Map<string, number>();
@@ -241,12 +243,15 @@ async function initializeReplacedPage(
   expectedNavigationSequence: number,
   releaseVisit: () => void,
 ) {
+  disposePostComments?.();
+  disposePostComments = undefined;
   const main = document.getElementById("main");
   const pageType = syncHaloDataFromDocument(detail.pageData)?.pageType ?? "unknown";
 
   if (main) {
     pendingMount = { main, pageType, releaseVisit };
     await replayNavigationScripts(main);
+    if (detail.postComments) await loadPostCommentWidget(detail.postComments, MODULE_REPLAY_TIMEOUT_MS);
     if (
       fullNavigationPending ||
       expectedNavigationSequence !== navigationSequence ||
@@ -258,6 +263,10 @@ async function initializeReplacedPage(
     // Shiki 1.4.1 keeps its extraPathPatterns renderer in a head module that
     // listens for this lifecycle event. Emitting the compatibility event keeps
     // that plugin surface working without restoring the Pjax dependency.
+    if (detail.postComments) {
+      disposePostComments = observePostComments(main, detail.postComments);
+      keepInitialReplyVisible();
+    }
     window.dispatchEvent(new CustomEvent(PJAX_COMPAT_COMPLETE_EVENT));
     mountPageControls(main);
     pendingMount = null;
@@ -266,6 +275,7 @@ async function initializeReplacedPage(
   initTaskListInteraction();
   announceNavigation();
   if (scrollOwner === detail) restoreScrollPosition(detail);
+  if (detail.postVisit) void recordPostVisit(detail.postVisit);
   dispatchPageReady({ pageType });
 }
 

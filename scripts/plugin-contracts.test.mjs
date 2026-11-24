@@ -401,7 +401,7 @@ test("swup cannot bypass the theme's plugin lifecycle during content replacement
 
 test("head extension contract changes keep a full-navigation lifecycle boundary", () => {
   const files = updateFile(loadFiles(), "src/common/navigation.ts", (content) =>
-    content.replace("headNavigationContractChanged(parsedDocument, finalTarget, this.displayedUrl)", "false"),
+    content.replace("headNavigationContractChanged(parsedDocument, finalTarget, this.displayedUrl,", "false && ("),
   );
   const result = validatePluginContracts(files);
   assertHasIssue(result, "head 生命周期契约变化时必须切换为整页导航");
@@ -505,7 +505,7 @@ test("comment pages keep the full-navigation cleanup boundary", () => {
     content.replace('data-navigation-exit="full"', ""),
   );
   const result = validatePluginContracts(files);
-  assertHasIssue(result, "Post 评论页离开时必须使用整页导航释放 CommentWidget observer");
+  assertHasIssue(result, "Post 评论需要为未接管的 CommentWidget 保留整页退出保护");
 });
 
 test("plugin CSS variables remain guarded as DOM-level compatibility surfaces", () => {

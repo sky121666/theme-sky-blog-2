@@ -752,7 +752,7 @@ function validateCommentContract(files, issues) {
     "comment-post",
     post,
     'data-navigation-exit="full"',
-    "Post 评论页离开时必须使用整页导航释放 CommentWidget observer",
+    "Post 评论需要为未接管的 CommentWidget 保留整页退出保护",
   );
   expectPattern(
     issues,
@@ -960,7 +960,7 @@ function validatePartialNavigationScriptContract(files, issues) {
     issues,
     "partial-navigation",
     navigation,
-    "headNavigationContractChanged(parsedDocument, finalTarget, this.displayedUrl)",
+    "headNavigationContractChanged(parsedDocument, finalTarget, this.displayedUrl,",
     "head 生命周期契约变化时必须切换为整页导航",
   );
   expectIncludes(

@@ -169,9 +169,11 @@ test("the shared post row exposes the runtime dataset and real article link", ()
     assert.match(postRow, new RegExp("\\s" + attribute + "(?:=|\\s|>)"), attribute);
   }
   assert.equal((template.match(/\bdata-post-record\b/g) ?? []).length, 1);
-  assert.match(template, /<a\s+th:href="@\{\$\{post\.status\.permalink\}\}"\s+data-navigation="full"/);
+  assert.match(
+    template,
+    /<a\s+th:href="@\{\$\{post\.status\.permalink\}\}"\s+th:attr="data-navigation=\$\{fullNavigation \? 'full' : null\}"/,
+  );
   assert.match(template, /<time\b[^>]*th:datetime="\$\{post\.spec\.publishTime\}"/);
-  assert.equal((template.match(/\bdata-navigation="full"/g) ?? []).length, 1);
 });
 
 test("post command keeps cat visible and reserves the full user prompt for desktop", () => {

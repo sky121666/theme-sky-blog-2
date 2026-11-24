@@ -73,7 +73,12 @@ test("each article list uses shared rows, a named pager and a route-specific emp
 
   for (const [route, result, entries, label, firstUrl] of routes) {
     const template = read(`templates/${route}.html`);
-    assert.ok(template.includes(`modules/file-list :: postList(\${${entries}},`), route);
+    const showDetails = route !== "archives";
+    const fullNavigation = route !== "index";
+    assert.ok(
+      template.includes(`modules/file-list :: postList(\${${entries}}, ${showDetails}, ${fullNavigation})`),
+      route,
+    );
     assert.ok(template.includes(`modules/file-list :: summary(\${${result}}, '${label}',`), route);
     assert.ok(template.includes(`modules/file-list :: emptyPage(\${${result}}, ${firstUrl},`), route);
   }

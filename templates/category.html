@@ -11,7 +11,7 @@
       <th:block th:replace="~{modules/file-list :: gridHeader('DATE', 'USER')}"></th:block>
 
       <th:block th:replace="~{modules/file-list :: parentShortcut(${site.routes.categoriesUri}, 'root')}"></th:block>
-      <th:block th:replace="~{modules/file-list :: postList(${posts.items}, true)}"></th:block>
+      <th:block th:replace="~{modules/file-list :: postList(${posts.items}, true, true)}"></th:block>
 
       <th:block
         th:replace="~{modules/file-list :: emptyPage(${posts}, ${category.status.permalink}, 'No posts in this category yet.', 'No posts on this page.')}"

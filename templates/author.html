@@ -11,7 +11,7 @@
       <th:block th:replace="~{modules/file-list :: gridHeader('DATE', 'USER')}"></th:block>
 
       <th:block th:replace="~{modules/file-list :: parentShortcut('/', 'root')}"></th:block>
-      <th:block th:replace="~{modules/file-list :: postList(${posts.items}, true)}"></th:block>
+      <th:block th:replace="~{modules/file-list :: postList(${posts.items}, true, true)}"></th:block>
 
       <th:block
         th:replace="~{modules/file-list :: emptyPage(${posts}, ${author.status.permalink}, 'No posts found.', 'No posts on this page.')}"
